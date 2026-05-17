@@ -32,6 +32,12 @@ scripts/autosave.sh "describe the change"
 
 That script commits all changed project files and pushes to the configured GitHub remote when one exists.
 
+For future Codex work on this app:
+
+1. Edit only the project source-of-truth files in this repository.
+2. Verify the app after the change.
+3. Run `scripts/autosave.sh "short change summary"` before ending the session.
+
 ## GitHub setup
 
 Once an empty GitHub repository exists, connect it with:
