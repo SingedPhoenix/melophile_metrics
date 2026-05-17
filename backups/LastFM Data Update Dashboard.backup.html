@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>melophile metrics — Listening Goals Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Neonderthaw&family=Quicksand:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --onyx: #0A0A0A;
+    --amethyst: #24003D;
+    --amethyst-light: #3D0066;
+    --charcoal: #353D45;
+    --charcoal-light: #4A5560;
+    --cherry: #520000;
+    --cherry-light: #7A0000;
+    --cherry-bright: #A00000;
+    --silver: #CCCCCC;
+    --silver-dim: #888888;
+    --silver-faint: rgba(204,204,204,0.06);
+    --border: rgba(204,204,204,0.1);
+    --border-mid: rgba(204,204,204,0.15);
+    --text: #CCCCCC;
+    --text-dim: #666666;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--onyx);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 0% 0%, rgba(36,0,61,0.55) 0%, transparent 60%),
+      radial-gradient(ellipse 55% 35% at 100% 100%, rgba(82,0,0,0.45) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 28px 80px; }
+
+  header {
+    padding: 36px 0 26px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+  }
+
+  .logo { font-family: 'Neonderthaw', cursive; font-size: 52px; letter-spacing: 2px; color: var(--silver); line-height: 1; }
+  .subtitle { font-size: 10px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; }
+  .date-badge { font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; border: 1px solid var(--border); padding: 7px 16px; border-radius: 3px; background: var(--silver-faint); margin-top: 4px; }
+
+  .accent-line { height: 1px; background: linear-gradient(90deg, transparent, var(--cherry-bright) 30%, var(--amethyst-light) 70%, transparent); margin: 0 0 48px; opacity: 0.6; }
+
+  .screen { display: none; }
+  .screen.active { display: block; animation: fadeIn 0.35s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* ── Upload ── */
+  .upload-zone {
+    border: 1px solid rgba(82,0,0,0.5); border-radius: 10px; padding: 60px 40px;
+    text-align: center; cursor: pointer; transition: all 0.25s;
+    background: linear-gradient(135deg, rgba(82,0,0,0.08), rgba(36,0,61,0.08));
+    max-width: 540px; margin: 0 auto; position: relative; overflow: hidden;
+  }
+  .upload-zone::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(82,0,0,0), rgba(36,0,61,0)); transition: all 0.3s; pointer-events: none; }
+  .upload-zone:hover::after, .upload-zone.drag-over::after { background: linear-gradient(135deg, rgba(82,0,0,0.1), rgba(36,0,61,0.15)); }
+  .upload-zone:hover, .upload-zone.drag-over { border-color: var(--cherry-bright); transform: translateY(-2px); }
+  .upload-zone h2 { font-family: 'Quicksand', sans-serif; font-weight: 400; font-size: 22px; letter-spacing: 1px; color: var(--silver); }
+  .upload-zone input { display: none; }
+
+  /* ── Landing ── */
+  .landing { max-width: 900px; margin: 0 auto; text-align: center; }
+  .landing-question { font-family: 'Quicksand', sans-serif; font-weight: 300; font-size: 18px; color: var(--silver-dim); letter-spacing: 0.5px; margin-bottom: 40px; }
+
+  .landing-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-bottom: 32px; }
+  @media (max-width: 900px) { .landing-cards { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 500px) { .landing-cards { grid-template-columns: 1fr; } }
+
+  .landing-card {
+    border: 1px solid var(--border); border-radius: 12px; padding: 36px 24px 30px;
+    cursor: pointer; transition: all 0.2s; background: var(--silver-faint);
+    position: relative; overflow: hidden; text-align: left;
+  }
+  .landing-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: 0; transition: opacity 0.2s; }
+  .landing-card.artist-card::before { background: linear-gradient(90deg, var(--cherry), var(--cherry-bright)); }
+  .landing-card.track-card::before  { background: linear-gradient(90deg, var(--amethyst), var(--amethyst-light)); }
+  .landing-card.stats-card::before  { background: linear-gradient(90deg, var(--charcoal), var(--charcoal-light)); }
+  .landing-card:hover { transform: translateY(-4px); }
+  .landing-card.artist-card:hover { background: rgba(82,0,0,0.12); border-color: rgba(160,0,0,0.35); }
+  .landing-card.track-card:hover  { background: rgba(36,0,61,0.2);  border-color: rgba(61,0,102,0.45); }
+  .landing-card.stats-card:hover  { background: rgba(53,61,69,0.25); border-color: rgba(74,85,96,0.5); }
+  .landing-card:hover::before { opacity: 1; }
+
+  .card-icon { font-size: 26px; margin-bottom: 14px; display: block; }
+  .card-title { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 3px; color: var(--silver); margin-bottom: 8px; }
+  .card-desc { font-size: 11px; color: var(--text-dim); line-height: 1.8; }
+  .card-count { margin-top: 20px; font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; border-top: 1px solid var(--border); padding-top: 14px; display: flex; align-items: baseline; gap: 8px; }
+  .card-count strong { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; color: var(--silver); display: inline; }
+
+  .upload-again { font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border: 1px solid var(--border); background: none; font-family: 'DM Mono', monospace; padding: 8px 18px; border-radius: 4px; transition: all 0.15s; }
+  .upload-again:hover { border-color: var(--border-mid); color: var(--silver); }
+
+  /* ── Back button ── */
+  .back-btn { display: inline-flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; border: none; background: none; font-family: 'DM Mono', monospace; padding: 4px 0; margin-bottom: 28px; transition: color 0.15s; }
+  .back-btn:hover { color: var(--silver); }
+  .back-btn::before { content: '←'; font-size: 14px; }
+
+  /* ── Stats/Charts screen ── */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .charts-grid { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: rgba(53,61,69,0.12); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+
+  .chart-card.full-width { grid-column: 1 / -1; }
+
+  .chart-card-header {
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(36,0,61,0.2), rgba(82,0,0,0.08));
+  }
+
+  .chart-card-title { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: var(--silver); }
+  .chart-card-desc { font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 3px; }
+  .chart-body { padding: 20px; position: relative; }
+
+  /* Goal rings - custom SVG donut */
+  .rings-wrap { display: flex; align-items: center; justify-content: center; gap: 32px; flex-wrap: wrap; padding: 8px 0; }
+  .ring-item { text-align: center; }
+  .ring-svg { display: block; margin: 0 auto 10px; }
+  .ring-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; }
+  .ring-num { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--silver); letter-spacing: 1px; }
+
+  /* Momentum bars */
+  .momentum-list { display: flex; flex-direction: column; gap: 10px; }
+  .momentum-row { display: flex; align-items: center; gap: 10px; }
+  .momentum-name { font-size: 11px; color: var(--silver); width: 160px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .momentum-bars { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .momentum-bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .momentum-bar { height: 6px; border-radius: 3px; min-width: 2px; transition: width 0.6s ease; }
+  .momentum-bar.bar-2026 { background: linear-gradient(90deg, var(--cherry-bright), rgba(160,0,0,0.6)); }
+  .momentum-bar.bar-avg  { background: rgba(204,204,204,0.2); }
+  .momentum-val { font-size: 9px; color: var(--text-dim); width: 28px; text-align: right; flex-shrink: 0; }
+
+  /* Histogram */
+  .hist-wrap { display: flex; align-items: flex-end; gap: 3px; height: 120px; padding-top: 8px; }
+  .hist-bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+  .hist-bar { width: 100%; border-radius: 2px 2px 0 0; transition: height 0.5s ease; cursor: default; position: relative; }
+  .hist-bar:hover::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); background: rgba(10,10,10,0.9); border: 1px solid var(--border); padding: 4px 8px; font-size: 9px; white-space: nowrap; border-radius: 3px; color: var(--silver); pointer-events: none; z-index: 10; }
+  .hist-label { font-size: 8px; color: var(--text-dim); margin-top: 4px; text-align: center; }
+
+  /* Gap/race chart */
+  .gap-list { display: flex; flex-direction: column; gap: 8px; }
+  .gap-row { display: grid; grid-template-columns: 140px 1fr 40px; align-items: center; gap: 10px; }
+  .gap-name { font-size: 10px; color: var(--silver); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gap-track-wrap { position: relative; height: 10px; background: rgba(204,204,204,0.06); border-radius: 5px; overflow: hidden; }
+  .gap-fill-avg  { position: absolute; left: 0; top: 0; height: 100%; border-radius: 5px; background: rgba(204,204,204,0.15); }
+  .gap-fill-2026 { position: absolute; left: 0; top: 0; height: 100%; border-radius: 5px; }
+  .gap-status { font-size: 9px; text-align: right; font-family: 'DM Mono', monospace; }
+  .gap-status.behind { color: #FF7070; }
+  .gap-status.onpace { color: #80D090; }
+
+  /* Discovery chart canvas */
+  .chart-canvas-wrap { position: relative; height: 220px; }
+
+  /* Stats dashboard - stat cards row */
+  .stats-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 24px; }
+  @media (max-width: 900px) { .stats-bar { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 500px) { .stats-bar { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat-card { border-radius: 6px; padding: 16px 12px; text-align: center; border: 1px solid var(--border); position: relative; overflow: hidden; transition: transform 0.15s; }
+  .stat-card:hover { transform: translateY(-2px); }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.s-cherry   { background: rgba(82,0,0,0.18); }
+  .stat-card.s-cherry::before { background: linear-gradient(90deg, var(--cherry), var(--cherry-bright)); }
+  .stat-card.s-amethyst { background: rgba(36,0,61,0.28); }
+  .stat-card.s-amethyst::before { background: linear-gradient(90deg, var(--amethyst), var(--amethyst-light)); }
+  .stat-card.s-charcoal { background: rgba(53,61,69,0.25); }
+  .stat-card.s-charcoal::before { background: linear-gradient(90deg, var(--charcoal), var(--charcoal-light)); }
+  .stat-card.s-silver   { background: rgba(204,204,204,0.04); }
+  .stat-card.s-silver::before { background: linear-gradient(90deg, var(--silver-dim), var(--silver)); }
+  .stat-card .num { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; line-height: 1; color: var(--silver); }
+  .stat-card .label { font-size: 8px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-top: 6px; }
+
+  .progress-wrap { margin-bottom: 28px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-bottom: 7px; text-transform: uppercase; letter-spacing: 2px; }
+  .progress-pct { color: var(--silver) !important; }
+  .progress-track { height: 3px; background: rgba(204,204,204,0.07); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--cherry-bright), var(--amethyst-light)); border-radius: 2px; transition: width 1s cubic-bezier(0.4,0,0.2,1); }
+
+  .mode-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .mode-btn { padding: 8px 14px; border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .mode-btn:hover { border-color: rgba(82,0,0,0.6); color: var(--silver); }
+  .mode-btn.active { background: var(--cherry); color: var(--silver); border-color: var(--cherry); }
+
+  .filters { display: flex; gap: 16px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+  .filter-group { display: flex; align-items: center; gap: 9px; }
+  .filter-group label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; }
+  .filter-group select, .filter-group input { background: rgba(53,61,69,0.25); border: 1px solid var(--border); color: var(--silver); font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 11px; border-radius: 4px; outline: none; transition: border-color 0.15s; }
+  .filter-group select:focus, .filter-group input:focus { border-color: var(--cherry-bright); }
+  .filter-group input::placeholder { color: var(--text-dim); }
+  .filter-group select option { background: #1a1a2a; }
+
+  .table-wrap { background: rgba(53,61,69,0.12); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .table-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(135deg, rgba(36,0,61,0.25), rgba(82,0,0,0.1)); }
+  .table-title { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; color: var(--silver); }
+  .table-count { font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead th { background: rgba(10,10,10,0.6); font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); padding: 11px 18px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  thead th.num { text-align: right; }
+  tbody tr { border-bottom: 1px solid rgba(204,204,204,0.04); transition: background 0.1s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: rgba(82,0,0,0.07); }
+  td { padding: 12px 18px; font-size: 12px; vertical-align: middle; }
+  .td-rank { color: var(--text-dim); font-size: 10px; width: 44px; text-align: right; }
+  .td-artist-label { color: var(--text-dim); font-size: 10px; margin-top: 3px; }
+  .td-name { font-size: 12px; color: var(--silver); }
+  .td-num { text-align: right; }
+  .td-2026-dim { color: var(--silver-dim); }
+  .td-2026-hot { color: #FF7070; }
+  .td-avg { color: var(--text-dim); }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 3px; font-size: 11px; font-family: 'DM Mono', monospace; text-align: center; min-width: 46px; }
+  .b-cherry   { background: rgba(82,0,0,0.4);    color: #FF9090; border: 1px solid rgba(160,0,0,0.35); }
+  .b-amber    { background: rgba(100,65,0,0.35);  color: #FFBF60; border: 1px solid rgba(160,100,0,0.3); }
+  .b-green    { background: rgba(0,55,20,0.35);   color: #80D090; border: 1px solid rgba(0,90,30,0.3); }
+  .b-amethyst { background: rgba(36,0,61,0.55);   color: #C090FF; border: 1px solid rgba(80,0,130,0.4); }
+  .b-silver   { background: rgba(204,204,204,0.08); color: var(--silver); border: 1px solid var(--border); }
+
+  .empty-state { text-align: center; padding: 72px 20px; color: var(--text-dim); }
+  .empty-state h3 { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 3px; color: var(--silver); margin-bottom: 10px; }
+  .empty-state p { font-size: 11px; line-height: 1.8; }
+
+  .loading-overlay { position: fixed; inset: 0; background: rgba(10,10,10,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+  .loading-overlay.hidden { display: none; }
+  .loading-spinner { width: 36px; height: 36px; border: 2px solid var(--border); border-top-color: var(--cherry-bright); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 4px; color: var(--silver); }
+  .loading-sub  { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; margin-top: 8px; text-transform: uppercase; }
+
+  .landing-card.race-card::before  { background: linear-gradient(90deg, var(--cherry-bright), var(--amethyst-light)); }
+  .landing-card.race-card:hover  { background: rgba(82,0,0,0.1); border-color: rgba(160,0,0,0.3); }
+  .hidden { display: none !important; }
+
+  /* Stats type toggle */
+  .stats-type-row { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
+  .stats-type-btn { padding: 7px 16px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; cursor: pointer; transition: all 0.15s; }
+  .stats-type-btn.active { background: var(--charcoal); color: var(--silver); border-color: var(--charcoal-light); }
+  .stats-type-btn:hover:not(.active) { color: var(--silver); }
+
+
+  /* ── Race chart screen ── */
+  .race-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 24px; }
+  .race-ctrl-group { display: flex; align-items: center; gap: 8px; }
+  .race-ctrl-group label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; white-space: nowrap; }
+  .race-ctrl-group select, .race-ctrl-group input[type=number] {
+    background: rgba(53,61,69,0.25); border: 1px solid var(--border); color: var(--silver);
+    font-family: 'DM Mono', monospace; font-size: 11px; padding: 6px 10px; border-radius: 4px; outline: none;
+  }
+  .race-ctrl-group input[type=range] { accent-color: var(--cherry-bright); width: 120px; cursor: pointer; }
+  .race-btn { padding: 7px 16px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; cursor: pointer; transition: all 0.15s; }
+  .race-btn:hover { color: var(--silver); border-color: var(--border-mid); }
+  .race-btn.primary { background: var(--cherry); color: var(--silver); border-color: var(--cherry); }
+  .race-btn.primary:hover { background: var(--cherry-bright); }
+  .race-canvas-wrap { position: relative; background: rgba(10,10,10,0.4); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .race-label-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px 6px; }
+  .race-period-display { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px; color: rgba(204,204,204,0.15); }
+  .race-mode-display { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+  #raceCanvas { display: block; width: 100%; }
+  .race-speed-row { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .race-speed-label { font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
+
+  @media (max-width: 700px) {
+    .logo { font-size: 36px; }
+    .app { padding: 0 16px 60px; }
+    td { padding: 10px 12px; font-size: 11px; }
+    thead th { padding: 10px 12px; }
+    .mode-btn { font-size: 9px; padding: 6px 10px; }
+    .gap-row { grid-template-columns: 100px 1fr 36px; }
+    .momentum-name { width: 100px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Processing</div>
+  <div class="loading-sub" id="loadingStatus">Reading scrobble data...</div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="logo">melophile metrics</div>
+    <div class="subtitle">Listening Goals Dashboard · 2026</div>
+    <div class="date-badge" id="dateBadge">—</div>
+  </header>
+  <div class="accent-line"></div>
+
+  <!-- Screen 1: Upload -->
+  <div class="screen active" id="screenUpload">
+    <div class="upload-zone" id="uploadZone">
+      <h2>upload recent last fm dataset</h2>
+      <input type="file" id="fileInput" accept=".csv">
+    </div>
+  </div>
+
+  <!-- Screen 2: Landing -->
+  <div class="screen" id="screenLanding">
+    <div class="landing">
+      <p class="landing-question">what would you like to explore?</p>
+      <div class="landing-cards">
+        <div class="landing-card artist-card" onclick="enterDashboard('artist')">
+          <span class="card-icon">🎤</span>
+          <div class="card-title">Artists</div>
+          <p class="card-desc">Track listening pace and goal progress across your artist library</p>
+          <div class="card-count"><strong id="artistCountDisplay">—</strong> artists in your library</div>
+        </div>
+        <div class="landing-card track-card" onclick="enterDashboard('track')">
+          <span class="card-icon">🎵</span>
+          <div class="card-title">Tracks</div>
+          <p class="card-desc">Explore song-level metrics, records, and discovery for qualifying tracks</p>
+          <div class="card-count"><strong id="trackCountDisplay">—</strong> tracks qualifying</div>
+        </div>
+        <div class="landing-card race-card" onclick="enterRace()">
+          <span class="card-icon">🏁</span>
+          <div class="card-title">Bar Race</div>
+          <p class="card-desc">Animated bar chart race — watch artists rise and fall across your listening history</p>
+          <div class="card-count"><strong>20</strong> artists competing</div>
+        </div>
+        <div class="landing-card stats-card" onclick="enterStats()">
+          <span class="card-icon">📊</span>
+          <div class="card-title">Statistics</div>
+          <p class="card-desc">Visual breakdowns — discovery curves, pace rings, momentum charts, and more</p>
+          <div class="card-count"><strong>6</strong> visualizations</div>
+        </div>
+      </div>
+      <button class="upload-again" onclick="goToUpload()">↑ upload a different dataset</button>
+    </div>
+  </div>
+
+  <!-- Screen 3: Dashboard (table) -->
+  <div class="screen" id="screenDashboard">
+    <button class="back-btn" onclick="goToLanding()">back to overview</button>
+    <div class="stats-bar" id="statsBar"></div>
+    <div class="progress-wrap" id="progressWrap"></div>
+    <div class="mode-bar" id="modeBar"></div>
+    <div class="filters">
+      <div class="filter-group">
+        <label>Search</label>
+        <input type="text" id="searchInput" placeholder="search..." oninput="renderTable()">
+      </div>
+      <div class="filter-group">
+        <label>Show</label>
+        <select id="limitSelect" onchange="renderTable()">
+          <option value="25">Top 25</option>
+          <option value="50">Top 50</option>
+          <option value="100">Top 100</option>
+          <option value="250">Top 250</option>
+          <option value="9999">All</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-header">
+        <div class="table-title" id="tableTitle">—</div>
+        <div class="table-count" id="tableCount"></div>
+      </div>
+      <div id="tableBody"></div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Statistics / Charts -->
+  <div class="screen" id="screenStats">
+    <button class="back-btn" onclick="goToLanding()">back to overview</button>
+
+    <div class="stats-type-row">
+      <button class="stats-type-btn active" id="stypeArtist" onclick="switchStatsType('artist')">Artists</button>
+      <button class="stats-type-btn" id="stypeTrack" onclick="switchStatsType('track')">Tracks</button>
+    </div>
+
+    <div class="charts-grid" id="chartsGrid">
+
+      <!-- 1. Goal Progress Rings -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Goal State Breakdown</div>
+          <div class="chart-card-desc">Distribution across all six listening goal states</div>
+        </div>
+        <div class="chart-body">
+          <div class="chart-canvas-wrap"><canvas id="chartDonut"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 2. Discovery Timeline -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Discovery Timeline</div>
+          <div class="chart-card-desc">New artists / tracks heard for the first time each year</div>
+        </div>
+        <div class="chart-body">
+          <div class="chart-canvas-wrap"><canvas id="chartDiscovery"></canvas></div>
+        </div>
+      </div>
+
+      <!-- 3. Annual Average Distribution (Histogram) -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Average Distribution</div>
+          <div class="chart-card-desc">How annual averages cluster across your library</div>
+        </div>
+        <div class="chart-body" id="histBody">
+          <div id="histChart"></div>
+        </div>
+      </div>
+
+      <!-- 4. 2026 Momentum (top 20 bar comparison) -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <div class="chart-card-title">2026 Momentum</div>
+          <div class="chart-card-desc">Top 20 · 2026 listens vs annual average</div>
+        </div>
+        <div class="chart-body" id="momentumBody">
+          <div class="momentum-list" id="momentumChart"></div>
+        </div>
+      </div>
+
+      <!-- 5. The Gap (race chart) — full width -->
+      <div class="chart-card full-width">
+        <div class="chart-card-header">
+          <div class="chart-card-title">The Gap — 2026 Pace Race</div>
+          <div class="chart-card-desc">Top 30 · how close each is to maintaining their annual average</div>
+        </div>
+        <div class="chart-body" id="gapBody">
+          <div class="gap-list" id="gapChart"></div>
+        </div>
+      </div>
+
+      <!-- 6. Yearly total scrobbles (area) — full width -->
+      <div class="chart-card full-width">
+        <div class="chart-card-header">
+          <div class="chart-card-title">Annual Scrobble Volume</div>
+          <div class="chart-card-desc">Total scrobbles per year across your full listening history</div>
+        </div>
+        <div class="chart-body">
+          <div class="chart-canvas-wrap"><canvas id="chartVolume"></canvas></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- Screen 5: Bar Chart Race -->
+  <div class="screen" id="screenRace">
+    <button class="back-btn" onclick="goToLanding()">back to overview</button>
+
+    <div class="race-controls">
+      <div class="race-ctrl-group">
+        <label>Mode</label>
+        <select id="raceModeSelect" onchange="onRaceModeChange()">
+          <option value="cumulative">Cumulative All-Time</option>
+          <option value="annual">Annual (per year)</option>
+          <option value="custom">Custom Period</option>
+        </select>
+      </div>
+      <div class="race-ctrl-group" id="raceYearGroup" style="display:none">
+        <label>Year</label>
+        <select id="raceYearSelect"></select>
+      </div>
+      <div class="race-ctrl-group" id="raceFromGroup" style="display:none">
+        <label>From</label>
+        <select id="raceFromSelect"></select>
+      </div>
+      <div class="race-ctrl-group" id="raceToGroup" style="display:none">
+        <label>To</label>
+        <select id="raceToSelect"></select>
+      </div>
+      <div class="race-ctrl-group">
+        <label>Speed</label>
+        <input type="range" id="raceSpeed" min="200" max="2000" value="800" step="100">
+      </div>
+      <button class="race-btn primary" id="racePlayBtn" onclick="toggleRace()">▶ Play</button>
+      <button class="race-btn" onclick="resetRace()">↺ Reset</button>
+    </div>
+
+    <div class="race-canvas-wrap">
+      <div class="race-label-row">
+        <div class="race-period-display" id="racePeriodDisplay">—</div>
+        <div class="race-mode-display" id="raceModeDisplay">—</div>
+      </div>
+      <canvas id="raceCanvas" height="520"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const CURRENT_YEAR = 2026;
+let artistData = [], trackData = [], trackAllData = [];
+let rawArtistYear = {}, rawTrackYear = {};
+let rawArtistMonthly = {};
+let rawArtistDaily = {};
+let allMonths = [];
+let allDays = [];
+let currentType = 'artist';
+let currentMode = 'maintain';
+let statsType = 'artist';
+let chartDonut, chartDiscovery, chartVolume;
+
+document.getElementById('dateBadge').textContent =
+  new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }).toUpperCase();
+
+// ── Screen nav ───────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goToUpload()  { showScreen('screenUpload'); }
+function goToLanding() { showScreen('screenLanding'); }
+
+function enterDashboard(type) {
+  currentType = type; currentMode = 'maintain';
+  document.getElementById('searchInput').value = '';
+  setupModes(); updateStats(); renderTable();
+  showScreen('screenDashboard');
+}
+
+function enterStats() {
+  statsType = 'artist';
+  document.getElementById('stypeArtist').classList.add('active');
+  document.getElementById('stypeTrack').classList.remove('active');
+  showScreen('screenStats');
+  setTimeout(renderAllCharts, 50);
+}
+
+function switchStatsType(t) {
+  statsType = t;
+  document.getElementById('stypeArtist').classList.toggle('active', t==='artist');
+  document.getElementById('stypeTrack').classList.toggle('active',  t==='track');
+  renderAllCharts();
+}
+
+// ── Upload ───────────────────────────────────────────────────────────
+const zone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+zone.addEventListener('click', () => fileInput.click());
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => { if (fileInput.files[0]) processFile(fileInput.files[0]); });
+
+function processFile(file) {
+  showLoading('Reading scrobble data...');
+  const reader = new FileReader();
+  reader.onload = e => { setTimeout(() => { setLoadingStatus('Cleaning & computing...'); setTimeout(() => { try { buildData(parseCSV(e.target.result)); } catch(err) { hideLoading(); alert('Error: ' + err.message); } }, 50); }, 50); };
+  reader.readAsText(file);
+}
+
+function showLoading(msg) { document.getElementById('loadingOverlay').classList.remove('hidden'); document.getElementById('loadingStatus').textContent = msg; }
+function setLoadingStatus(msg) { document.getElementById('loadingStatus').textContent = msg; }
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
+// ── CSV ──────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+  return lines.slice(1).map(line => {
+    const vals = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') inQ = !inQ;
+      else if (line[i] === ',' && !inQ) { vals.push(cur.trim()); cur = ''; }
+      else cur += line[i];
+    }
+    vals.push(cur.trim());
+    const obj = {};
+    headers.forEach((h,i) => { obj[h] = (vals[i]||'').replace(/^"|"$/g,'').trim(); });
+    return obj;
+  });
+}
+
+function cleanTrack(t) {
+  t = t.replace(/\s*[\(\[]\s*(?!.*remix)(?:.*?)(?:remaster(?:ed)?|reissue|re-issue|live|bonus\s*track|bonus|anniversary|deluxe|mono|stereo|single\s*version|album\s*version|radio\s*edit|edit|explicit|clean|original\s*mix|original\s*version|\d{4}\s*version|\d{4}\s*remaster(?:ed)?|remaster(?:ed)?\s*\d{4})\s*(?:edition|version)?\s*[\)\]]/gi, '').trim();
+  t = t.replace(/\s+-\s+\d{4}\s+remaster(?:ed)?.*$/gi, '').trim();
+  t = t.replace(/\s+-\s+remaster(?:ed)?.*$/gi, '').trim();
+  if (/remix/i.test(t)) {
+    t = t.replace(/\s*[\(\[]\s*(?:feat\.?|ft\.?|featuring)\s+[^\)\]]+[\)\]]/gi, '').trim();
+    t = t.replace(/\s+-\s+(?:feat\.?|ft\.?|featuring)\s+.*$/gi, '').trim();
+    t = t.replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/gi, '').trim();
+  }
+  return t;
+}
+
+// ── Build data ───────────────────────────────────────────────────────
+function buildData(rows) {
+  rawArtistYear = {}; rawTrackYear = {};
+  rawArtistMonthly = {};
+  rawArtistDaily = {};
+  const trackDisplay = {};
+  const monthSet = new Set();
+  const daySet = new Set();
+  rows.forEach(row => {
+    const uts = parseInt(row.uts);
+    if (!uts) return;
+    const dt = new Date(uts * 1000);
+    const year  = dt.getFullYear();
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const day   = String(dt.getDate()).padStart(2, '0');
+    const ym    = year + '-' + month;
+    const ymd   = year + '-' + month + '-' + day;
+    const artist = (row.artist||'').trim();
+    const track  = cleanTrack((row.track||'').trim());
+    if (!artist) return;
+    if (!rawArtistYear[artist]) rawArtistYear[artist] = {};
+    rawArtistYear[artist][year] = (rawArtistYear[artist][year]||0) + 1;
+    if (!rawArtistMonthly[artist]) rawArtistMonthly[artist] = {};
+    rawArtistMonthly[artist][ym] = (rawArtistMonthly[artist][ym]||0) + 1;
+    if (!rawArtistDaily[artist]) rawArtistDaily[artist] = {};
+    rawArtistDaily[artist][ymd] = (rawArtistDaily[artist][ymd]||0) + 1;
+    monthSet.add(ym);
+    daySet.add(ymd);
+    const tk = artist.toLowerCase() + '|||' + track.toLowerCase();
+    if (!rawTrackYear[tk]) rawTrackYear[tk] = {};
+    rawTrackYear[tk][year] = (rawTrackYear[tk][year]||0) + 1;
+    if (!trackDisplay[tk]) trackDisplay[tk] = { artist, track };
+  });
+  allMonths = Array.from(monthSet).sort();
+  allDays = Array.from(daySet).sort();
+  artistData   = buildEntityData(rawArtistYear, null, 0);
+  trackData    = buildEntityData(rawTrackYear, trackDisplay, 20);
+  trackAllData = buildEntityData(rawTrackYear, trackDisplay, 0);
+  document.getElementById('artistCountDisplay').textContent = artistData.length.toLocaleString();
+  document.getElementById('trackCountDisplay').textContent  = trackData.length.toLocaleString();
+  hideLoading();
+  showScreen('screenLanding');
+}
+
+function buildEntityData(yearMap, displayMap, minScrobbles) {
+  const totals = {};
+  Object.entries(yearMap).forEach(([k,yc]) => { totals[k] = Object.values(yc).reduce((a,b)=>a+b,0); });
+  return Object.entries(totals)
+    .filter(([,v]) => v >= minScrobbles)
+    .sort((a,b) => b[1]-a[1])
+    .map(([key, total], idx) => {
+      const yc = yearMap[key];
+      const s26 = yc[CURRENT_YEAR]||0;
+      const priorEntries = Object.entries(yc).filter(([y])=>parseInt(y)!==CURRENT_YEAR);
+      const peakPrior = priorEntries.length ? Math.max(...priorEntries.map(([,v])=>v)) : 0;
+      const allYrs = Object.keys(yc).map(Number);
+      const firstYear = Math.min(...allYrs);
+      const ya = CURRENT_YEAR - firstYear + 1;
+      const pt = total - s26;
+      const avg = Math.ceil(total / ya);
+      const pkEntry = Object.entries(yc).reduce((a,b)=>parseInt(b[1])>parseInt(a[1])?b:a);
+      let displayName, displayTrack = null;
+      if (displayMap) { const d = displayMap[key]||{}; displayName=d.artist||key; displayTrack=d.track||key.split('|||')[1]; }
+      else displayName = key;
+      return {
+        rank: idx+1, key, displayName, displayTrack, total, yc,
+        scrobbles2026: s26, annualAvg: avg, yearsActive: ya, firstYear,
+        neededMaintain:  avg - s26,
+        neededIncrease:  (avg+1)*ya - pt - s26,
+        neededRecord:    peakPrior - s26 + 1,
+        is2026Best:      s26 > peakPrior,
+        isNew2026:       firstYear === CURRENT_YEAR,
+        peakPrior, peakCount: parseInt(pkEntry[1]), peakYear: pkEntry[0],
+      };
+    });
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────
+const MODES = [
+  { id:'maintain',    label:'🎯 Quick Wins',    desc:'Closest to maintaining average' },
+  { id:'increase',    label:'📈 Avg Booster',    desc:'Closest to raising average by 1' },
+  { id:'record',      label:'🏆 Record Chase',   desc:'Closest to breaking their record' },
+  { id:'maintained',  label:'✅ On Pace',         desc:'Already maintaining average' },
+  { id:'beaten',      label:'🥇 Records Broken', desc:'2026 is best year ever' },
+  { id:'new',         label:'🆕 New in 2026',     desc:'First heard this year' },
+];
+
+function setupModes() {
+  document.getElementById('modeBar').innerHTML = MODES.map(m =>
+    `<button class="mode-btn ${m.id===currentMode?'active':''}" onclick="setMode('${m.id}')" title="${m.desc}">${m.label}</button>`
+  ).join('');
+}
+
+function setMode(m) { currentMode=m; setupModes(); renderTable(); }
+function getData() { return currentType==='artist' ? artistData : trackData; }
+function getNewData() { return currentType==='artist' ? artistData : trackAllData; }
+
+function getFiltered() {
+  const data = getData();
+  const q = (document.getElementById('searchInput')?.value||'').toLowerCase();
+  let sub;
+  switch(currentMode) {
+    case 'maintain':   sub = data.filter(d=>d.neededMaintain>0).sort((a,b)=>a.neededMaintain-b.neededMaintain); break;
+    case 'increase':   sub = data.filter(d=>d.neededMaintain>0).sort((a,b)=>a.neededIncrease-b.neededIncrease); break;
+    case 'record':     sub = data.filter(d=>d.neededRecord>0).sort((a,b)=>a.neededRecord-b.neededRecord); break;
+    case 'maintained': sub = data.filter(d=>d.neededMaintain<=0&&d.neededIncrease>0&&!d.isNew2026).sort((a,b)=>a.neededMaintain-b.neededMaintain); break;
+    case 'beaten':     sub = data.filter(d=>d.is2026Best).sort((a,b)=>b.scrobbles2026-a.scrobbles2026); break;
+    case 'new':        sub = getNewData().filter(d=>d.isNew2026).sort((a,b)=>b.scrobbles2026-a.scrobbles2026); break;
+    default:           sub = data;
+  }
+  if (q) sub = sub.filter(d => d.displayName.toLowerCase().includes(q)||(d.displayTrack&&d.displayTrack.toLowerCase().includes(q)));
+  return sub;
+}
+
+function updateStats() {
+  const data = getData();
+  const behind = data.filter(d=>d.neededMaintain>0).length;
+  const onpace = data.filter(d=>d.neededMaintain<=0&&d.neededIncrease>0&&!d.isNew2026).length;
+  const raised  = data.filter(d=>d.neededIncrease<=0&&!d.isNew2026).length;
+  const broken  = data.filter(d=>d.is2026Best).length;
+  const newIn   = (currentType==='artist'?data:trackAllData).filter(d=>d.isNew2026).length;
+  const total   = data.length;
+  const pct = total>0 ? Math.round((onpace+raised+broken)/total*100) : 0;
+  document.getElementById('statsBar').innerHTML = [
+    { label:'Total', num:total.toLocaleString(), cls:'s-silver' },
+    { label:'Behind Avg', num:behind.toLocaleString(), cls:'s-cherry' },
+    { label:'On Pace', num:onpace.toLocaleString(), cls:'s-charcoal' },
+    { label:'Avg Raised', num:raised.toLocaleString(), cls:'s-amethyst' },
+    { label:'Records Broken', num:broken.toLocaleString(), cls:'s-cherry' },
+    { label:'New in 2026', num:newIn.toLocaleString(), cls:'s-amethyst' },
+  ].map(s=>`<div class="stat-card ${s.cls}"><div class="num">${s.num}</div><div class="label">${s.label}</div></div>`).join('');
+  document.getElementById('progressWrap').innerHTML = `
+    <div class="progress-label"><span>2026 goal progress · ${currentType}s</span><span class="progress-pct">${pct}% on pace or better</span></div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+}
+
+function renderTable() {
+  const filtered = getFiltered();
+  const limit = parseInt(document.getElementById('limitSelect')?.value||25);
+  const slice = filtered.slice(0, limit);
+  const isTrack = currentType === 'track';
+  const modeInfo = MODES.find(m=>m.id===currentMode);
+  document.getElementById('tableTitle').textContent = modeInfo?.label||'';
+  document.getElementById('tableCount').textContent = `${filtered.length.toLocaleString()} ${currentType}s`;
+  if (!slice.length) { document.getElementById('tableBody').innerHTML = `<div class="empty-state"><h3>Nothing Here Yet</h3><p>No ${currentType}s match this view right now.</p></div>`; return; }
+  let badgeHeader, badgeCell;
+  switch(currentMode) {
+    case 'maintain':   badgeHeader='To Maintain';    badgeCell=d=>`<span class="badge b-amber">${d.neededMaintain}</span>`; break;
+    case 'increase':   badgeHeader='To Raise +1';    badgeCell=d=>`<span class="badge b-green">${d.neededIncrease}</span>`; break;
+    case 'record':     badgeHeader='To Beat Record'; badgeCell=d=>`<span class="badge b-cherry">${d.neededRecord}</span>`; break;
+    case 'maintained': badgeHeader='Ahead By';       badgeCell=d=>`<span class="badge b-green">${Math.abs(d.neededMaintain)}</span>`; break;
+    case 'beaten':     badgeHeader='Beaten By';      badgeCell=d=>`<span class="badge b-amethyst">${Math.abs(d.neededRecord)-1}</span>`; break;
+    default:           badgeHeader='2026 Plays';     badgeCell=d=>`<span class="badge b-silver">${d.scrobbles2026}</span>`; break;
+  }
+  document.getElementById('tableBody').innerHTML = `
+    <table><thead><tr><th class="num">#</th><th>${isTrack?'Artist / Track':'Artist'}</th><th class="num">2026</th><th class="num">Avg</th><th class="num">${badgeHeader}</th></tr></thead>
+    <tbody>${slice.map(d=>`<tr>
+      <td class="td-rank td-num">${d.rank}</td>
+      <td>${isTrack?`<div class="td-name">${esc(d.displayTrack||'')}</div><div class="td-artist-label">${esc(d.displayName)}</div>`:`<div class="td-name">${esc(d.displayName)}</div>`}</td>
+      <td class="td-num ${d.is2026Best?'td-2026-hot':'td-2026-dim'}">${d.scrobbles2026}</td>
+      <td class="td-num td-avg">${d.annualAvg}</td>
+      <td class="td-num">${badgeCell(d)}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+// ── Charts ────────────────────────────────────────────────────────────
+const CHART_DEFAULTS = {
+  color: '#CCCCCC',
+  font: { family: 'DM Mono', size: 10 },
+};
+Chart.defaults.color = '#666666';
+Chart.defaults.font.family = 'DM Mono';
+Chart.defaults.font.size = 10;
+
+function getStatsData() { return statsType === 'artist' ? artistData : trackData; }
+function getRawYearMap() { return statsType === 'artist' ? rawArtistYear : rawTrackYear; }
+
+function renderAllCharts() {
+  renderDonut();
+  renderDiscovery();
+  renderHistogram();
+  renderMomentum();
+  renderGap();
+  renderVolume();
+}
+
+// 1. Donut — goal state breakdown
+function renderDonut() {
+  const data = getStatsData();
+  const behind    = data.filter(d=>d.neededMaintain>0).length;
+  const maintained= data.filter(d=>d.neededMaintain<=0&&d.neededIncrease>0&&!d.isNew2026).length;
+  const increased = data.filter(d=>d.neededIncrease<=0&&!d.isNew2026).length;
+  const broken    = data.filter(d=>d.is2026Best).length;
+  const newIn     = data.filter(d=>d.isNew2026).length;
+  const other     = Math.max(0, data.length - behind - maintained - increased - broken - newIn);
+
+  if (chartDonut) chartDonut.destroy();
+  chartDonut = new Chart(document.getElementById('chartDonut'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Behind Avg', 'On Pace', 'Avg Raised', 'Record Broken', 'New in 2026', 'Other'],
+      datasets: [{
+        data: [behind, maintained, increased, broken, newIn, other],
+        backgroundColor: ['rgba(160,0,0,0.7)','rgba(53,61,69,0.8)','rgba(61,0,102,0.7)','rgba(82,0,0,0.9)','rgba(36,0,61,0.8)','rgba(204,204,204,0.1)'],
+        borderColor: ['#A00000','#4A5560','#3D0066','#520000','#24003D','rgba(204,204,204,0.2)'],
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true, cutout: '65%',
+      plugins: {
+        legend: { position: 'right', labels: { color: '#888888', font: { size: 10 }, padding: 12, boxWidth: 12 } },
+        tooltip: { backgroundColor: 'rgba(10,10,10,0.9)', borderColor: 'rgba(204,204,204,0.15)', borderWidth: 1, titleColor: '#CCCCCC', bodyColor: '#888888' }
+      }
+    }
+  });
+}
+
+// 2. Discovery timeline
+function renderDiscovery() {
+  const yearMap = getRawYearMap();
+  const years = [];
+  for (let y = 2006; y <= CURRENT_YEAR; y++) years.push(y);
+  const counts = years.map(yr => {
+    return Object.values(yearMap).filter(yc => Math.min(...Object.keys(yc).map(Number)) === yr).length;
+  });
+
+  if (chartDiscovery) chartDiscovery.destroy();
+  chartDiscovery = new Chart(document.getElementById('chartDiscovery'), {
+    type: 'bar',
+    data: {
+      labels: years.map(String),
+      datasets: [{
+        label: 'New discoveries',
+        data: counts,
+        backgroundColor: years.map(y => y === CURRENT_YEAR ? 'rgba(160,0,0,0.8)' : 'rgba(53,61,69,0.6)'),
+        borderColor: years.map(y => y === CURRENT_YEAR ? '#A00000' : 'rgba(74,85,96,0.4)'),
+        borderWidth: 1, borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: 'rgba(10,10,10,0.9)', borderColor: 'rgba(204,204,204,0.15)', borderWidth: 1, titleColor: '#CCCCCC', bodyColor: '#888888', callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()} new` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#555', maxRotation: 45 } },
+        y: { grid: { color: 'rgba(204,204,204,0.06)' }, ticks: { color: '#555' } }
+      }
+    }
+  });
+}
+
+// 3. Histogram — annual average distribution
+function renderHistogram() {
+  const data = getStatsData();
+  const avgs = data.map(d => d.annualAvg);
+  const max = Math.max(...avgs);
+
+  // Bucket into ranges
+  const buckets = [];
+  const size = Math.max(5, Math.ceil(max / 20));
+  for (let i = 0; i <= max; i += size) buckets.push({ min: i, max: i + size - 1, count: 0 });
+  avgs.forEach(a => {
+    const b = buckets.find(b => a >= b.min && a <= b.max);
+    if (b) b.count++;
+  });
+  const maxCount = Math.max(...buckets.map(b => b.count));
+
+  document.getElementById('histChart').innerHTML = `
+    <div class="hist-wrap">
+      ${buckets.map(b => {
+        const pct = maxCount > 0 ? (b.count / maxCount * 100) : 0;
+        const col = b.min < 10 ? 'rgba(53,61,69,0.5)' : b.min < 50 ? 'rgba(82,0,0,0.6)' : b.min < 100 ? 'rgba(160,0,0,0.7)' : 'rgba(36,0,61,0.8)';
+        return `<div class="hist-bar-col">
+          <div class="hist-bar" style="height:${pct}%;background:${col};min-height:${b.count>0?2:0}px" data-tip="${b.min}–${b.max} avg: ${b.count}"></div>
+          <div class="hist-label">${b.min}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// 4. Momentum — top 20 2026 vs avg
+function renderMomentum() {
+  const data = getStatsData().slice(0, 20);
+  const maxVal = Math.max(...data.map(d => Math.max(d.scrobbles2026, d.annualAvg)));
+
+  document.getElementById('momentumChart').innerHTML = data.map(d => {
+    const w26  = maxVal > 0 ? (d.scrobbles2026 / maxVal * 100) : 0;
+    const wavg = maxVal > 0 ? (d.annualAvg / maxVal * 100) : 0;
+    const name = d.displayTrack ? `${d.displayTrack}` : d.displayName;
+    return `<div class="momentum-row">
+      <div class="momentum-name" title="${esc(name)}">${esc(name)}</div>
+      <div class="momentum-bars">
+        <div class="momentum-bar-wrap">
+          <div class="momentum-bar bar-2026" style="width:${w26}%"></div>
+          <span class="momentum-val">${d.scrobbles2026}</span>
+        </div>
+        <div class="momentum-bar-wrap">
+          <div class="momentum-bar bar-avg" style="width:${wavg}%"></div>
+          <span class="momentum-val" style="color:#444">${d.annualAvg}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// 5. Gap / pace race — top 30
+function renderGap() {
+  const data = getStatsData().slice(0, 30);
+  const maxAvg = Math.max(...data.map(d => d.annualAvg));
+
+  document.getElementById('gapChart').innerHTML = data.map(d => {
+    const pAvg = maxAvg > 0 ? (d.annualAvg / maxAvg * 100) : 0;
+    const p26  = maxAvg > 0 ? Math.min((d.scrobbles2026 / maxAvg * 100), 100) : 0;
+    const onPace = d.neededMaintain <= 0;
+    const name = d.displayTrack || d.displayName;
+    const statusTxt = onPace ? `+${Math.abs(d.neededMaintain)}` : `-${d.neededMaintain}`;
+    const grad = onPace
+      ? 'linear-gradient(90deg, rgba(0,90,30,0.7), rgba(0,150,50,0.5))'
+      : 'linear-gradient(90deg, rgba(160,0,0,0.7), rgba(120,0,0,0.4))';
+    return `<div class="gap-row">
+      <div class="gap-name" title="${esc(name)}">${esc(name)}</div>
+      <div class="gap-track-wrap">
+        <div class="gap-fill-avg" style="width:${pAvg}%"></div>
+        <div class="gap-fill-2026" style="width:${p26}%;background:${grad}"></div>
+      </div>
+      <div class="gap-status ${onPace?'onpace':'behind'}">${statusTxt}</div>
+    </div>`;
+  }).join('');
+}
+
+// 6. Annual scrobble volume
+function renderVolume() {
+  const yearMap = getRawYearMap();
+  const years = [];
+  for (let y = 2006; y <= CURRENT_YEAR; y++) years.push(y);
+  const totals = years.map(yr =>
+    Object.values(yearMap).reduce((sum, yc) => sum + (yc[yr]||0), 0)
+  );
+
+  if (chartVolume) chartVolume.destroy();
+  chartVolume = new Chart(document.getElementById('chartVolume'), {
+    type: 'line',
+    data: {
+      labels: years.map(String),
+      datasets: [{
+        label: 'Total scrobbles',
+        data: totals,
+        borderColor: '#A00000',
+        backgroundColor: 'rgba(82,0,0,0.15)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: years.map(y => y === CURRENT_YEAR ? '#A00000' : 'rgba(160,0,0,0.5)'),
+        pointRadius: years.map(y => y === CURRENT_YEAR ? 5 : 3),
+        pointBorderColor: 'transparent',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { backgroundColor: 'rgba(10,10,10,0.9)', borderColor: 'rgba(204,204,204,0.15)', borderWidth: 1, titleColor: '#CCCCCC', bodyColor: '#888888', callbacks: { label: ctx => ` ${ctx.parsed.y.toLocaleString()} scrobbles` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#555', maxRotation: 45 } },
+        y: { grid: { color: 'rgba(204,204,204,0.06)' }, ticks: { color: '#555', callback: v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v } }
+      }
+    }
+  });
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Bar Chart Race ────────────────────────────────────────────────────
+// Flourish-style: single continuous RAF loop, pure interpolation at 60fps
+// Timeline is a float in ms. We never snap — every rendered frame is lerped.
+
+const RACE_TOP_N = 20;
+const RACE_COLORS = [
+  '#A00000','#3D0066','#4A5560','#7A0000','#24003D','#353D45',
+  '#C00000','#5D0099','#5A6570','#900000','#34005D','#455565',
+  '#800000','#2D0050','#6A7580','#700000','#1A003D','#353D55',
+  '#600000','#10002D',
+];
+
+let raceKeyframes  = [];   // [{t: ms, label: str, scores: {artist: n}}]
+let raceAnimId     = null;
+let racePlaying    = false;
+let raceStartWall  = null; // performance.now() when play started
+let raceStartT     = 0;    // timeline ms at which play started
+let raceDuration   = 0;    // total timeline ms
+let raceCurrentT   = 0;    // current timeline position in ms
+let raceMsPerFrame = 600;  // how many ms of timeline each data-frame spans
+
+function artistColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % RACE_COLORS.length;
+  return RACE_COLORS[h];
+}
+
+function easeInOut(t) {
+  return t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+}
+
+// ── Entry point ─────────────────────────────────────────────────────
+function enterRace() {
+  populateRaceControls();
+  buildRaceKeyframes();
+  raceCurrentT = 0;
+  racePlaying  = false;
+  document.getElementById('racePlayBtn').textContent = '▶ Play';
+  renderAtTime(0);
+  showScreen('screenRace');
+}
+
+function populateRaceControls() {
+  const years = [...new Set(allDays.map(d => d.slice(0,4)))].sort();
+  document.getElementById('raceYearSelect').innerHTML =
+    years.map(y => `<option value="${y}">${y}</option>`).join('');
+  const monthOpts = allMonths.map(m => `<option value="${m}">${m}</option>`).join('');
+  document.getElementById('raceFromSelect').innerHTML = monthOpts;
+  document.getElementById('raceToSelect').innerHTML   = monthOpts;
+  document.getElementById('raceToSelect').selectedIndex = allMonths.length - 1;
+}
+
+function onRaceModeChange() {
+  const mode = document.getElementById('raceModeSelect').value;
+  document.getElementById('raceYearGroup').style.display = mode==='annual'  ? 'flex' : 'none';
+  document.getElementById('raceFromGroup').style.display = mode==='custom'  ? 'flex' : 'none';
+  document.getElementById('raceToGroup').style.display   = mode==='custom'  ? 'flex' : 'none';
+  stopRace();
+  buildRaceKeyframes();
+  raceCurrentT = 0;
+  renderAtTime(0);
+}
+
+// ── Build keyframes: one per sampled day ─────────────────────────────
+function buildRaceKeyframes() {
+  const mode = document.getElementById('raceModeSelect').value;
+  raceKeyframes = [];
+
+  let days, startBoundary;
+
+  if (mode === 'cumulative') {
+    days = allDays;
+    startBoundary = null;
+  } else if (mode === 'annual') {
+    const yr = document.getElementById('raceYearSelect').value;
+    days = allDays.filter(d => d.startsWith(yr));
+    startBoundary = yr + '-01-01';
+  } else {
+    const from = document.getElementById('raceFromSelect').value;
+    const to   = document.getElementById('raceToSelect').value;
+    const fromDay = from + '-01';
+    const toDate  = new Date(parseInt(to.slice(0,4)), parseInt(to.slice(5,7)), 0);
+    const toDay   = to + '-' + String(toDate.getDate()).padStart(2,'0');
+    days = allDays.filter(d => d >= fromDay && d <= toDay);
+    startBoundary = fromDay;
+  }
+
+  if (!days.length) return;
+
+  // Sample to ~500 keyframes max for performance — more = smoother but heavier
+  const step = Math.max(1, Math.ceil(days.length / 500));
+  const sampled = days.filter((_, i) => i % step === 0 || i === days.length - 1);
+
+  // Pre-build running totals per artist
+  const artistRunning = {};
+  Object.entries(rawArtistDaily).forEach(([artist, dmap]) => {
+    let running = 0;
+    const checkpoints = {};
+    Object.keys(dmap).sort().forEach(d => {
+      if (startBoundary && d < startBoundary) return;
+      running += dmap[d];
+      checkpoints[d] = running;
+    });
+    if (running > 0) artistRunning[artist] = checkpoints;
+  });
+
+  // Build keyframes
+  sampled.forEach((targetDay, i) => {
+    const scores = {};
+    Object.entries(artistRunning).forEach(([artist, checkpoints]) => {
+      const validDays = Object.keys(checkpoints).filter(d => d <= targetDay);
+      if (validDays.length) scores[artist] = checkpoints[validDays[validDays.length - 1]];
+    });
+    if (Object.keys(scores).length) {
+      raceKeyframes.push({ t: i * raceMsPerFrame, label: targetDay, scores });
+    }
+  });
+
+  raceDuration = raceKeyframes.length > 0
+    ? raceKeyframes[raceKeyframes.length - 1].t
+    : 0;
+}
+
+// ── Core render: given a timeline position, interpolate and draw ─────
+function renderAtTime(timeMs) {
+  if (!raceKeyframes.length) return;
+
+  const clampedT = Math.max(0, Math.min(timeMs, raceDuration));
+
+  // Find surrounding keyframes
+  let kfA = raceKeyframes[0];
+  let kfB = raceKeyframes[0];
+
+  for (let i = 0; i < raceKeyframes.length - 1; i++) {
+    if (raceKeyframes[i].t <= clampedT && raceKeyframes[i+1].t >= clampedT) {
+      kfA = raceKeyframes[i];
+      kfB = raceKeyframes[i+1];
+      break;
+    }
+  }
+
+  if (clampedT >= raceDuration) {
+    kfA = kfB = raceKeyframes[raceKeyframes.length - 1];
+  }
+
+  // Local t between the two keyframes: 0..1
+  const span = kfB.t - kfA.t;
+  const localT = span > 0 ? easeInOut((clampedT - kfA.t) / span) : 1;
+
+  // Interpolate scores
+  const allArtists = new Set([...Object.keys(kfA.scores), ...Object.keys(kfB.scores)]);
+  const interpolated = {};
+  allArtists.forEach(a => {
+    const from = kfA.scores[a] || 0;
+    const to   = kfB.scores[a] || 0;
+    interpolated[a] = from + (to - from) * localT;
+  });
+
+  // Interpolate label (show whichever keyframe is dominant)
+  const label = localT < 0.5 ? kfA.label : kfB.label;
+
+  drawCanvas(interpolated, label);
+}
+
+// ── Canvas drawing ───────────────────────────────────────────────────
+function drawCanvas(scores, label) {
+  const canvas = document.getElementById('raceCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.parentElement.clientWidth || 800;
+  canvas.width  = W;
+  canvas.height = 560;
+
+  ctx.clearRect(0, 0, W, canvas.height);
+
+  const entries = Object.entries(scores)
+    .filter(([,v]) => v > 0.5)
+    .sort((a,b) => b[1]-a[1])
+    .slice(0, RACE_TOP_N)
+    .reverse();
+
+  if (!entries.length) return;
+
+  const maxVal  = entries[entries.length - 1][1];
+  const barH    = Math.floor((canvas.height - 20) / RACE_TOP_N) - 3;
+  const labelW  = 175;
+  const valW    = 80;
+  const barAreaW = W - labelW - valW - 20;
+
+  entries.forEach(([artist, val], i) => {
+    const y    = 10 + i * (barH + 3);
+    const barW = maxVal > 0 ? (val / maxVal) * barAreaW : 0;
+    const color = artistColor(artist);
+
+    // Bar
+    const grad = ctx.createLinearGradient(labelW, y, labelW + barW, y);
+    grad.addColorStop(0, color + 'FF');
+    grad.addColorStop(1, color + '77');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(labelW, y, Math.max(barW, 1), barH, [0, 3, 3, 0]);
+    else ctx.rect(labelW, y, Math.max(barW, 1), barH);
+    ctx.fill();
+
+    // Rank badge inside bar
+    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+    ctx.font = `bold ${barH - 3}px "Bebas Neue", sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(RACE_TOP_N - i, labelW + 5, y + barH / 2);
+
+    // Artist name
+    ctx.fillStyle = '#CCCCCC';
+    ctx.font = `${Math.min(12, Math.max(9, barH - 4))}px "DM Mono", monospace`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    const truncName = artist.length > 25 ? artist.slice(0,23) + '…' : artist;
+    ctx.fillText(truncName, labelW - 8, y + barH / 2);
+
+    // Value label
+    ctx.fillStyle = '#555555';
+    ctx.font = `10px "DM Mono", monospace`;
+    ctx.textAlign = 'left';
+    ctx.fillText(Math.round(val).toLocaleString(), labelW + barW + 8, y + barH / 2);
+  });
+
+  // Update labels
+  document.getElementById('racePeriodDisplay').textContent = label;
+  const mode = document.getElementById('raceModeSelect').value;
+  document.getElementById('raceModeDisplay').textContent =
+    mode === 'cumulative' ? 'Cumulative All-Time' :
+    mode === 'annual'     ? `Annual · ${document.getElementById('raceYearSelect').value}` :
+    'Custom Period';
+}
+
+// ── RAF loop ─────────────────────────────────────────────────────────
+function raceLoop(wallTime) {
+  if (!racePlaying) return;
+
+  const speedSlider = parseInt(document.getElementById('raceSpeed').value);
+  // Speed: 200 (slow) → 2000 (fast). Map to timeline ms per real second.
+  // At speed 200: 500ms of timeline per real second
+  // At speed 2000: 30000ms of timeline per real second
+  const timelinePerSecond = 500 + (speedSlider - 200) / 1800 * 29500;
+  const wallElapsed = wallTime - raceStartWall;
+  raceCurrentT = raceStartT + (wallElapsed / 1000) * timelinePerSecond;
+
+  if (raceCurrentT >= raceDuration) {
+    raceCurrentT = raceDuration;
+    renderAtTime(raceCurrentT);
+    stopRace();
+    return;
+  }
+
+  renderAtTime(raceCurrentT);
+  raceAnimId = requestAnimationFrame(raceLoop);
+}
+
+// ── Controls ─────────────────────────────────────────────────────────
+function toggleRace() {
+  if (racePlaying) stopRace(); else startRace();
+}
+
+function startRace() {
+  if (raceCurrentT >= raceDuration) raceCurrentT = 0;
+  racePlaying   = true;
+  raceStartWall = performance.now();
+  raceStartT    = raceCurrentT;
+  document.getElementById('racePlayBtn').textContent = '⏸ Pause';
+  raceAnimId = requestAnimationFrame(raceLoop);
+}
+
+function stopRace() {
+  racePlaying = false;
+  if (raceAnimId) { cancelAnimationFrame(raceAnimId); raceAnimId = null; }
+  document.getElementById('racePlayBtn').textContent = '▶ Play';
+}
+
+function resetRace() {
+  stopRace();
+  raceCurrentT = 0;
+  renderAtTime(0);
+}
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('screenRace').classList.contains('active')) {
+    renderAtTime(raceCurrentT);
+  }
+});
+
+</script>
+</body>
+</html>
