@@ -337,17 +337,9 @@
     overflow-wrap: anywhere;
   }
 
-  .jumpoff-tools {
+  .jumpoff-shuffle {
     position: relative;
     z-index: 2;
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .jumpoff-tool {
-    position: relative;
     width: 54px;
     height: 54px;
     border: 1px solid transparent;
@@ -361,28 +353,16 @@
     transition: border-color 0.2s, background 0.2s, transform 0.2s;
   }
 
-  .jumpoff-tool:hover {
+  .jumpoff-shuffle:hover {
     border-color: rgba(204,204,204,0.16);
     background: rgba(204,204,204,0.045);
-  }
-
-  .jumpoff-shuffle:hover {
     transform: rotate(-4deg);
   }
 
-  .jumpoff-export:hover {
-    transform: translateY(-2px);
-  }
-
-  .jumpoff-tool svg {
+  .jumpoff-shuffle svg {
     width: 34px;
     height: 34px;
     stroke: currentColor;
-  }
-
-  .jumpoff-export svg {
-    width: 26px;
-    height: 26px;
   }
 
   @media (max-width: 560px) {
@@ -711,11 +691,7 @@
       gap: 16px;
     }
     .jumpoff-divider { display: none; }
-    .jumpoff-tools {
-      flex-direction: row;
-      justify-content: center;
-      margin: 0 auto;
-    }
+    .jumpoff-shuffle { margin: 0 auto; }
   }
 
   /* ── Stat boxes row ── */
@@ -2067,24 +2043,15 @@
           <div class="jumpoff-action" id="jumpoffAction">finding a listening doorway...</div>
         </div>
       </div>
-      <div class="jumpoff-tools">
-        <button class="jumpoff-tool jumpoff-export" type="button" onclick="downloadJumpoffPlaylistTable(event)" aria-label="download suggestion playlist table" title="download suggestion playlist table">
-          <svg viewBox="0 0 28 28" fill="none">
-            <path d="M14 4v13" stroke-width="2" stroke-linecap="round"/>
-            <path d="M9 12l5 5 5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M6 22h16" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </button>
-        <button class="jumpoff-tool jumpoff-shuffle" type="button" onclick="shuffleJumpoff(event)" aria-label="shuffle smart suggestion" title="shuffle smart suggestion">
-          <svg viewBox="0 0 32 32" fill="none">
-            <path d="M4 9h5c3.6 0 5.6 2.2 7.5 5.2l1.2 1.9c2 3.2 3.8 5.9 7.9 5.9H28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M24 18l4 4-4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M4 23h5c2.5 0 4.2-1.1 5.7-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M18.3 11.6C20.1 8.8 22 7 25.6 7H28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M24 3l4 4-4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-      </div>
+      <button class="jumpoff-shuffle" type="button" onclick="shuffleJumpoff(event)" aria-label="shuffle smart suggestion">
+        <svg viewBox="0 0 32 32" fill="none">
+          <path d="M4 9h5c3.6 0 5.6 2.2 7.5 5.2l1.2 1.9c2 3.2 3.8 5.9 7.9 5.9H28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M24 18l4 4-4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 23h5c2.5 0 4.2-1.1 5.7-3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M18.3 11.6C20.1 8.8 22 7 25.6 7H28" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M24 3l4 4-4 4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
     </div>
 
     <div class="section-grid">
@@ -3568,41 +3535,6 @@ function buildSmartJumpoffPool() {
   }
 
   return suggestions;
-}
-
-function csvCell(value) {
-  return '"' + String(value == null ? '' : value).replace(/"/g, '""') + '"';
-}
-
-function downloadCSV(filename, rows) {
-  const csv = rows.map(row => row.map(csvCell).join(',')).join('\n') + '\n';
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-}
-
-function downloadJumpoffPlaylistTable(event) {
-  if (event) event.stopPropagation();
-  const suggestions = buildSmartJumpoffPool();
-  if (!suggestions.length) {
-    showCopyToast('upload a dataset first');
-    return;
-  }
-  const rows = [
-    ['suggestion', 'playlist name', 'playlist link'],
-    ...suggestions
-      .slice()
-      .sort((a, b) => a.action.localeCompare(b.action))
-      .map(entry => [entry.action, '', ''])
-  ];
-  downloadCSV('melophile-smart-suggestions-playlists.csv', rows);
-  showCopyToast(suggestions.length + ' suggestions exported');
 }
 
 function renderJumpoff(forceShuffle = false) {
