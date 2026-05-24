@@ -896,6 +896,46 @@
     text-shadow: 0 0 18px rgba(204,204,204,0.18);
   }
 
+  .r-name-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .r-action-btn {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: rgba(204,204,204,0.035);
+    color: rgba(245,245,245,0.74);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex: 0 0 auto;
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s;
+  }
+
+  .r-action-btn:hover {
+    background: rgba(204,204,204,0.075);
+    border-color: var(--border-hover);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  .r-action-btn svg {
+    width: 15px;
+    height: 15px;
+    stroke: currentColor;
+  }
+
+  .r-action-copy svg {
+    width: 14px;
+    height: 14px;
+  }
+
   .r-artist {
     font-family: 'Afacad', sans-serif;
     font-weight: 400;
@@ -3591,23 +3631,45 @@ fileInput.addEventListener('change', () => {
 });
 
 document.addEventListener('click', e => {
+  const action = e.target.closest('.r-action-btn');
+  if (action) {
+    e.preventDefault();
+    e.stopPropagation();
+    const artist = action.dataset.artist || '';
+    if (!artist) return;
+    if (action.dataset.copyKind === 'artist-spotlight-prompt') {
+      copyToClipboard(buildArtistSpotlightPrompt(artist), 'prompt copied · ' + artist);
+    } else {
+      copyToClipboard(artist, 'copied · ' + artist);
+    }
+    return;
+  }
+
   const name = e.target.closest('.r-name');
   if (!name) return;
   const copyText = name.dataset.copy || name.textContent.trim();
   if (copyText) copyToClipboard(copyText);
 });
 
-async function copyToClipboard(text) {
+function buildArtistSpotlightPrompt(artist) {
+  return 'Create a 100-song playlist called “artists...last...spotlight”.\n\n' +
+    'Build this playlist around ' + artist + ' only. Every song must include ' + artist + ' as either a main artist or a featured artist. Do not include any tracks where ' + artist + ' is not involved.\n\n' +
+    'Start with the songs by ' + artist + ' that I listen to the most from my listening history, including songs where ' + artist + ' is featured. Then add ' + artist + '’s most popular songs on Spotify overall, plus their most recently released singles and tracks from their most recently released LP or EP, as long as they fit my usual taste profile.\n\n' +
+    'Prefer original studio versions. You may include a small number of remixes or alternate versions only when they are clearly songs I already listen to and love. Avoid songs I’ve recently skipped and anything clearly outside my taste profile.\n\n' +
+    'In the playlist notes, for each song, include: the artist name, the number of plays that song has in my listening history (as closely as you can), its main genre or subgenre, its original release date, and a short tag for mood or emotional tone.';
+}
+
+async function copyToClipboard(text, toastMessage) {
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(text);
     } else {
       fallbackCopyText(text);
     }
-    showCopyToast('copied · ' + text);
+    showCopyToast(toastMessage || 'copied · ' + text);
   } catch (err) {
     fallbackCopyText(text);
-    showCopyToast('copied · ' + text);
+    showCopyToast(toastMessage || 'copied · ' + text);
   }
 }
 
@@ -4647,9 +4709,23 @@ function renderLastList() {
   const maxVal = entries[0].count;
   tbody.innerHTML = entries.map((entry, i) => {
     const barW = maxVal > 0 ? (entry.count / maxVal * 100) : 0;
-    const nameCell = entry.artist
-      ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
-      : '<div class="r-name">' + esc(entry.name) + '</div>';
+    let nameCell;
+    if (lastType === 'artists') {
+      nameCell =
+        '<div class="r-name-actions">' +
+          '<button class="r-action-btn r-action-copy" type="button" data-copy-kind="artist-name" data-artist="' + esc(entry.name) + '" aria-label="copy artist name" title="copy artist name">' +
+            '<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="11" height="11" rx="2" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+          '</button>' +
+          '<button class="r-action-btn r-action-prompt" type="button" data-copy-kind="artist-spotlight-prompt" data-artist="' + esc(entry.name) + '" aria-label="copy artist spotlight prompt" title="copy artist spotlight prompt">' +
+            '<svg viewBox="0 0 24 24" fill="none"><path d="M5 4h14v11H8l-3 3V4Z" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h6M9 11h4" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+          '</button>' +
+          '<div class="r-name" data-copy="' + esc(entry.name) + '">' + esc(entry.name) + '</div>' +
+        '</div>';
+    } else {
+      nameCell = entry.artist
+        ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
+        : '<div class="r-name">' + esc(entry.name) + '</div>';
+    }
     return '<tr>' +
       '<td class="r-rank">' + (i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
