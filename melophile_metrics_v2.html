@@ -3678,11 +3678,18 @@ document.addEventListener('click', e => {
 });
 
 function buildArtistSpotlightPrompt(artist) {
-  return 'Create a 100-song playlist called “artists...last...spotlight”.\n\n' +
-    'Build this playlist around ' + artist + ' only. Every song must include ' + artist + ' as either a main artist or a featured artist. Do not include any tracks where ' + artist + ' is not involved.\n\n' +
-    'Start with the songs by ' + artist + ' that I listen to the most from my listening history, including songs where ' + artist + ' is featured. Then add ' + artist + '’s most popular songs on Spotify overall, plus their most recently released singles and tracks from their most recently released LP or EP, as long as they fit my usual taste profile.\n\n' +
-    'Prefer original studio versions. You may include a small number of remixes or alternate versions only when they are clearly songs I already listen to and love. Avoid songs I’ve recently skipped and anything clearly outside my taste profile.\n\n' +
-    'In the playlist notes, for each song, include: the artist name, the number of plays that song has in my listening history (as closely as you can), its main genre or subgenre, its original release date, and a short tag for mood or emotional tone.';
+  return 'Create a playlist called “📆 artists...last...spotlight”.\n\n' +
+    'Build this playlist around ' + artist + ' only. Every song must include ' + artist + ' as either a main artist or a featured artist; do not include any tracks where ' + artist + ' is not involved.\n\n' +
+    'The playlist should contain up to 50 songs and no more than about 3.5 hours of total play time.\n\n' +
+    'When choosing tracks, always prefer the specific versions I have liked and played over other versions of the same song. Avoid duplicates of the same song across different versions.\n\n' +
+    'Order your selection priorities like this:\n\n' +
+    'Songs by ' + artist + ' that I have liked and played the most (including songs where ' + artist + ' is a featured guest).\n\n' +
+    'Other highly played songs by ' + artist + ' from my listening history.\n\n' +
+    artist + '’s most popular songs on Spotify overall.\n\n' +
+    'Newer releases by ' + artist + ' from the last 18 months (singles, EP tracks, or LP tracks), as long as they are not from “best of,” compilation, or live albums and still fit my usual taste profile.\n\n' +
+    'Prefer original studio versions. Remixes and alternate versions should be lowest priority and only included when they are clearly songs I already listen to and love. Avoid songs I have recently skipped and anything clearly outside my taste profile. Try to keep songs with zero plays to no more than about 10% of the playlist.\n\n' +
+    'Sort the final playlist first by play count (highest to lowest) and then, for ties, by release date (newer first).\n\n' +
+    'In the playlist notes, for each song, include: the artist name, the number of plays that song has in my listening history (as closely as you can), its main genre or subgenre, its original release date, and a short tag for its mood or emotional tone.';
 }
 
 async function copyToClipboard(text, toastMessage) {
