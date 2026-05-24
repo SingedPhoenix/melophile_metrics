@@ -950,6 +950,10 @@
     color: color-mix(in srgb, var(--silver) 72%, var(--charcoal-light));
   }
 
+  .r-action-album {
+    color: color-mix(in srgb, var(--silver) 72%, var(--amethyst-mid));
+  }
+
   .r-icon-sing {
     width: 17px;
     height: 17px;
@@ -963,6 +967,11 @@
   .r-icon-music {
     width: 16px;
     height: 17px;
+  }
+
+  .r-icon-disc {
+    width: 16px;
+    height: 16px;
   }
 
   .r-artist {
@@ -3672,6 +3681,21 @@ document.addEventListener('click', e => {
       copyToClipboard(trackCopy, 'copied · ' + trackCopy);
       return;
     }
+    if (action.dataset.copyKind === 'album-title-artist') {
+      const album = action.dataset.album || '';
+      const artist = action.dataset.artist || '';
+      if (!album || !artist) return;
+      const albumCopy = '"' + album + '" by "' + artist + '"';
+      copyToClipboard(albumCopy, 'copied · ' + albumCopy);
+      return;
+    }
+    if (action.dataset.copyKind === 'album-spotlight-prompt') {
+      const album = action.dataset.album || '';
+      const artist = action.dataset.artist || '';
+      if (!album || !artist) return;
+      copyToClipboard(buildAlbumSpotlightPrompt(album, artist), 'prompt copied · ' + album);
+      return;
+    }
     const artist = action.dataset.artist || '';
     if (!artist) return;
     if (action.dataset.copyKind === 'artist-spotlight-prompt') {
@@ -3701,6 +3725,10 @@ function buildArtistSpotlightPrompt(artist) {
     'Prefer original studio versions. Remixes and alternate versions should be lowest priority and only included when they are clearly songs I already listen to and love. Avoid songs I have recently skipped and anything clearly outside my taste profile. Try to keep songs with zero plays to no more than about 10% of the playlist.\n\n' +
     'Sort the final playlist first by play count (highest to lowest) and then, for ties, by release date (newer first).\n\n' +
     'In the playlist notes, for each song, include: the artist name, the number of plays that song has in my listening history (as closely as you can), its main genre or subgenre, its original release date, and a short tag for its mood or emotional tone.';
+}
+
+function buildAlbumSpotlightPrompt(album, artist) {
+  return 'Create a playlist called “📆 albums...last...' + album + ' spotlight”. Make this a deep dive on the album “' + album + '” by ' + artist + '. Add all tracks from the original studio version of “' + album + '” in album order (no live, best‑of, or compilation versions). Follow this exact pattern at the start of the playlist: playlist song 1 = track 1 of “' + album + '”; playlist song 2 = track 2 of “' + album + '”; playlist song 3 = playlist essence filler song; playlist song 4 = playlist essence filler song; playlist song 5 = track 3 of “' + album + '”; playlist song 6 = playlist essence filler song; playlist song 7 = playlist essence filler song; playlist song 8 = track 4 of “' + album + '”. After this example, keep repeating the same pattern for the middle of the album: every middle album track of “' + album + '” (tracks after 2 and before the last 2) should be followed by two playlist essence filler songs, until you reach the last two album tracks. At the end, add the last two tracks of “' + album + '” back‑to‑back with no playlist essence filler songs after them, so the album closes in one continuous stretch. Playlist essence filler songs should extend the feel of “' + album + '” and can be other tracks by ' + artist + ' or songs by other artists in a similar genre or mood, preferably from around the same era (about 3 years before or after the original release year of “' + album + '”). In the playlist notes or description, for each song, include: the artist name, the number of plays that song has in my listening history (as closely as you can), its main genre or subgenre, its original release date, and a short tag for its mood or emotional tone.';
 }
 
 async function copyToClipboard(text, toastMessage) {
@@ -4682,6 +4710,11 @@ const TRACK_COPY_ICON =
     '<path fill-rule="evenodd" clip-rule="evenodd" d="M87.9,78.04c2.74-0.48,5.33-0.4,7.6,0.13V24.82L39.05,41.03v61.95c0.03,0.34,0.05,0.69,0.05,1.03 c0,0,0,0.01,0,0.01c0,8.34-8.75,16.62-19.55,18.49C8.76,124.37,0,119.12,0,110.77c0-8.34,8.76-16.62,19.55-18.48 c4.06-0.7,7.84-0.39,10.97,0.71l0-76.26h0.47L104.04,0v85.92c0.13,0.63,0.2,1.27,0.2,1.91c0,0,0,0,0,0.01 c0,6.97-7.32,13.89-16.33,15.44c-9.02,1.56-16.33-2.83-16.33-9.8C71.57,86.51,78.88,79.59,87.9,78.04L87.9,78.04L87.9,78.04z"/>' +
   '</svg>';
 
+const ALBUM_COPY_ICON =
+  '<svg class="r-action-icon r-icon-disc" viewBox="0 0 122.88 122.88" aria-hidden="true">' +
+    '<path fill-rule="evenodd" clip-rule="evenodd" d="M61.44,0c33.93,0,61.44,27.51,61.44,61.44c0,33.93-27.51,61.44-61.44,61.44C27.51,122.88,0,95.37,0,61.44 C0,27.51,27.51,0,61.44,0L61.44,0z M61.44,56.65c2.65,0,4.79,2.15,4.79,4.79c0,2.64-2.14,4.79-4.79,4.79 c-2.64,0-4.79-2.14-4.79-4.79C56.65,58.8,58.8,56.65,61.44,56.65L61.44,56.65z M61.44,41.99c10.74,0,19.45,8.71,19.45,19.45 c0,10.74-8.71,19.45-19.45,19.45C50.7,80.89,42,72.18,42,61.44C42,50.7,50.7,41.99,61.44,41.99L61.44,41.99L61.44,41.99z M13.59,49.95c3.21-8.59,8.3-16.25,14.77-22.48c6.46-6.22,14.3-11.03,23-13.91l1.56,4.72c-8,2.65-15.19,7.06-21.12,12.77 c-5.95,5.73-10.62,12.76-13.56,20.63L13.59,49.95L13.59,49.95z M29.12,53.58c2.01-5.39,5.21-10.21,9.27-14.12 c4.06-3.91,8.98-6.93,14.45-8.73l1.55,4.72c-4.76,1.58-9.03,4.2-12.56,7.59c-3.54,3.41-6.32,7.59-8.07,12.27L29.12,53.58 L29.12,53.58L29.12,53.58z M94.28,68.54c-2.01,5.39-5.21,10.21-9.27,14.12c-4.06,3.91-8.98,6.93-14.45,8.73l-1.55-4.72 c4.76-1.58,9.04-4.19,12.56-7.59c3.54-3.41,6.32-7.59,8.07-12.27L94.28,68.54L94.28,68.54L94.28,68.54z M109.81,72.17 c-3.21,8.58-8.3,16.24-14.77,22.48c-6.46,6.23-14.3,11.03-23,13.91l-1.56-4.72c8-2.65,15.19-7.06,21.12-12.77 c5.95-5.73,10.62-12.76,13.56-20.63L109.81,72.17L109.81,72.17z"/>' +
+  '</svg>';
+
 function setLastWindow(months) {
   lastWindow = months;
   syncLastControls();
@@ -4785,6 +4818,20 @@ function renderLastList() {
         '<div class="r-name-actions">' +
           '<button class="r-action-btn r-action-track" type="button" data-copy-kind="track-title-artist" data-track="' + esc(entry.name) + '" data-artist="' + esc(entry.artist) + '" aria-label="copy song and artist" title="copy song and artist">' +
             TRACK_COPY_ICON +
+          '</button>' +
+          '<div>' +
+            '<div class="r-name" data-copy="' + esc(entry.name) + '">' + esc(entry.name) + '</div>' +
+            '<div class="r-artist">' + esc(entry.artist) + '</div>' +
+          '</div>' +
+        '</div>';
+    } else if (lastType === 'albums') {
+      nameCell =
+        '<div class="r-name-actions">' +
+          '<button class="r-action-btn r-action-album" type="button" data-copy-kind="album-title-artist" data-album="' + esc(entry.name) + '" data-artist="' + esc(entry.artist) + '" aria-label="copy album and artist" title="copy album and artist">' +
+            ALBUM_COPY_ICON +
+          '</button>' +
+          '<button class="r-action-btn r-action-prompt" type="button" data-copy-kind="album-spotlight-prompt" data-album="' + esc(entry.name) + '" data-artist="' + esc(entry.artist) + '" aria-label="copy album spotlight prompt" title="copy album spotlight prompt">' +
+            SPOTIFY_PROMPT_ICON +
           '</button>' +
           '<div>' +
             '<div class="r-name" data-copy="' + esc(entry.name) + '">' + esc(entry.name) + '</div>' +
