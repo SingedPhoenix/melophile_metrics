@@ -925,15 +925,41 @@
     transform: translateY(-1px);
   }
 
-  .r-action-btn svg {
-    width: 15px;
-    height: 15px;
-    stroke: currentColor;
+  .r-action-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+    background: currentColor;
+    opacity: 0.72;
+    transition: opacity 0.2s, background 0.2s, transform 0.2s;
+    -webkit-mask: center / contain no-repeat;
+    mask: center / contain no-repeat;
   }
 
-  .r-action-copy svg {
-    width: 14px;
-    height: 14px;
+  .r-action-btn:hover .r-action-icon {
+    opacity: 0.96;
+  }
+
+  .r-action-copy {
+    color: color-mix(in srgb, var(--silver) 76%, var(--amethyst-mid));
+  }
+
+  .r-action-prompt {
+    color: color-mix(in srgb, var(--silver) 62%, var(--cherry-bright));
+  }
+
+  .r-icon-sing {
+    width: 17px;
+    height: 17px;
+    -webkit-mask-image: url('assets/icons/sing-icon.svg');
+    mask-image: url('assets/icons/sing-icon.svg');
+  }
+
+  .r-icon-spotify {
+    width: 16px;
+    height: 16px;
+    -webkit-mask-image: url('assets/icons/spotify-white-icon.svg');
+    mask-image: url('assets/icons/spotify-white-icon.svg');
   }
 
   .r-artist {
@@ -4714,10 +4740,10 @@ function renderLastList() {
       nameCell =
         '<div class="r-name-actions">' +
           '<button class="r-action-btn r-action-copy" type="button" data-copy-kind="artist-name" data-artist="' + esc(entry.name) + '" aria-label="copy artist name" title="copy artist name">' +
-            '<svg viewBox="0 0 24 24" fill="none"><rect x="8" y="8" width="11" height="11" rx="2" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+            '<span class="r-action-icon r-icon-sing" aria-hidden="true"></span>' +
           '</button>' +
           '<button class="r-action-btn r-action-prompt" type="button" data-copy-kind="artist-spotlight-prompt" data-artist="' + esc(entry.name) + '" aria-label="copy artist spotlight prompt" title="copy artist spotlight prompt">' +
-            '<svg viewBox="0 0 24 24" fill="none"><path d="M5 4h14v11H8l-3 3V4Z" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h6M9 11h4" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+            '<span class="r-action-icon r-icon-spotify" aria-hidden="true"></span>' +
           '</button>' +
           '<div class="r-name" data-copy="' + esc(entry.name) + '">' + esc(entry.name) + '</div>' +
         '</div>';
