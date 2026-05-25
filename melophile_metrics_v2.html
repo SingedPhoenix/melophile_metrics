@@ -634,6 +634,18 @@
     gap: 12px;
     border-top: 1px solid rgba(204,204,204,0.055);
     padding: 10px 0;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background 0.18s, border-color 0.18s;
+  }
+
+  .spotify-playlist-row:hover,
+  .spotify-playlist-row.active {
+    background: rgba(204,204,204,0.035);
+  }
+
+  .spotify-playlist-row.active {
+    border-color: color-mix(in srgb, var(--cherry-bright) 28%, rgba(204,204,204,0.08));
   }
 
   .spotify-cover {
@@ -659,6 +671,65 @@
     font-size: 12px;
     color: rgba(204,204,204,0.42);
     white-space: nowrap;
+  }
+
+  .spotify-detail {
+    grid-column: 1 / -1;
+    border-top: 1px solid rgba(204,204,204,0.08);
+    padding-top: 18px;
+    display: none;
+  }
+
+  .spotify-detail.visible {
+    display: block;
+  }
+
+  .spotify-detail-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: end;
+    margin-bottom: 12px;
+  }
+
+  .spotify-detail-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: rgba(204,204,204,0.84);
+  }
+
+  .spotify-track-list {
+    display: grid;
+    gap: 0;
+    max-height: 420px;
+    overflow: auto;
+  }
+
+  .spotify-track-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid rgba(204,204,204,0.045);
+  }
+
+  .spotify-track-rank,
+  .spotify-track-duration {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: rgba(204,204,204,0.35);
+  }
+
+  .spotify-track-name {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(204,204,204,0.76);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* ── Screen 3: Section Detail ── */
@@ -2310,6 +2381,7 @@
       <div class="spotify-playlists" id="spotifyPlaylists">
         <div class="spotify-empty">playlist inventory will appear here after connection.</div>
       </div>
+      <div class="spotify-detail" id="spotifyPlaylistDetail"></div>
     </div>
 
     <button class="reupload-btn" onclick="goToUpload()">↑ upload a different dataset</button>
@@ -6396,6 +6468,8 @@ const SPOTIFY_AUTH_KEY = 'melophile.spotify.auth';
 const SPOTIFY_SCOPES = ['playlist-read-private', 'playlist-read-collaborative'];
 let spotifyProfile = null;
 let spotifyPlaylists = [];
+let spotifySelectedPlaylistId = null;
+const spotifyPlaylistTracksCache = {};
 
 function getSpotifyClientId() {
   return (localStorage.getItem(SPOTIFY_CLIENT_ID_KEY) || '').trim();
@@ -6554,6 +6628,7 @@ async function loadSpotifyPlaylists() {
   try {
     spotifyProfile = await spotifyFetch('/v1/me');
     spotifyPlaylists = [];
+    spotifySelectedPlaylistId = null;
     let next = 'https://api.spotify.com/v1/me/playlists?limit=50';
     while (next) {
       const page = await spotifyFetch(next);
@@ -6561,6 +6636,7 @@ async function loadSpotifyPlaylists() {
       next = page.next;
     }
     renderSpotifyPlaylists();
+    renderSpotifyPlaylistDetail(null);
     renderSpotifyPanel();
     showCopyToast('spotify playlists loaded');
   } catch (err) {
@@ -6591,14 +6667,125 @@ function renderSpotifyPlaylists() {
     const image = playlist.images && playlist.images[0] ? playlist.images[0].url : '';
     const owner = playlist.owner && playlist.owner.display_name ? playlist.owner.display_name : 'spotify';
     const count = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
-    return '<div class="spotify-playlist-row">' +
+    const activeClass = playlist.id === spotifySelectedPlaylistId ? ' active' : '';
+    return '<div class="spotify-playlist-row' + activeClass + '" data-playlist-id="' + esc(playlist.id) + '" role="button" tabindex="0">' +
       (image ? '<img class="spotify-cover" src="' + esc(image) + '" alt="">' : '<div class="spotify-cover"></div>') +
       '<div><div class="spotify-playlist-name">' + esc(playlist.name) + '</div>' +
       '<div class="spotify-meta">' + esc(owner) + '</div></div>' +
       '<div class="spotify-count">' + count.toLocaleString() + ' tracks</div>' +
       '</div>';
   }).join('');
+  target.querySelectorAll('.spotify-playlist-row').forEach(row => {
+    row.addEventListener('click', () => selectSpotifyPlaylist(row.dataset.playlistId));
+    row.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectSpotifyPlaylist(row.dataset.playlistId);
+      }
+    });
+  });
   scheduleScrollControlUpdate();
+}
+
+async function selectSpotifyPlaylist(playlistId) {
+  const playlist = spotifyPlaylists.find(item => item.id === playlistId);
+  if (!playlist) return;
+  spotifySelectedPlaylistId = playlistId;
+  renderSpotifyPlaylists();
+  renderSpotifyPlaylistDetail(playlist, { loading: true });
+  showCopyToast('loading playlist tracks');
+
+  try {
+    const tracks = spotifyPlaylistTracksCache[playlistId] || await loadSpotifyPlaylistTracks(playlistId);
+    spotifyPlaylistTracksCache[playlistId] = tracks;
+    renderSpotifyPlaylistDetail(playlist, { tracks });
+    showCopyToast('playlist opened');
+  } catch (err) {
+    renderSpotifyPlaylistDetail(playlist, { error: true });
+    showCopyToast('could not load playlist tracks');
+  }
+}
+
+async function loadSpotifyPlaylistTracks(playlistId) {
+  const fields = 'items(track(name,duration_ms,artists(name),album(name))),next,total';
+  let next = 'https://api.spotify.com/v1/playlists/' + encodeURIComponent(playlistId) + '/tracks?limit=100&fields=' + encodeURIComponent(fields);
+  const tracks = [];
+  while (next) {
+    const page = await spotifyFetch(next);
+    (page.items || []).forEach(item => {
+      if (item && item.track) tracks.push(item.track);
+    });
+    next = page.next;
+  }
+  return tracks;
+}
+
+function renderSpotifyPlaylistDetail(playlist, state = {}) {
+  const target = document.getElementById('spotifyPlaylistDetail');
+  if (!target) return;
+  if (!playlist) {
+    target.classList.remove('visible');
+    target.innerHTML = '';
+    return;
+  }
+
+  const declaredCount = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+  if (state.loading) {
+    target.classList.add('visible');
+    target.innerHTML = '<div class="spotify-detail-head"><div>' +
+      '<div class="spotify-detail-title">' + esc(playlist.name) + '</div>' +
+      '<div class="spotify-meta">loading tracks...</div>' +
+      '</div><div class="spotify-count">' + declaredCount.toLocaleString() + ' tracks</div></div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+  if (state.error) {
+    target.classList.add('visible');
+    target.innerHTML = '<div class="spotify-detail-head"><div>' +
+      '<div class="spotify-detail-title">' + esc(playlist.name) + '</div>' +
+      '<div class="spotify-meta">tracks could not be loaded. reconnect spotify and try again.</div>' +
+      '</div></div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  const tracks = state.tracks || [];
+  const artistCounts = {};
+  tracks.forEach(track => {
+    (track.artists || []).forEach(artist => {
+      const name = artist && artist.name ? artist.name : '';
+      if (name) artistCounts[name] = (artistCounts[name] || 0) + 1;
+    });
+  });
+  const topArtists = Object.entries(artistCounts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => name + ' (' + count + ')')
+    .join(' · ');
+
+  target.classList.add('visible');
+  target.innerHTML = '<div class="spotify-detail-head"><div>' +
+    '<div class="spotify-detail-title">' + esc(playlist.name) + '</div>' +
+    '<div class="spotify-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (topArtists ? ' · top artists: ' + esc(topArtists) : '') + '</div>' +
+    '</div><div class="spotify-count">' + declaredCount.toLocaleString() + ' listed</div></div>' +
+    '<div class="spotify-track-list">' + tracks.map((track, index) => {
+      const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
+      const album = track.album && track.album.name ? track.album.name : '';
+      return '<div class="spotify-track-row">' +
+        '<div class="spotify-track-rank">' + (index + 1) + '</div>' +
+        '<div><div class="spotify-track-name">' + esc(track.name) + '</div>' +
+        '<div class="spotify-meta">' + esc(artists) + (album ? ' · ' + esc(album) : '') + '</div></div>' +
+        '<div class="spotify-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
+        '</div>';
+    }).join('') + '</div>';
+  scheduleScrollControlUpdate();
+}
+
+function formatSpotifyDuration(ms) {
+  const totalSeconds = Math.max(0, Math.round((ms || 0) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = String(totalSeconds % 60).padStart(2, '0');
+  return minutes + ':' + seconds;
 }
 
 function disconnectSpotify() {
@@ -6606,7 +6793,10 @@ function disconnectSpotify() {
   localStorage.removeItem(SPOTIFY_AUTH_KEY);
   spotifyProfile = null;
   spotifyPlaylists = [];
+  spotifySelectedPlaylistId = null;
+  Object.keys(spotifyPlaylistTracksCache).forEach(key => delete spotifyPlaylistTracksCache[key]);
   renderSpotifyPlaylists();
+  renderSpotifyPlaylistDetail(null);
   renderSpotifyPanel();
   showCopyToast('spotify disconnected');
 }
