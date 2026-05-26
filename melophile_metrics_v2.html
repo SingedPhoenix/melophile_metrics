@@ -2630,7 +2630,7 @@
   <div class="accent-line"></div>
 
   <!-- ── Screen 1: Upload ── -->
-  <div class="screen active" id="screenUpload">
+  <div class="screen" id="screenUpload">
     <div class="upload-zone" id="uploadZone">
       <h2>upload last.fm dataset</h2>
       <input type="file" id="fileInput" accept=".csv">
@@ -2644,7 +2644,7 @@
   </div>
 
   <!-- ── Screen 2: Section Select ── -->
-  <div class="screen" id="screenSelect">
+  <div class="screen active" id="screenSelect">
     <div class="jumpoff-card" id="jumpoffCard" onclick="openJumpoffSuggestion()" role="button" tabindex="0">
       <div class="jumpoff-main">
         <div class="jumpoff-route" id="jumpoffRoute"></div>
@@ -2766,7 +2766,6 @@
 
     <div class="detail-nav">
       <button class="back-btn" onclick="navStack.push('screenSettings'); enterSection('settings')">settings</button>
-      <button class="reupload-btn" onclick="goToUpload()">↑ upload a different dataset</button>
     </div>
   </div>
 
@@ -2774,6 +2773,22 @@
   <div class="screen" id="screenSettings">
     <div class="detail-title">settings</div>
     <div class="section-content">
+      <div class="lastfm-panel" id="localDataPanel">
+        <div>
+          <div class="lastfm-title">local listening data</div>
+          <div class="lastfm-sub">maintenance tools for cached history and rare csv imports. the app now opens to home first.</div>
+        </div>
+        <div class="upload-zone" id="settingsUploadZone">
+          <h2>upload last.fm csv dataset</h2>
+          <input type="file" id="settingsFileInput" accept=".csv">
+        </div>
+        <div class="lastfm-actions">
+          <button class="pill" type="button" onclick="loadLastfmCache()">load cached history</button>
+          <button class="pill" type="button" onclick="syncLastfmFullHistory()">sync from last.fm</button>
+        </div>
+        <div class="lastfm-status" id="settingsDataStatus">cached data loads quietly on app startup when available.</div>
+      </div>
+
       <div class="lastfm-panel" id="lastfmPanel">
         <div>
           <div class="lastfm-title">last.fm api sync</div>
@@ -3941,7 +3956,7 @@ function jumpPage(position) {
 window.addEventListener('resize', scheduleScrollControlUpdate);
 window.addEventListener('load', scheduleScrollControlUpdate);
 
-function goToUpload()  { navStack = []; showScreen('screenUpload'); }
+function goToUpload()  { navStack = ['screenSelect', 'screenSettings']; showScreen('screenSettings'); }
 function goToSelect()  { navStack = ['screenSelect']; showScreen('screenSelect'); }
 function goHome()      { navStack = ['screenSelect']; showScreen('screenSelect'); }
 
@@ -4395,18 +4410,26 @@ function openJumpoffSuggestion() {
 // ── Upload ────────────────────────────────────────────────────────────
 const zone      = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
+const settingsZone = document.getElementById('settingsUploadZone');
+const settingsFileInput = document.getElementById('settingsFileInput');
 
-zone.addEventListener('click', () => fileInput.click());
-zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-zone.addEventListener('drop', e => {
-  e.preventDefault();
-  zone.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', () => {
-  if (fileInput.files[0]) handleFile(fileInput.files[0]);
-});
+bindUploadZone(zone, fileInput);
+bindUploadZone(settingsZone, settingsFileInput);
+
+function bindUploadZone(uploadZone, uploadInput) {
+  if (!uploadZone || !uploadInput) return;
+  uploadZone.addEventListener('click', () => uploadInput.click());
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  uploadInput.addEventListener('change', () => {
+    if (uploadInput.files[0]) handleFile(uploadInput.files[0]);
+  });
+}
 
 document.addEventListener('click', e => {
   const action = e.target.closest('.r-action-btn');
@@ -4515,6 +4538,8 @@ function showCopyToast(message) {
 function updateUploadStatus(message) {
   const status = document.getElementById('uploadStatus');
   if (status) status.textContent = message;
+  const settingsStatus = document.getElementById('settingsDataStatus');
+  if (settingsStatus) settingsStatus.textContent = message;
 }
 
 function handleFile(file) {
@@ -7834,6 +7859,7 @@ loadLocalServiceConfig()
     bindServiceSettingsInputs();
     renderLastfmPanel();
     renderSpotifyPanel();
+    showScreen('screenSelect');
     loadLastfmCache({ silent: true });
   });
 
