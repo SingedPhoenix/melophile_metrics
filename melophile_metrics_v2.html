@@ -200,6 +200,24 @@
 
   .upload-zone input { display: none; }
 
+  .upload-helper {
+    max-width: 620px;
+    margin-top: 24px;
+    text-align: center;
+    font-family: 'Afacad', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    color: rgba(204,204,204,0.52);
+  }
+
+  .upload-actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+  }
+
   /* ── Screen 2: Section Select (three squares) ── */
 
 
@@ -2617,6 +2635,11 @@
       <h2>upload last.fm dataset</h2>
       <input type="file" id="fileInput" accept=".csv">
     </div>
+    <div class="upload-helper" id="uploadStatus">loading cached last.fm history if one exists for this browser address...</div>
+    <div class="upload-actions">
+      <button class="reupload-btn" type="button" onclick="loadLastfmCache()">load cached history</button>
+      <button class="reupload-btn" type="button" onclick="syncLastfmFullHistory()">sync from last.fm</button>
+    </div>
     <button class="reupload-btn" onclick="navStack=['screenUpload','screenSettings']; enterSection('settings')">settings</button>
   </div>
 
@@ -4487,6 +4510,11 @@ function showCopyToast(message) {
   toast.classList.add('visible');
   clearTimeout(copyToastTimer);
   copyToastTimer = setTimeout(() => toast.classList.remove('visible'), 1400);
+}
+
+function updateUploadStatus(message) {
+  const status = document.getElementById('uploadStatus');
+  if (status) status.textContent = message;
 }
 
 function handleFile(file) {
@@ -7694,21 +7722,23 @@ async function latestCachedLastfmUts() {
   return rows.reduce((max, row) => Math.max(max, parseInt(row.uts) || 0), 0);
 }
 
-async function loadLastfmCache() {
+async function loadLastfmCache(options = {}) {
   document.getElementById('loadingOverlay').classList.remove('hidden');
   document.getElementById('loadingStatus').textContent = 'loading cached last.fm history...';
   try {
     const rows = await readLastfmCachedRows();
     if (!rows.length) {
       document.getElementById('loadingOverlay').classList.add('hidden');
-      showCopyToast('no last.fm cache found');
+      updateUploadStatus('no cached last.fm history was found for this browser address. if your cache was created from file://, run a last.fm sync once from localhost to create the localhost cache.');
+      if (!options.silent) showCopyToast('no last.fm cache found');
       renderLastfmPanel();
       return;
     }
     activateDataRows(rows, rows.length.toLocaleString() + ' cached scrobbles loaded');
   } catch (err) {
     document.getElementById('loadingOverlay').classList.add('hidden');
-    showCopyToast('could not load last.fm cache');
+    updateUploadStatus('the cached history could not be opened. try syncing from last.fm or uploading a csv dataset.');
+    if (!options.silent) showCopyToast('could not load last.fm cache');
   }
 }
 
@@ -7804,7 +7834,7 @@ loadLocalServiceConfig()
     bindServiceSettingsInputs();
     renderLastfmPanel();
     renderSpotifyPanel();
-    loadLastfmCache();
+    loadLastfmCache({ silent: true });
   });
 
 </script>
