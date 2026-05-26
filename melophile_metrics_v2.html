@@ -2329,23 +2329,7 @@
       <h2>upload last.fm dataset</h2>
       <input type="file" id="fileInput" accept=".csv">
     </div>
-    <div class="lastfm-panel" id="lastfmPanel">
-      <div>
-        <div class="lastfm-title">last.fm api sync</div>
-        <div class="lastfm-sub">sync listening history directly from last.fm and cache it locally so refreshes do not need a csv upload.</div>
-      </div>
-      <div class="lastfm-fields">
-        <input class="spotify-input" id="lastfmUsernameInput" type="text" autocomplete="off" spellcheck="false" placeholder="last.fm username">
-        <input class="spotify-input" id="lastfmApiKeyInput" type="text" autocomplete="off" spellcheck="false" placeholder="last.fm api key">
-      </div>
-      <div class="lastfm-actions">
-        <button class="pill" type="button" onclick="saveLastfmSettings()">save settings</button>
-        <button class="pill" type="button" onclick="syncLastfmRecent()">sync new scrobbles</button>
-        <button class="pill" type="button" onclick="syncLastfmFullHistory()">full history sync</button>
-        <button class="pill" type="button" onclick="loadLastfmCache()">load cached history</button>
-      </div>
-      <div class="lastfm-status" id="lastfmStatus">settings are stored in this browser only.</div>
-    </div>
+    <button class="reupload-btn" onclick="navStack=['screenUpload','screenSettings']; enterSection('settings')">settings</button>
   </div>
 
   <!-- ── Screen 2: Section Select ── -->
@@ -2419,7 +2403,35 @@
 
     </div>
 
-    <div class="spotify-panel" id="spotifyPanel">
+    <div class="detail-nav">
+      <button class="back-btn" onclick="navStack.push('screenSettings'); enterSection('settings')">settings</button>
+      <button class="reupload-btn" onclick="goToUpload()">↑ upload a different dataset</button>
+    </div>
+  </div>
+
+  <!-- ── Screen 2b: Settings ── -->
+  <div class="screen" id="screenSettings">
+    <div class="detail-title">settings</div>
+    <div class="section-content">
+      <div class="lastfm-panel" id="lastfmPanel">
+        <div>
+          <div class="lastfm-title">last.fm api sync</div>
+          <div class="lastfm-sub">sync listening history directly from last.fm and cache it locally so refreshes do not need a csv upload.</div>
+        </div>
+        <div class="lastfm-fields">
+          <input class="spotify-input" id="lastfmUsernameInput" type="text" autocomplete="off" spellcheck="false" placeholder="last.fm username">
+          <input class="spotify-input" id="lastfmApiKeyInput" type="text" autocomplete="off" spellcheck="false" placeholder="last.fm api key">
+        </div>
+        <div class="lastfm-actions">
+          <button class="pill" type="button" onclick="saveLastfmSettings()">save settings</button>
+          <button class="pill" type="button" onclick="syncLastfmRecent()">sync new scrobbles</button>
+          <button class="pill" type="button" onclick="syncLastfmFullHistory()">full history sync</button>
+          <button class="pill" type="button" onclick="loadLastfmCache()">load cached history</button>
+        </div>
+        <div class="lastfm-status" id="lastfmStatus">settings are stored in this browser only.</div>
+      </div>
+
+      <div class="spotify-panel" id="spotifyPanel">
       <div>
         <div class="spotify-title">spotify read access</div>
         <div class="spotify-sub">connect read-only playlist access so melophile metrics can inventory playlist families, mood shelves, and genre shelves.</div>
@@ -2439,9 +2451,12 @@
         <div class="spotify-empty">playlist inventory will appear here after connection.</div>
       </div>
       <div class="spotify-detail" id="spotifyPlaylistDetail"></div>
+      </div>
     </div>
-
-    <button class="reupload-btn" onclick="goToUpload()">↑ upload a different dataset</button>
+    <div class="detail-nav">
+      <button class="back-btn" onclick="goBack()">back</button>
+      <button class="home-btn" onclick="goHome()">home</button>
+    </div>
   </div>
 
   <!-- ── Screen 3: Pulse Sub-Nav ── -->
@@ -3439,6 +3454,9 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
   if (id === 'screenSelect') {
     renderJumpoff();
+  }
+  if (id === 'screenSettings') {
+    renderLastfmPanel();
     renderSpotifyPanel();
   }
   window.scrollTo({ top: 0 });
@@ -3556,6 +3574,7 @@ const SECTIONS = {
   'current-year': { screen: 'screenCurrentYear' },
   'years-review': { screen: 'screenYearsReview' },
   analytics:      { screen: 'screenAnalytics' },
+  settings:       { screen: 'screenSettings' },
 };
 
 // ── Main jump-off card ───────────────────────────────────────────────
