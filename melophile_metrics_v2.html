@@ -1998,6 +1998,129 @@
     background: transparent;
   }
 
+  .fresh-hub {
+    width: 100%;
+    display: grid;
+    gap: 22px;
+  }
+
+  .fresh-command {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--cherry-bright) 10%, transparent), color-mix(in srgb, var(--amethyst-mid) 9%, transparent)),
+      rgba(204,204,204,0.025);
+    padding: 22px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: center;
+  }
+
+  .fresh-command-title,
+  .fresh-panel-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: rgba(204,204,204,0.86);
+    margin-bottom: 6px;
+  }
+
+  .fresh-command-sub,
+  .fresh-panel-sub,
+  .fresh-release-meta,
+  .fresh-playlist-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    line-height: 1.65;
+    color: rgba(204,204,204,0.42);
+  }
+
+  .fresh-command-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .fresh-panel-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+    gap: 20px;
+  }
+
+  .fresh-panel {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 14px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+    min-width: 0;
+  }
+
+  .fresh-panel.full {
+    grid-column: 1 / -1;
+  }
+
+  .fresh-release-list,
+  .fresh-playlist-grid {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  .fresh-release-row,
+  .fresh-playlist-card {
+    border-top: 1px solid rgba(204,204,204,0.055);
+    padding: 12px 0 0;
+  }
+
+  .fresh-release-title,
+  .fresh-playlist-name {
+    font-family: 'Afacad', sans-serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--silver);
+    line-height: 1.15;
+  }
+
+  .fresh-release-tag {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(204,204,204,0.11);
+    border-radius: 999px;
+    padding: 3px 9px;
+    margin-left: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: rgba(204,204,204,0.48);
+  }
+
+  .fresh-playlist-card {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .fresh-playlist-cover {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: rgba(204,204,204,0.06);
+    object-fit: cover;
+  }
+
+  @media (max-width: 860px) {
+    .fresh-command,
+    .fresh-panel-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .fresh-command-actions {
+      justify-content: flex-start;
+    }
+  }
+
   .year-review-years {
     width: 100%;
     margin-bottom: 14px;
@@ -3161,34 +3284,69 @@
   <div class="screen" id="screenFresh">
     <div class="detail-title">fresh</div>
     <div class="section-content">
-      <div class="fresh-cols">
-
-        <!-- Left: new tracks -->
-        <div class="fresh-col">
-          <div class="fresh-stat">
-            <div class="fresh-stat-num" id="freshTrackCount">—</div>
-            <div class="fresh-stat-label">new tracks in 2026</div>
+      <div class="fresh-hub">
+        <div class="fresh-command">
+          <div>
+            <div class="fresh-command-title">new music from your musical orbit</div>
+            <div class="fresh-command-sub" id="freshCommandStatus">scan favorite artists for recent spotify releases, then compare them against your last.fm history.</div>
           </div>
-          <div class="fresh-list-wrap">
-            <table class="rankings-table">
-              <tbody id="freshTracksBody"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Right: new artists -->
-        <div class="fresh-col">
-          <div class="fresh-stat">
-            <div class="fresh-stat-num" id="freshArtistCount">—</div>
-            <div class="fresh-stat-label">new artists in 2026</div>
-          </div>
-          <div class="fresh-list-wrap">
-            <table class="rankings-table">
-              <tbody id="freshArtistsBody"></tbody>
-            </table>
+          <div class="fresh-command-actions">
+            <button class="pill active" type="button" onclick="setFreshReleaseWindow(90)">90 days</button>
+            <button class="pill" type="button" onclick="setFreshReleaseWindow(365)">1 year</button>
+            <button class="pill" type="button" onclick="scanFreshReleases()">scan releases</button>
+            <button class="pill" type="button" onclick="loadSpotifyPlaylists().then(renderFreshHub)">load playlists</button>
           </div>
         </div>
 
+        <div class="fresh-panel-grid">
+          <div class="fresh-panel">
+            <div class="fresh-panel-title">new from favorites</div>
+            <div class="fresh-panel-sub" id="freshReleaseStatus">spotify release scan has not run yet.</div>
+            <div class="fresh-release-list" id="freshReleaseList"></div>
+          </div>
+
+          <div class="fresh-panel">
+            <div class="fresh-panel-title">expansion watchlist</div>
+            <div class="fresh-panel-sub">favorite artists whose recent listening record looks quiet.</div>
+            <div class="fresh-release-list" id="freshWatchList"></div>
+          </div>
+
+          <div class="fresh-panel full">
+            <div class="fresh-panel-title">fresh playlists</div>
+            <div class="fresh-panel-sub">your cherry playlists and fresh seeds playlists will live here before playlist-family tagging becomes formal.</div>
+            <div class="fresh-playlist-grid" id="freshPlaylistFamilies"></div>
+          </div>
+
+          <div class="fresh-panel full">
+            <div class="fresh-panel-title">new in your library</div>
+            <div class="fresh-panel-sub">the original fresh view: tracks and artists first appearing in your current-year last.fm records.</div>
+            <div class="fresh-cols">
+              <div class="fresh-col">
+                <div class="fresh-stat">
+                  <div class="fresh-stat-num" id="freshTrackCount">—</div>
+                  <div class="fresh-stat-label">new tracks in 2026</div>
+                </div>
+                <div class="fresh-list-wrap">
+                  <table class="rankings-table">
+                    <tbody id="freshTracksBody"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div class="fresh-col">
+                <div class="fresh-stat">
+                  <div class="fresh-stat-num" id="freshArtistCount">—</div>
+                  <div class="fresh-stat-label">new artists in 2026</div>
+                </div>
+                <div class="fresh-list-wrap">
+                  <table class="rankings-table">
+                    <tbody id="freshArtistsBody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="detail-nav">
@@ -3549,6 +3707,9 @@ function enterSection(key) {
     }
     if (s.screen === 'screenAnalytics') {
       renderAnalytics();
+    }
+    if (s.screen === 'screenFresh') {
+      renderFreshHub();
     }
     return;
   }
@@ -6512,6 +6673,10 @@ function renderHeatmap() {
 }
 
 // ── Fresh ─────────────────────────────────────────────────────────────
+let freshReleaseWindowDays = 90;
+let freshReleaseResults = [];
+const SPOTIFY_ARTIST_MATCH_KEY = 'melophile.spotify.artistMatches';
+
 function populateFresh() {
   const newTracksSorted = Object.entries(cyData.newTracks).sort((a,b)=>b[1]-a[1]);
   const newArtistsSorted = Object.entries(cyData.newArtists).sort((a,b)=>b[1]-a[1]);
@@ -6539,7 +6704,224 @@ function populateFresh() {
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:'+barW+'%;background:var(--bar-gradient-soft)"></div></div></td>' +
       '<td class="r-count">'+v+'</td></tr>';
   }).join('');
+  renderFreshHub();
   scheduleScrollControlUpdate();
+}
+
+function renderFreshHub() {
+  renderFreshWatchList();
+  renderFreshPlaylistFamilies();
+  renderFreshReleaseList();
+}
+
+function setFreshReleaseWindow(days) {
+  freshReleaseWindowDays = days;
+  document.querySelectorAll('#screenFresh .fresh-command-actions .pill').forEach(button => {
+    const isWindow = button.textContent.includes('90') || button.textContent.includes('1 year');
+    if (!isWindow) return;
+    button.classList.toggle('active', button.textContent.includes(String(days)) || (days === 365 && button.textContent.includes('1 year')));
+  });
+  renderFreshReleaseList();
+}
+
+function favoriteArtistScores(limit = 40) {
+  const counts = {};
+  const latest = {};
+  allScrobbles.forEach(scrobble => {
+    if (!scrobble.artist) return;
+    counts[scrobble.artist] = (counts[scrobble.artist] || 0) + 1;
+    latest[scrobble.artist] = Math.max(latest[scrobble.artist] || 0, scrobble.uts || 0);
+  });
+  return Object.entries(counts)
+    .map(([artist, plays]) => ({ artist, plays, latestUts: latest[artist] || 0 }))
+    .sort((a, b) => b.plays - a.plays)
+    .slice(0, limit);
+}
+
+function renderFreshWatchList() {
+  const target = document.getElementById('freshWatchList');
+  if (!target) return;
+  const cutoff = Date.now() / 1000 - 180 * 86400;
+  const rows = favoriteArtistScores(60)
+    .filter(item => item.latestUts && item.latestUts < cutoff)
+    .slice(0, 12);
+
+  if (!rows.length) {
+    target.innerHTML = '<div class="spotify-empty">no quiet favorite artists found yet.</div>';
+    return;
+  }
+
+  target.innerHTML = rows.map((item, index) => {
+    const lastSeen = new Date(item.latestUts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return '<div class="fresh-release-row">' +
+      '<div class="fresh-release-title">' + esc(item.artist) + '<span class="fresh-release-tag">' + item.plays.toLocaleString() + ' plays</span></div>' +
+      '<div class="fresh-release-meta">last heard in your records · ' + esc(lastSeen) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderFreshPlaylistFamilies() {
+  const target = document.getElementById('freshPlaylistFamilies');
+  if (!target) return;
+  const playlists = spotifyPlaylists.filter(playlist => {
+    const name = (playlist.name || '').toLowerCase();
+    return name.includes('fresh seeds') || name.includes('fresh');
+  });
+
+  if (!spotifyPlaylists.length) {
+    target.innerHTML = '<div class="spotify-empty">load spotify playlists to see your fresh and fresh seeds shelves here.</div>';
+    return;
+  }
+  if (!playlists.length) {
+    target.innerHTML = '<div class="spotify-empty">no fresh playlist families found in the loaded spotify inventory.</div>';
+    return;
+  }
+
+  target.innerHTML = playlists.map(playlist => {
+    const name = playlist.name || '';
+    const lower = name.toLowerCase();
+    const family = lower.includes('fresh seeds') ? 'seed bed' : 'cherry grove';
+    const image = playlist.images && playlist.images[0] ? playlist.images[0].url : '';
+    const count = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+    return '<div class="fresh-playlist-card">' +
+      (image ? '<img class="fresh-playlist-cover" src="' + esc(image) + '" alt="">' : '<div class="fresh-playlist-cover"></div>') +
+      '<div><div class="fresh-playlist-name">' + esc(name) + '</div>' +
+      '<div class="fresh-playlist-meta">' + family + ' · ' + count.toLocaleString() + ' tracks</div></div>' +
+      '<div class="spotify-count">spotify</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderFreshReleaseList() {
+  const target = document.getElementById('freshReleaseList');
+  const status = document.getElementById('freshReleaseStatus');
+  const commandStatus = document.getElementById('freshCommandStatus');
+  if (!target || !status) return;
+
+  const cutoff = Date.now() - freshReleaseWindowDays * 86400000;
+  const rows = freshReleaseResults
+    .filter(release => release.releaseMs >= cutoff)
+    .sort((a, b) => b.releaseMs - a.releaseMs || b.favoriteScore - a.favoriteScore)
+    .slice(0, 30);
+
+  if (commandStatus) {
+    commandStatus.textContent = freshReleaseWindowDays + '-day release window · ' + favoriteArtistScores(40).length + ' favorite artists available from last.fm';
+  }
+
+  if (!freshReleaseResults.length) {
+    target.innerHTML = '<div class="spotify-empty">run a spotify scan to find new albums, eps, and singles from your favorite artists.</div>';
+    status.textContent = 'spotify release scan has not run yet.';
+    return;
+  }
+  status.textContent = rows.length.toLocaleString() + ' releases inside the current window · ' + freshReleaseResults.length.toLocaleString() + ' total scanned releases';
+
+  if (!rows.length) {
+    target.innerHTML = '<div class="spotify-empty">no scanned releases found inside this window.</div>';
+    return;
+  }
+
+  target.innerHTML = rows.map(release => {
+    const heard = release.heard ? 'heard' : 'unheard';
+    const date = new Date(release.releaseMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    return '<div class="fresh-release-row">' +
+      '<div class="fresh-release-title">' + esc(release.name) +
+      '<span class="fresh-release-tag">' + esc(release.type) + '</span>' +
+      '<span class="fresh-release-tag">' + heard + '</span></div>' +
+      '<div class="fresh-release-meta">' + esc(release.artist) + ' · released ' + esc(date) + ' · favorite score ' + release.favoriteScore.toLocaleString() + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+async function scanFreshReleases() {
+  const token = readSpotifyToken();
+  if (!token) {
+    showCopyToast('spotify connection needed');
+    return;
+  }
+  const status = document.getElementById('freshReleaseStatus');
+  const favorites = favoriteArtistScores(30);
+  if (!favorites.length) {
+    showCopyToast('last.fm history needed');
+    return;
+  }
+
+  const artistCache = readSpotifyArtistMatchCache();
+  const releases = [];
+  if (status) status.textContent = 'scanning spotify releases for ' + favorites.length + ' favorite artists...';
+
+  for (let i = 0; i < favorites.length; i++) {
+    const favorite = favorites[i];
+    if (status) status.textContent = 'scanning ' + favorite.artist + ' · ' + (i + 1) + ' of ' + favorites.length;
+    const spotifyArtist = artistCache[favorite.artist] || await findSpotifyArtist(favorite.artist);
+    if (!spotifyArtist) continue;
+    artistCache[favorite.artist] = spotifyArtist;
+    const artistReleases = await loadSpotifyArtistReleases(spotifyArtist.id);
+    artistReleases.forEach(release => {
+      releases.push({
+        id: release.id,
+        artist: favorite.artist,
+        name: release.name,
+        type: release.album_type || 'release',
+        releaseMs: spotifyReleaseDateMs(release.release_date),
+        favoriteScore: favorite.plays,
+        heard: hasHeardRelease(favorite.artist, release.name)
+      });
+    });
+  }
+
+  writeSpotifyArtistMatchCache(artistCache);
+  const unique = {};
+  releases.forEach(release => {
+    if (!release.id || !release.releaseMs) return;
+    unique[release.id] = release;
+  });
+  freshReleaseResults = Object.values(unique);
+  renderFreshReleaseList();
+  showCopyToast('fresh releases scanned');
+}
+
+function readSpotifyArtistMatchCache() {
+  try {
+    return JSON.parse(localStorage.getItem(SPOTIFY_ARTIST_MATCH_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function writeSpotifyArtistMatchCache(cache) {
+  localStorage.setItem(SPOTIFY_ARTIST_MATCH_KEY, JSON.stringify(cache));
+}
+
+async function findSpotifyArtist(artistName) {
+  const params = new URLSearchParams({ q: artistName, type: 'artist', limit: '1' });
+  const data = await spotifyFetch('/v1/search?' + params.toString());
+  return data.artists && data.artists.items && data.artists.items[0] ? data.artists.items[0] : null;
+}
+
+async function loadSpotifyArtistReleases(artistId) {
+  const params = new URLSearchParams({
+    include_groups: 'album,single',
+    market: 'US',
+    limit: '20'
+  });
+  const data = await spotifyFetch('/v1/artists/' + encodeURIComponent(artistId) + '/albums?' + params.toString());
+  return data.items || [];
+}
+
+function spotifyReleaseDateMs(dateText) {
+  if (!dateText) return 0;
+  const normalized = dateText.length === 4 ? dateText + '-01-01' : dateText.length === 7 ? dateText + '-01' : dateText;
+  const ms = Date.parse(normalized + 'T00:00:00Z');
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
+function hasHeardRelease(artist, releaseName) {
+  const release = (releaseName || '').toLowerCase();
+  const artistLower = (artist || '').toLowerCase();
+  return allScrobbles.some(scrobble =>
+    (scrobble.artist || '').toLowerCase() === artistLower &&
+    ((scrobble.album || '').toLowerCase() === release || (scrobble.track || '').toLowerCase() === release)
+  );
 }
 
 // ── Spotify read-only playlist access ────────────────────────────────
