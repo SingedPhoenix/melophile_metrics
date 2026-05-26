@@ -2762,6 +2762,7 @@
         </div>
         <div class="lastfm-actions">
           <button class="pill" type="button" onclick="saveLastfmSettings()">save settings</button>
+          <button class="pill" type="button" onclick="reloadLocalServiceConfig()">load local config</button>
           <button class="pill" type="button" onclick="syncLastfmRecent()">sync new scrobbles</button>
           <button class="pill" type="button" onclick="syncLastfmFullHistory()">full history sync</button>
           <button class="pill" type="button" onclick="loadLastfmCache()">load cached history</button>
@@ -2779,6 +2780,7 @@
         <input class="spotify-input" id="spotifyClientIdInput" type="text" autocomplete="off" spellcheck="false" placeholder="spotify client id">
         <div class="spotify-actions">
           <button class="pill" type="button" onclick="saveSpotifyClientId()">save id</button>
+          <button class="pill" type="button" onclick="reloadLocalServiceConfig()">load local config</button>
           <button class="pill" type="button" onclick="connectSpotify()">connect</button>
           <button class="pill" type="button" onclick="loadSpotifyPlaylists()">load playlists</button>
           <button class="pill" type="button" onclick="disconnectSpotify()">disconnect</button>
@@ -3817,6 +3819,42 @@ function shuffleThemeNow() {
 }
 
 rotateTheme();
+
+// ── Local service config ─────────────────────────────────────────────
+const LOCAL_SERVICE_CONFIG_FILE = 'melophile_config.local.json';
+let localServiceConfigLoaded = false;
+
+async function loadLocalServiceConfig() {
+  try {
+    const response = await fetch(LOCAL_SERVICE_CONFIG_FILE + '?v=' + Date.now(), { cache: 'no-store' });
+    if (!response.ok) return false;
+    const config = await response.json();
+    applyLocalServiceConfig(config || {});
+    localServiceConfigLoaded = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function reloadLocalServiceConfig() {
+  const loaded = await loadLocalServiceConfig();
+  renderLastfmPanel();
+  renderSpotifyPanel();
+  showCopyToast(loaded ? 'local config loaded' : 'local config not found');
+}
+
+function applyLocalServiceConfig(config) {
+  const lastfm = config.lastfm || {};
+  const spotify = config.spotify || {};
+  const lastfmUsername = (lastfm.username || config.lastfmUsername || '').trim();
+  const lastfmApiKey = (lastfm.apiKey || config.lastfmApiKey || '').trim();
+  const spotifyClientId = (spotify.clientId || config.spotifyClientId || '').trim();
+
+  if (lastfmUsername) localStorage.setItem(LASTFM_USERNAME_KEY, lastfmUsername);
+  if (lastfmApiKey) localStorage.setItem(LASTFM_API_KEY_KEY, lastfmApiKey);
+  if (spotifyClientId) localStorage.setItem(SPOTIFY_CLIENT_ID_KEY, spotifyClientId);
+}
 
 // ── Nav stack for back button ─────────────────────────────────────────
 let navStack = [];
@@ -7173,6 +7211,53 @@ function readSpotifyToken() {
   }
 }
 
+function readStoredSpotifyToken() {
+  try {
+    return JSON.parse(localStorage.getItem(SPOTIFY_TOKEN_KEY) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function hasRefreshableSpotifyToken() {
+  const token = readStoredSpotifyToken();
+  return Boolean(token && token.refresh_token);
+}
+
+async function getValidSpotifyToken() {
+  const activeToken = readSpotifyToken();
+  if (activeToken) return activeToken;
+
+  const storedToken = readStoredSpotifyToken();
+  if (!storedToken || !storedToken.refresh_token) return null;
+
+  const clientId = getSpotifyClientId();
+  if (!clientId) return null;
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    grant_type: 'refresh_token',
+    refresh_token: storedToken.refresh_token
+  });
+
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body
+  });
+  if (!response.ok) return null;
+
+  const refreshedToken = await response.json();
+  const token = {
+    ...storedToken,
+    ...refreshedToken,
+    refresh_token: refreshedToken.refresh_token || storedToken.refresh_token,
+    expires_at: Date.now() + (refreshedToken.expires_in || 3600) * 1000
+  };
+  localStorage.setItem(SPOTIFY_TOKEN_KEY, JSON.stringify(token));
+  return token;
+}
+
 function renderSpotifyPanel() {
   const input = document.getElementById('spotifyClientIdInput');
   const status = document.getElementById('spotifyStatus');
@@ -7181,6 +7266,7 @@ function renderSpotifyPanel() {
 
   const clientId = getSpotifyClientId();
   const token = readSpotifyToken();
+  const refreshableToken = hasRefreshableSpotifyToken();
   input.value = clientId;
 
   if (location.protocol === 'file:') {
@@ -7194,12 +7280,15 @@ function renderSpotifyPanel() {
   } else if (token) {
     status.textContent = 'connected · ready to load playlists';
     meta.textContent = 'read-only scopes: ' + SPOTIFY_SCOPES.join(', ');
+  } else if (refreshableToken && clientId) {
+    status.textContent = 'connection saved · will refresh when playlists load';
+    meta.textContent = 'client id saved · spotify refresh token stored in this browser';
   } else if (clientId) {
     status.textContent = 'client id saved · ready to connect';
-    meta.textContent = 'redirect uri: ' + getSpotifyRedirectUri();
+    meta.textContent = (localServiceConfigLoaded ? 'loaded from local config · ' : '') + 'redirect uri: ' + getSpotifyRedirectUri();
   } else {
     status.textContent = 'not connected';
-    meta.textContent = 'client id is stored in this browser only.';
+    meta.textContent = 'client id can be stored in this browser or loaded from local config.';
   }
 }
 
@@ -7298,7 +7387,7 @@ async function handleSpotifyRedirect() {
 }
 
 async function loadSpotifyPlaylists() {
-  const token = readSpotifyToken();
+  const token = await getValidSpotifyToken();
   if (!token) {
     showCopyToast('spotify connection needed');
     renderSpotifyPanel();
@@ -7326,7 +7415,7 @@ async function loadSpotifyPlaylists() {
 }
 
 async function spotifyFetch(pathOrUrl) {
-  const token = readSpotifyToken();
+  const token = await getValidSpotifyToken();
   if (!token) throw new Error('spotify token missing');
   const url = pathOrUrl.startsWith('http') ? pathOrUrl : 'https://api.spotify.com' + pathOrUrl;
   const response = await fetch(url, {
@@ -7522,8 +7611,8 @@ function renderLastfmPanel() {
   usernameInput.value = settings.username;
   apiKeyInput.value = settings.apiKey;
   status.textContent = settings.username && settings.apiKey
-    ? 'settings saved locally · ready to sync last.fm'
-    : 'settings are stored in this browser only.';
+    ? (localServiceConfigLoaded ? 'settings loaded from local config · ready to sync last.fm' : 'settings saved locally · ready to sync last.fm')
+    : 'settings can be stored in this browser or loaded from local config.';
 }
 
 function saveLastfmSettings() {
@@ -7685,9 +7774,13 @@ function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-handleSpotifyRedirect().then(renderSpotifyPanel);
-renderLastfmPanel();
-loadLastfmCache();
+loadLocalServiceConfig()
+  .then(() => handleSpotifyRedirect())
+  .then(() => {
+    renderLastfmPanel();
+    renderSpotifyPanel();
+    loadLastfmCache();
+  });
 
 </script>
 </body>

@@ -2,6 +2,7 @@
 *.log
 .env
 .env.*
+melophile_config.local.json
 node_modules/
 dist/
 build/

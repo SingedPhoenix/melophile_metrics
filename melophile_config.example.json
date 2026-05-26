@@ -1,0 +1,9 @@
+{
+  "lastfm": {
+    "username": "your-lastfm-username",
+    "apiKey": "your-lastfm-api-key"
+  },
+  "spotify": {
+    "clientId": "your-spotify-client-id"
+  }
+}
