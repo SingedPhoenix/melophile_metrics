@@ -3856,6 +3856,26 @@ function applyLocalServiceConfig(config) {
   if (spotifyClientId) localStorage.setItem(SPOTIFY_CLIENT_ID_KEY, spotifyClientId);
 }
 
+function bindServiceSettingsInputs() {
+  const lastfmUsernameInput = document.getElementById('lastfmUsernameInput');
+  const lastfmApiKeyInput = document.getElementById('lastfmApiKeyInput');
+  const spotifyClientIdInput = document.getElementById('spotifyClientIdInput');
+
+  lastfmUsernameInput?.addEventListener('input', persistVisibleServiceSettings);
+  lastfmApiKeyInput?.addEventListener('input', persistVisibleServiceSettings);
+  spotifyClientIdInput?.addEventListener('input', persistVisibleServiceSettings);
+}
+
+function persistVisibleServiceSettings() {
+  const lastfmUsername = (document.getElementById('lastfmUsernameInput')?.value || '').trim();
+  const lastfmApiKey = (document.getElementById('lastfmApiKeyInput')?.value || '').trim();
+  const spotifyClientId = (document.getElementById('spotifyClientIdInput')?.value || '').trim();
+
+  if (lastfmUsername) localStorage.setItem(LASTFM_USERNAME_KEY, lastfmUsername);
+  if (lastfmApiKey) localStorage.setItem(LASTFM_API_KEY_KEY, lastfmApiKey);
+  if (spotifyClientId) localStorage.setItem(SPOTIFY_CLIENT_ID_KEY, spotifyClientId);
+}
+
 // ── Nav stack for back button ─────────────────────────────────────────
 let navStack = [];
 let scrollControlTimer = null;
@@ -7190,7 +7210,8 @@ let spotifySelectedPlaylistId = null;
 const spotifyPlaylistTracksCache = {};
 
 function getSpotifyClientId() {
-  return (localStorage.getItem(SPOTIFY_CLIENT_ID_KEY) || '').trim();
+  const visibleValue = (document.getElementById('spotifyClientIdInput')?.value || '').trim();
+  return visibleValue || (localStorage.getItem(SPOTIFY_CLIENT_ID_KEY) || '').trim();
 }
 
 function getSpotifyRedirectUri() {
@@ -7267,11 +7288,11 @@ function renderSpotifyPanel() {
   const clientId = getSpotifyClientId();
   const token = readSpotifyToken();
   const refreshableToken = hasRefreshableSpotifyToken();
-  input.value = clientId;
+  if (document.activeElement !== input || !input.value.trim()) input.value = clientId;
 
   if (location.protocol === 'file:') {
-    status.textContent = 'spotify connect needs localhost. open the app at http://127.0.0.1:8767/melophile_metrics_v2.html';
-    meta.textContent = 'client id is stored in this browser only. no secret key is needed.';
+    status.textContent = clientId ? 'client id saved · open localhost to connect spotify' : 'not connected';
+    meta.textContent = 'spotify login cannot finish from file://. use http://127.0.0.1:8767/melophile_metrics_v2.html';
   } else if (token && spotifyProfile) {
     status.textContent = 'connected as ' + (spotifyProfile.display_name || spotifyProfile.id || 'spotify user');
     meta.textContent = spotifyPlaylists.length
@@ -7293,23 +7314,23 @@ function renderSpotifyPanel() {
 }
 
 function saveSpotifyClientId() {
-  const input = document.getElementById('spotifyClientIdInput');
-  const clientId = (input && input.value ? input.value : '').trim();
+  const clientId = getSpotifyClientId();
   if (!clientId) {
     showCopyToast('spotify client id missing');
-    return;
+    return false;
   }
   localStorage.setItem(SPOTIFY_CLIENT_ID_KEY, clientId);
   showCopyToast('spotify client id saved locally');
   renderSpotifyPanel();
+  return true;
 }
 
 async function connectSpotify() {
-  saveSpotifyClientId();
+  if (!saveSpotifyClientId()) return;
   const clientId = getSpotifyClientId();
   if (!clientId) return;
   if (location.protocol === 'file:') {
-    showCopyToast('open localhost for spotify connect');
+    showCopyToast('spotify connect needs localhost');
     renderSpotifyPanel();
     return;
   }
@@ -7596,9 +7617,11 @@ const LASTFM_DB_VERSION = 1;
 const LASTFM_STORE = 'scrobbles';
 
 function getLastfmSettings() {
+  const visibleUsername = (document.getElementById('lastfmUsernameInput')?.value || '').trim();
+  const visibleApiKey = (document.getElementById('lastfmApiKeyInput')?.value || '').trim();
   return {
-    username: (localStorage.getItem(LASTFM_USERNAME_KEY) || '').trim(),
-    apiKey: (localStorage.getItem(LASTFM_API_KEY_KEY) || '').trim()
+    username: visibleUsername || (localStorage.getItem(LASTFM_USERNAME_KEY) || '').trim(),
+    apiKey: visibleApiKey || (localStorage.getItem(LASTFM_API_KEY_KEY) || '').trim()
   };
 }
 
@@ -7608,16 +7631,17 @@ function renderLastfmPanel() {
   const status = document.getElementById('lastfmStatus');
   if (!usernameInput || !apiKeyInput || !status) return;
   const settings = getLastfmSettings();
-  usernameInput.value = settings.username;
-  apiKeyInput.value = settings.apiKey;
+  if (document.activeElement !== usernameInput || !usernameInput.value.trim()) usernameInput.value = settings.username;
+  if (document.activeElement !== apiKeyInput || !apiKeyInput.value.trim()) apiKeyInput.value = settings.apiKey;
   status.textContent = settings.username && settings.apiKey
     ? (localServiceConfigLoaded ? 'settings loaded from local config · ready to sync last.fm' : 'settings saved locally · ready to sync last.fm')
     : 'settings can be stored in this browser or loaded from local config.';
 }
 
 function saveLastfmSettings() {
-  const username = (document.getElementById('lastfmUsernameInput')?.value || '').trim();
-  const apiKey = (document.getElementById('lastfmApiKeyInput')?.value || '').trim();
+  const settings = getLastfmSettings();
+  const username = settings.username;
+  const apiKey = settings.apiKey;
   if (!username || !apiKey) {
     showCopyToast('last.fm settings missing');
     return false;
@@ -7777,6 +7801,7 @@ function esc(s) {
 loadLocalServiceConfig()
   .then(() => handleSpotifyRedirect())
   .then(() => {
+    bindServiceSettingsInputs();
     renderLastfmPanel();
     renderSpotifyPanel();
     loadLastfmCache();
