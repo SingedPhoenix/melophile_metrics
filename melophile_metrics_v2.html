@@ -8121,7 +8121,7 @@ function renderSeedPlaylistDetail(playlist, state = {}) {
     '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
     '<div class="seed-playlist-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + '</div>' +
     '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeSeedPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>' +
-    '<div class="seed-track-list">' + tracks.slice(0, 24).map((track, index) => {
+    '<div class="seed-track-list">' + tracks.map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
       return '<div class="seed-track-row">' +
