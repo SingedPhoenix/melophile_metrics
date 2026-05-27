@@ -2213,6 +2213,116 @@
     gap: 22px;
   }
 
+  .fresh-gate-grid {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
+
+  .fresh-gate-card {
+    appearance: none;
+    min-height: clamp(280px, 34vw, 460px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--charcoal-light) 15%, transparent);
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 38px;
+    text-align: center;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.25s, border-color 0.25s, background 0.25s;
+  }
+
+  .fresh-gate-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0.72;
+    background: linear-gradient(90deg, var(--amethyst-mid), transparent);
+  }
+
+  .fresh-gate-card:nth-child(2) {
+    background: color-mix(in srgb, var(--cherry-bright) 15%, transparent);
+  }
+
+  .fresh-gate-card:nth-child(2)::before {
+    background: linear-gradient(90deg, var(--cherry-bright), transparent);
+  }
+
+  .fresh-gate-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-hover);
+    background: color-mix(in srgb, var(--amethyst-mid) 26%, transparent);
+  }
+
+  .fresh-gate-card:nth-child(2):hover {
+    background: color-mix(in srgb, var(--cherry-bright) 24%, transparent);
+  }
+
+  .fresh-gate-icon {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    position: relative;
+    z-index: 1;
+    opacity: 0.88;
+    padding: 18px;
+    border-radius: 24px;
+    background: color-mix(in srgb, var(--amethyst-mid) 42%, transparent);
+    border: 1px solid rgba(180,120,255,0.24);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      inset 0 -1px 0 rgba(0,0,0,0.2),
+      0 12px 38px color-mix(in srgb, var(--amethyst-mid) 36%, transparent),
+      0 2px 10px rgba(0,0,0,0.28);
+    margin-bottom: 28px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .fresh-gate-card:nth-child(2) .fresh-gate-icon {
+    background: color-mix(in srgb, var(--cherry-bright) 34%, transparent);
+    border-color: rgba(200,100,100,0.24);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      inset 0 -1px 0 rgba(0,0,0,0.2),
+      0 12px 38px color-mix(in srgb, var(--cherry) 48%, transparent),
+      0 2px 10px rgba(0,0,0,0.28);
+  }
+
+  .fresh-gate-title {
+    position: relative;
+    z-index: 1;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 34px;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--silver);
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+
+  .fresh-gate-desc {
+    position: relative;
+    z-index: 1;
+    max-width: 420px;
+    font-family: 'Afacad', sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--silver-dim);
+    letter-spacing: 0.3px;
+  }
+
   .fresh-command {
     border: 1px solid rgba(204,204,204,0.08);
     border-radius: 16px;
@@ -2378,6 +2488,10 @@
   }
 
   @media (max-width: 860px) {
+    .fresh-gate-grid {
+      grid-template-columns: 1fr;
+    }
+
     .fresh-command,
     .fresh-panel-grid {
       grid-template-columns: 1fr;
@@ -2533,6 +2647,29 @@
 
   body.display-horizontal .fresh-hub {
     gap: 26px;
+  }
+
+  body.display-horizontal .fresh-gate-grid {
+    gap: 28px;
+  }
+
+  body.display-horizontal .fresh-gate-card {
+    min-height: clamp(360px, 32vw, 560px);
+    padding: 48px;
+  }
+
+  body.display-horizontal .fresh-gate-icon {
+    width: 116px;
+    height: 116px;
+    margin-bottom: 34px;
+  }
+
+  body.display-horizontal .fresh-gate-title {
+    font-size: clamp(38px, 3vw, 56px);
+  }
+
+  body.display-horizontal .fresh-gate-desc {
+    font-size: 18px;
   }
 
   body.display-horizontal .fresh-command,
@@ -3829,37 +3966,18 @@
     <div class="detail-title">fresh</div>
     <div class="section-content">
       <div class="fresh-hub">
-        <div class="fresh-panel full">
-          <div class="fresh-panel-title">all-time album orbit</div>
-          <div class="fresh-panel-sub" id="freshAlbumStatus">your top 16 all-time albums from last.fm, with last.fm artwork first and spotify fallback when needed.</div>
-          <div class="fresh-album-grid" id="freshAlbumGrid"></div>
-        </div>
+        <div class="fresh-gate-grid" aria-label="fresh section paths">
+          <button class="fresh-gate-card" type="button" onclick="showCopyToast('seed bento coming next')">
+            <img class="fresh-gate-icon" src="assets/icons/seed.svg" alt="" aria-hidden="true">
+            <div class="fresh-gate-title">seed</div>
+            <div class="fresh-gate-desc">new songs, new releases, and fresh-start discovery from artists already orbiting your taste.</div>
+          </button>
 
-        <div class="fresh-command">
-          <div>
-            <div class="fresh-command-title">new music from your musical orbit</div>
-            <div class="fresh-command-sub" id="freshCommandStatus">scan favorite artists for recent spotify releases, then compare them against your last.fm history.</div>
-          </div>
-          <div class="fresh-command-actions">
-            <button class="pill active" type="button" onclick="setFreshReleaseWindow(90)">90 days</button>
-            <button class="pill" type="button" onclick="setFreshReleaseWindow(365)">1 year</button>
-            <button class="pill" type="button" onclick="scanFreshReleases()">scan releases</button>
-            <button class="pill" type="button" onclick="loadSpotifyPlaylists().then(renderFreshHub)">load playlists</button>
-          </div>
-        </div>
-
-        <div class="fresh-panel-grid">
-          <div class="fresh-panel">
-            <div class="fresh-panel-title">new from favorites</div>
-            <div class="fresh-panel-sub" id="freshReleaseStatus">spotify release scan has not run yet.</div>
-            <div class="fresh-release-list" id="freshReleaseList"></div>
-          </div>
-
-          <div class="fresh-panel full">
-            <div class="fresh-panel-title">fresh playlists</div>
-            <div class="fresh-panel-sub">your cherry playlists and fresh seeds playlists will live here before playlist-family tagging becomes formal.</div>
-            <div class="fresh-playlist-grid" id="freshPlaylistFamilies"></div>
-          </div>
+          <button class="fresh-gate-card" type="button" onclick="showCopyToast('harvest bento coming soon')">
+            <img class="fresh-gate-icon" src="assets/icons/harvest.svg" alt="" aria-hidden="true">
+            <div class="fresh-gate-title">harvest</div>
+            <div class="fresh-gate-desc">the songs that survived the seedling stage and earned a place in your lasting rotation.</div>
+          </button>
         </div>
       </div>
     </div>
