@@ -4422,7 +4422,7 @@
             <div class="fresh-gate-desc">new songs, new releases, and fresh-start discovery from artists already orbiting your taste.</div>
           </button>
 
-          <button class="fresh-gate-card" type="button" onclick="showCopyToast('harvest bento coming soon')">
+          <button class="fresh-gate-card" type="button" onclick="openFreshPath('harvest')">
             <img class="fresh-gate-icon" src="assets/icons/harvest.svg" alt="" aria-hidden="true">
             <div class="fresh-gate-title">harvest</div>
             <div class="fresh-gate-desc">the songs that survived the seedling stage and earned a place in your lasting rotation.</div>
@@ -4458,6 +4458,23 @@
             <div class="seed-release-shelves" id="seedReleaseGrid">
               <div class="spotify-empty">run a scan to build a new-release grid from your Last.fm artist orbit.</div>
             </div>
+          </div>
+        </div>
+
+        <div class="fresh-path hidden" id="freshHarvestPath">
+          <div class="fresh-path-head">
+            <div>
+              <div class="fresh-path-title">harvest playlists</div>
+              <div class="fresh-path-sub" id="harvestPlaylistStatus">your cherry-picked fresh playlists from the harvest family.</div>
+            </div>
+            <button class="pill" type="button" onclick="openFreshPath('gate')">fresh home</button>
+          </div>
+
+          <div class="seed-playlist-panel">
+            <div class="seed-playlist-row" id="harvestPlaylistRow" aria-label="fresh harvest playlists"></div>
+          </div>
+          <div class="seed-detail-panel hidden" id="harvestPlaylistDetail">
+            <div class="spotify-empty">select a harvest playlist to inspect its contents.</div>
           </div>
         </div>
       </div>
@@ -8000,12 +8017,24 @@ const FRESH_SEED_PLAYLISTS = [
   { id: '37i9dQZF1FwJTPsNGfiv8x', name: 'fresh seeds: dance', family: 'dance', url: 'https://open.spotify.com/playlist/37i9dQZF1FwJTPsNGfiv8x' },
   { id: '37i9dQZF1Fx21S4Nrr7gDn', name: 'fresh seeds: pop', family: 'pop', url: 'https://open.spotify.com/playlist/37i9dQZF1Fx21S4Nrr7gDn' }
 ];
+const FRESH_HARVEST_PLAYLISTS = [
+  { id: '7gX32ez7x48dt1sYybV00W', name: '🍒 fresh hip hop', family: 'hip hop', url: 'https://open.spotify.com/playlist/7gX32ez7x48dt1sYybV00W' },
+  { id: '0j1abekRrwO7bCTaUl0zkt', name: '🍒 fresh chill & relax', family: 'chill & relax', url: 'https://open.spotify.com/playlist/0j1abekRrwO7bCTaUl0zkt' },
+  { id: '6b9zdK8aPnUYhKxaoCxto3', name: '🍒 fresh r&b', family: 'r&b', url: 'https://open.spotify.com/playlist/6b9zdK8aPnUYhKxaoCxto3' },
+  { id: '44Gy2TDYp94Ik1C18UoqPe', name: '🍒 fresh rock', family: 'rock', url: 'https://open.spotify.com/playlist/44Gy2TDYp94Ik1C18UoqPe' },
+  { id: '4GfxT07xjxyYOakOR2F4Gc', name: '🍒 fresh dance', family: 'dance', url: 'https://open.spotify.com/playlist/4GfxT07xjxyYOakOR2F4Gc' },
+  { id: '5cQqCookFY65bas8l5fe8l', name: '🍒 fresh pop', family: 'pop', url: 'https://open.spotify.com/playlist/5cQqCookFY65bas8l5fe8l' }
+];
 let freshAlbumArtLoading = false;
 let freshPath = 'gate';
 let selectedSeedPlaylistId = null;
 const seedPlaylistCache = {};
 const seedPlaylistTracksCache = {};
 let seedPlaylistHydrating = false;
+let selectedHarvestPlaylistId = null;
+const harvestPlaylistCache = {};
+const harvestPlaylistTracksCache = {};
+let harvestPlaylistHydrating = false;
 let seedReleaseScanning = false;
 let seedReleaseResults = [];
 let seedScanTimer = null;
@@ -8019,12 +8048,13 @@ function populateFresh() {
 function renderFreshHub() {
   renderFreshPath();
   renderSeedPlaylistRow();
+  renderHarvestPlaylistRow();
   renderSeedNewReleaseGrid();
   renderSeedScanSettings();
 }
 
 function openFreshPath(path) {
-  freshPath = path === 'seed' ? 'seed' : 'gate';
+  freshPath = path === 'seed' || path === 'harvest' ? path : 'gate';
   renderFreshHub();
   scheduleScrollControlUpdate();
 }
@@ -8032,8 +8062,10 @@ function openFreshPath(path) {
 function renderFreshPath() {
   const gate = document.querySelector('#screenFresh .fresh-gate-grid');
   const seed = document.getElementById('freshSeedPath');
+  const harvest = document.getElementById('freshHarvestPath');
   if (gate) gate.classList.toggle('hidden', freshPath !== 'gate');
   if (seed) seed.classList.toggle('hidden', freshPath !== 'seed');
+  if (harvest) harvest.classList.toggle('hidden', freshPath !== 'harvest');
 }
 
 function spotifyPlaylistUri(id) {
@@ -8177,6 +8209,147 @@ function renderSeedPlaylistDetail(playlist, state = {}) {
     '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
     '<div class="seed-playlist-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + '</div>' +
     '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeSeedPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>' +
+    '<div class="seed-track-list">' + tracks.map((track, index) => {
+      const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
+      const album = track.album && track.album.name ? track.album.name : '';
+      return '<div class="seed-track-row">' +
+        '<div class="seed-track-rank">' + (index + 1) + '</div>' +
+        '<div><div class="seed-track-name">' + esc(track.name) + '</div>' +
+        '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' · ' + esc(album) : '') + '</div></div>' +
+        '<div class="seed-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
+        '</div>';
+    }).join('') + '</div>';
+  scheduleScrollControlUpdate();
+}
+
+function harvestPlaylistFromDirectory(entry) {
+  return harvestPlaylistCache[entry.id] || {
+    ...entry,
+    tracks: { total: 0 },
+    images: [],
+    uri: spotifyPlaylistUri(entry.id),
+    external_urls: { spotify: spotifyPlaylistUrl(entry.id) }
+  };
+}
+
+function renderHarvestPlaylistRow() {
+  const target = document.getElementById('harvestPlaylistRow');
+  const status = document.getElementById('harvestPlaylistStatus');
+  if (!target) return;
+
+  const spotifyReady = readSpotifyToken() || hasRefreshableSpotifyToken();
+  if (status) {
+    const hydrated = Object.keys(harvestPlaylistCache).length;
+    status.textContent = hydrated
+      ? hydrated + ' of 6 harvest playlists loaded from spotify · tap a card to inspect tracks'
+      : (spotifyReady ? 'loading harvest playlists from spotify...' : 'connect spotify in settings to load covers and contents');
+  }
+
+  target.innerHTML = FRESH_HARVEST_PLAYLISTS.map(entry => {
+    const playlist = harvestPlaylistFromDirectory(entry);
+    const image = playlist.images && playlist.images[0] ? playlist.images[0].url : '';
+    const total = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+    const activeClass = selectedHarvestPlaylistId === entry.id ? ' active' : '';
+    return '<button class="seed-playlist-card' + activeClass + '" type="button" onclick="selectHarvestPlaylist(\'' + esc(entry.id) + '\')">' +
+      (image ? '<img class="seed-playlist-cover" src="' + esc(image) + '" alt="">' : '<div class="seed-playlist-cover"></div>') +
+      '<div class="seed-playlist-name">' + esc(playlist.name || entry.name) + '</div>' +
+      '<div class="seed-playlist-meta">' + esc(entry.family) + (total ? ' · ' + total.toLocaleString() + ' tracks' : ' · spotify details pending') + '</div>' +
+      '</button>';
+  }).join('');
+
+  hydrateHarvestPlaylists();
+}
+
+function closeHarvestPlaylist() {
+  selectedHarvestPlaylistId = null;
+  renderHarvestPlaylistRow();
+  renderHarvestPlaylistDetail(null);
+  showCopyToast('harvest playlist closed');
+}
+
+async function hydrateHarvestPlaylists() {
+  if (harvestPlaylistHydrating || !(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
+  const missing = FRESH_HARVEST_PLAYLISTS.filter(entry => !harvestPlaylistCache[entry.id]);
+  if (!missing.length) return;
+
+  harvestPlaylistHydrating = true;
+  try {
+    for (const entry of missing) {
+      const data = await loadSeedPlaylist(entry.id);
+      harvestPlaylistCache[entry.id] = {
+        ...entry,
+        ...data,
+        url: spotifyPlaylistUrl(entry.id),
+        uri: spotifyPlaylistUri(entry.id)
+      };
+    }
+    renderHarvestPlaylistRow();
+    if (selectedHarvestPlaylistId) selectHarvestPlaylist(selectedHarvestPlaylistId, { quiet: true });
+  } catch {
+    const status = document.getElementById('harvestPlaylistStatus');
+    if (status) status.textContent = 'spotify harvest playlist details could not be loaded. reconnect spotify and try again.';
+  } finally {
+    harvestPlaylistHydrating = false;
+  }
+}
+
+async function selectHarvestPlaylist(playlistId, options = {}) {
+  if (selectedHarvestPlaylistId === playlistId && !options.quiet) {
+    closeHarvestPlaylist();
+    return;
+  }
+  selectedHarvestPlaylistId = playlistId;
+  renderHarvestPlaylistRow();
+  const entry = FRESH_HARVEST_PLAYLISTS.find(item => item.id === playlistId);
+  const playlist = harvestPlaylistCache[playlistId] || (entry ? harvestPlaylistFromDirectory(entry) : null);
+  renderHarvestPlaylistDetail(playlist, { loading: true });
+  if (!options.quiet) showCopyToast('loading harvest playlist');
+
+  try {
+    const tracks = harvestPlaylistTracksCache[playlistId] || await loadSpotifyPlaylistTracks(playlistId);
+    harvestPlaylistTracksCache[playlistId] = tracks;
+    renderHarvestPlaylistDetail(playlist, { tracks });
+    if (!options.quiet) showCopyToast('harvest playlist opened');
+  } catch {
+    renderHarvestPlaylistDetail(playlist, { error: true });
+    if (!options.quiet) showCopyToast('could not load playlist tracks');
+  }
+}
+
+function renderHarvestPlaylistDetail(playlist, state = {}) {
+  const target = document.getElementById('harvestPlaylistDetail');
+  if (!target) return;
+  if (!playlist) {
+    target.classList.add('hidden');
+    target.innerHTML = '<div class="spotify-empty">select a harvest playlist to inspect its contents.</div>';
+    return;
+  }
+  target.classList.remove('hidden');
+
+  const declaredCount = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+  const spotifyHref = playlist.uri || spotifyPlaylistUri(playlist.id);
+  if (state.loading) {
+    target.innerHTML = '<div class="seed-detail-head"><div>' +
+      '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
+      '<div class="seed-playlist-meta">loading tracks from spotify...</div>' +
+      '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeHarvestPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+  if (state.error) {
+    target.innerHTML = '<div class="seed-detail-head"><div>' +
+      '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
+      '<div class="seed-playlist-meta">tracks could not be loaded. reconnect spotify and try again.</div>' +
+      '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeHarvestPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  const tracks = state.tracks || [];
+  target.innerHTML = '<div class="seed-detail-head"><div>' +
+    '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
+    '<div class="seed-playlist-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + '</div>' +
+    '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeHarvestPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>' +
     '<div class="seed-track-list">' + tracks.map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
