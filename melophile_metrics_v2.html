@@ -2578,7 +2578,6 @@
   }
 
   .seed-track-row.harvest-overripe {
-    grid-template-columns: 34px minmax(0, 1fr) auto auto;
     margin: 0 -10px;
     padding: 12px 10px;
     border-top-color: transparent;
@@ -2598,18 +2597,6 @@
 
   .seed-track-row.harvest-overripe .seed-track-name {
     color: rgba(8,8,12,0.96);
-  }
-
-  .harvest-scrobble-badge {
-    justify-self: end;
-    border: 1px solid rgba(12,12,16,0.18);
-    border-radius: 999px;
-    padding: 5px 9px;
-    font-family: 'DM Mono', monospace;
-    font-size: var(--font-floor-xs);
-    color: rgba(8,8,12,0.78);
-    background: rgba(12,12,16,0.08);
-    white-space: nowrap;
   }
 
   .seed-track-rank,
@@ -8398,11 +8385,12 @@ function renderHarvestPlaylistDetail(playlist, state = {}) {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
       const overripe = item.scrobbles >= 12;
+      const scrobbleLabel = item.scrobbles.toLocaleString() + ' ' + (item.scrobbles === 1 ? 'scrobble' : 'scrobbles');
+      const meta = [artists, album, scrobbleLabel].filter(Boolean).join(' · ');
       return '<div class="seed-track-row' + (overripe ? ' harvest-overripe' : '') + '">' +
         '<div class="seed-track-rank">' + (index + 1) + '</div>' +
         '<div><div class="seed-track-name">' + esc(track.name) + '</div>' +
-        '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' · ' + esc(album) : '') + '</div></div>' +
-        (overripe ? '<div class="harvest-scrobble-badge">' + item.scrobbles.toLocaleString() + ' scrobbles</div>' : '') +
+        '<div class="seed-playlist-meta">' + esc(meta) + '</div></div>' +
         '<div class="seed-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
         '</div>';
     }).join('') + '</div>';
