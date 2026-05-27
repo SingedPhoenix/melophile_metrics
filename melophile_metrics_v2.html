@@ -23,6 +23,7 @@
     --bg-glow-3:      rgba(53,61,69,0.12);
     --bar-gradient:   linear-gradient(90deg, #A00000, #3D0066);
     --bar-gradient-soft: linear-gradient(90deg, rgba(160,0,0,0.78), rgba(61,0,102,0.32));
+    --app-max-width: 1200px;
   }
 
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -75,7 +76,7 @@
   /* ── Header — always visible ── */
   .header {
     width: 100%;
-    max-width: 1200px;
+    max-width: var(--app-max-width);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -118,7 +119,7 @@
 
   .accent-line {
     width: 100%;
-    max-width: 1200px;
+    max-width: var(--app-max-width);
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--cherry-bright) 30%, var(--amethyst-mid) 70%, transparent);
     opacity: 0.5;
@@ -129,7 +130,7 @@
   .screen {
     display: none;
     width: 100%;
-    max-width: 1200px;
+    max-width: var(--app-max-width);
     flex: 1;
   }
 
@@ -2011,10 +2012,10 @@
     background: rgba(204,204,204,0.06);
   }
 
+  .layout-switch,
   .theme-switch {
     position: fixed;
     right: 22px;
-    top: 28px;
     z-index: 115;
     width: 38px;
     height: 38px;
@@ -2030,16 +2031,41 @@
     box-shadow: 0 10px 36px rgba(0,0,0,0.28);
   }
 
+  .layout-switch { top: 28px; }
+  .theme-switch { top: 76px; }
+
+  .layout-switch:hover,
   .theme-switch:hover {
     color: var(--silver);
     border-color: var(--border-hover);
     background: rgba(204,204,204,0.06);
+  }
+
+  .layout-switch:hover {
+    transform: translateY(-1px);
+  }
+
+  .theme-switch:hover {
     transform: rotate(-7deg);
   }
 
+  .layout-switch svg,
   .theme-switch svg {
     width: 22px;
     height: 22px;
+  }
+
+  .layout-switch .layout-portrait,
+  .layout-switch .layout-landscape {
+    stroke: currentColor;
+    opacity: 0.42;
+    transition: opacity 0.18s, stroke 0.18s;
+  }
+
+  body.display-vertical .layout-switch .layout-portrait,
+  body.display-horizontal .layout-switch .layout-landscape {
+    opacity: 0.95;
+    stroke: var(--silver);
   }
 
   .theme-switch .theme-swatch-primary { fill: var(--cherry-bright); }
@@ -2366,6 +2392,107 @@
     }
   }
 
+  body.display-horizontal {
+    --app-max-width: min(1760px, calc(100vw - 128px));
+  }
+
+  body.display-horizontal .shell {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+
+  body.display-horizontal .screen.active {
+    padding-top: 40px;
+  }
+
+  body.display-horizontal .bento-grid {
+    gap: 28px;
+  }
+
+  body.display-horizontal .bento-card {
+    min-height: clamp(300px, 22vw, 430px);
+    padding: 42px;
+  }
+
+  body.display-horizontal .bento-card img,
+  body.display-horizontal .sq-icon {
+    width: 86px;
+    height: 86px;
+    margin-bottom: 30px;
+  }
+
+  body.display-horizontal .bento-card-title,
+  body.display-horizontal .sq-name {
+    font-size: 34px;
+  }
+
+  body.display-horizontal .bento-card-desc,
+  body.display-horizontal .sq-desc {
+    font-size: 17px;
+    line-height: 1.55;
+  }
+
+  body.display-horizontal .detail-title {
+    font-size: 30px;
+  }
+
+  body.display-horizontal .section-subtitle,
+  body.display-horizontal .fresh-stat-label {
+    font-size: 17px;
+  }
+
+  body.display-horizontal .fresh-command-title,
+  body.display-horizontal .fresh-panel-title {
+    font-size: 24px;
+  }
+
+  body.display-horizontal .fresh-command-sub,
+  body.display-horizontal .fresh-panel-sub,
+  body.display-horizontal .fresh-release-meta,
+  body.display-horizontal .fresh-playlist-meta {
+    font-size: 13px;
+  }
+
+  body.display-horizontal .fresh-hub {
+    gap: 26px;
+  }
+
+  body.display-horizontal .fresh-command,
+  body.display-horizontal .fresh-panel {
+    padding: 28px;
+  }
+
+  body.display-horizontal .fresh-album-grid {
+    gap: 18px;
+  }
+
+  body.display-horizontal .fresh-album-card {
+    padding: 16px;
+  }
+
+  body.display-horizontal .fresh-album-title {
+    font-size: 20px;
+  }
+
+  body.display-horizontal .fresh-album-artist {
+    font-size: 16px;
+  }
+
+  body.display-horizontal .fresh-album-rank {
+    font-size: 11px;
+  }
+
+  @media (max-width: 980px) {
+    body.display-horizontal {
+      --app-max-width: 1200px;
+    }
+
+    body.display-horizontal .shell {
+      padding-left: 28px;
+      padding-right: 28px;
+    }
+  }
+
   .year-review-years {
     width: 100%;
     margin-bottom: 14px;
@@ -2659,7 +2786,7 @@
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </head>
-<body>
+<body class="display-vertical">
 
 <div class="loading-overlay hidden" id="loadingOverlay">
   <div class="spinner"></div>
@@ -2667,6 +2794,12 @@
   <div class="loading-sub" id="loadingStatus">reading listening data...</div>
 </div>
 <div class="copy-toast" id="copyToast"></div>
+<button class="layout-switch" id="layoutSwitch" type="button" onclick="toggleDisplayMode()" aria-label="switch display layout" title="switch display layout">
+  <svg viewBox="0 0 28 28" fill="none" aria-hidden="true">
+    <rect class="layout-landscape" x="3.5" y="6.5" width="21" height="13.5" rx="2.8" stroke-width="1.8"/>
+    <rect class="layout-portrait" x="9" y="3.5" width="10" height="21" rx="2.8" stroke-width="1.8"/>
+  </svg>
+</button>
 <button class="theme-switch" type="button" onclick="shuffleThemeNow()" aria-label="shuffle color theme" title="shuffle color theme">
   <svg viewBox="0 0 28 28" fill="none" aria-hidden="true">
     <path class="theme-swatch-stroke" d="M14 2.5c6.35 0 11.5 5.15 11.5 11.5 0 1.48-1.2 2.68-2.68 2.68h-2.06c-1.56 0-2.54 1.68-1.77 3.04.74 1.32-.2 2.96-1.71 2.96H14C7.65 22.68 2.5 19.03 2.5 14S7.65 2.5 14 2.5Z" stroke-width="1.7" stroke-linejoin="round"/>
@@ -3905,6 +4038,46 @@ function shuffleThemeNow() {
 }
 
 rotateTheme();
+
+// ── Display layout preference ────────────────────────────────────────
+const DISPLAY_MODE_KEY = 'melophile.displayMode.v1';
+
+function storedDisplayMode() {
+  try {
+    return localStorage.getItem(DISPLAY_MODE_KEY) || 'vertical';
+  } catch {
+    return 'vertical';
+  }
+}
+
+function applyDisplayMode(mode) {
+  const nextMode = mode === 'horizontal' ? 'horizontal' : 'vertical';
+  document.body.classList.toggle('display-horizontal', nextMode === 'horizontal');
+  document.body.classList.toggle('display-vertical', nextMode !== 'horizontal');
+  const button = document.getElementById('layoutSwitch');
+  if (button) {
+    button.setAttribute('aria-pressed', nextMode === 'horizontal' ? 'true' : 'false');
+    button.title = nextMode === 'horizontal' ? 'switch to vertical layout' : 'switch to horizontal layout';
+  }
+  setTimeout(() => {
+    refreshVisibleThemedCharts();
+    scheduleScrollControlUpdate();
+  }, 80);
+  return nextMode;
+}
+
+function currentDisplayMode() {
+  return document.body.classList.contains('display-horizontal') ? 'horizontal' : 'vertical';
+}
+
+function toggleDisplayMode() {
+  const nextMode = currentDisplayMode() === 'horizontal' ? 'vertical' : 'horizontal';
+  try {
+    localStorage.setItem(DISPLAY_MODE_KEY, nextMode);
+  } catch {}
+  applyDisplayMode(nextMode);
+  showCopyToast(nextMode + ' layout');
+}
 
 // ── Local service config ─────────────────────────────────────────────
 const LOCAL_SERVICE_CONFIG_FILE = 'melophile_config.local.json';
@@ -8161,6 +8334,8 @@ function lastfmTracksToRows(tracks) {
 function esc(s) {
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+applyDisplayMode(storedDisplayMode());
 
 loadLocalServiceConfig()
   .then(() => handleSpotifyRedirect())
