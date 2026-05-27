@@ -2428,6 +2428,14 @@
     margin-bottom: 18px;
   }
 
+  .seed-section-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
   .seed-section-title {
     font-family: 'Quicksand', sans-serif;
     font-size: 25px;
@@ -4441,7 +4449,10 @@
               <div class="seed-section-title">new release index</div>
               <div class="seed-section-sub" id="seedReleaseStatus">scan spotify for releases from your all-time favorites and qualifying new artists.</div>
             </div>
-            <button class="pill" type="button" onclick="scanSeedNewReleases()">scan releases</button>
+            <div class="seed-section-actions">
+              <button class="pill" id="seedReleaseSortToggle" type="button" onclick="toggleSeedReleaseSort()">sort: artist popularity</button>
+              <button class="pill" type="button" onclick="scanSeedNewReleases()">scan releases</button>
+            </div>
           </div>
           <div class="seed-section-panel">
             <div class="seed-release-shelves" id="seedReleaseGrid">
@@ -7978,6 +7989,7 @@ const SPOTIFY_ALBUM_ART_KEY = 'melophile.spotify.albumArt';
 const SEED_NEW_RELEASES_KEY = 'melophile.seed.newReleases';
 const SEED_ARTIST_AUDIT_KEY = 'melophile.seed.artistAudit';
 const SEED_SCAN_SCHEDULE_KEY = 'melophile.seed.scanSchedule';
+const SEED_RELEASE_SORT_KEY = 'melophile.seed.releaseSort';
 const SEED_ARTIST_AUDIT_VERSION = 2;
 const LASTFM_ALBUM_ART_KEY = 'melophile.lastfm.albumArt';
 const FRESH_SEED_PLAYLISTS = [
@@ -7997,6 +8009,7 @@ let seedPlaylistHydrating = false;
 let seedReleaseScanning = false;
 let seedReleaseResults = [];
 let seedScanTimer = null;
+let seedReleaseSortMode = localStorage.getItem(SEED_RELEASE_SORT_KEY) === 'releaseDate' ? 'releaseDate' : 'artistPopularity';
 
 function populateFresh() {
   renderFreshHub();
@@ -8358,11 +8371,38 @@ function seedReleaseShelfEntries(releases, audit, pool) {
       shelfArtistRank: matchedArtist.shelfRank
     };
   }).filter(Boolean)
-    .sort((a, b) =>
+    .sort(sortSeedReleaseEntries);
+}
+
+function sortSeedReleaseEntries(a, b) {
+  if (seedReleaseSortMode === 'releaseDate') {
+    return b.releaseMs - a.releaseMs ||
       b.shelfArtistPlays - a.shelfArtistPlays ||
-      a.shelfArtistRank - b.shelfArtistRank ||
-      b.releaseMs - a.releaseMs
-    );
+      a.shelfArtistRank - b.shelfArtistRank;
+  }
+  return b.shelfArtistPlays - a.shelfArtistPlays ||
+    a.shelfArtistRank - b.shelfArtistRank ||
+    b.releaseMs - a.releaseMs;
+}
+
+function seedReleaseSortLabel() {
+  return seedReleaseSortMode === 'releaseDate' ? 'release date' : 'artist popularity';
+}
+
+function seedReleaseSortSubcopy(base) {
+  return base + ' · sorted by ' + seedReleaseSortLabel();
+}
+
+function syncSeedReleaseSortToggle() {
+  const toggle = document.getElementById('seedReleaseSortToggle');
+  if (toggle) toggle.textContent = 'sort: ' + seedReleaseSortLabel();
+}
+
+function toggleSeedReleaseSort() {
+  seedReleaseSortMode = seedReleaseSortMode === 'releaseDate' ? 'artistPopularity' : 'releaseDate';
+  localStorage.setItem(SEED_RELEASE_SORT_KEY, seedReleaseSortMode);
+  renderSeedNewReleaseGrid();
+  showCopyToast('seed releases sorted by ' + seedReleaseSortLabel());
 }
 
 function renderSeedReleaseCard(release) {
@@ -8405,6 +8445,7 @@ function renderSeedNewReleaseGrid() {
     .filter(release => (release.listenCount || 0) < 4);
   const allTimeReleases = seedReleaseShelfEntries(visible, audit, 'allTime');
   const recentReleases = seedReleaseShelfEntries(visible, audit, 'recent');
+  syncSeedReleaseSortToggle();
 
   if (status) {
     const cached = seedReleaseResults.length ? ' · ' + seedReleaseResults.length.toLocaleString() + ' cached releases' : '';
@@ -8418,8 +8459,8 @@ function renderSeedNewReleaseGrid() {
   }
 
   target.innerHTML =
-    renderSeedReleaseShelf('all-time artist releases', 'top 1,000 artists overall · sorted by artist scrobble count', allTimeReleases) +
-    renderSeedReleaseShelf('new artist releases', 'first logged in the rolling last 18 months · 6+ total scrobbles · sorted by total scrobble count', recentReleases);
+    renderSeedReleaseShelf('all-time artist releases', seedReleaseSortSubcopy('top 1,000 artists overall'), allTimeReleases) +
+    renderSeedReleaseShelf('new artist releases', seedReleaseSortSubcopy('first logged in the rolling last 18 months · 6+ total scrobbles'), recentReleases);
   scheduleScrollControlUpdate();
 }
 
