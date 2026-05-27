@@ -2406,6 +2406,13 @@
     padding-bottom: 4px;
   }
 
+  .seed-playlist-panel {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+  }
+
   .seed-section-panel {
     border: 1px solid rgba(204,204,204,0.08);
     border-radius: 16px;
@@ -4417,24 +4424,26 @@
         <div class="fresh-path hidden" id="freshSeedPath">
           <div class="fresh-path-head">
             <div>
-              <div class="fresh-path-title">seed</div>
+              <div class="fresh-path-title">seed playlists</div>
               <div class="fresh-path-sub" id="seedPlaylistStatus">new-to-you playlists from the fresh seeds family.</div>
             </div>
             <button class="pill" type="button" onclick="openFreshPath('gate')">fresh home</button>
           </div>
 
-          <div class="seed-playlist-row" id="seedPlaylistRow" aria-label="fresh seeds playlists"></div>
+          <div class="seed-playlist-panel">
+            <div class="seed-playlist-row" id="seedPlaylistRow" aria-label="fresh seeds playlists"></div>
+          </div>
           <div class="seed-detail-panel hidden" id="seedPlaylistDetail">
             <div class="spotify-empty">select a seed playlist to inspect its contents.</div>
           </div>
-          <div class="seed-section-panel">
-            <div class="seed-section-head">
-              <div>
-                <div class="seed-section-title">new release seeds</div>
-                <div class="seed-section-sub" id="seedReleaseStatus">scan spotify for releases from your all-time favorites and qualifying new artists.</div>
-              </div>
-              <button class="pill" type="button" onclick="scanSeedNewReleases()">scan releases</button>
+          <div class="seed-section-head">
+            <div>
+              <div class="seed-section-title">new release index</div>
+              <div class="seed-section-sub" id="seedReleaseStatus">scan spotify for releases from your all-time favorites and qualifying new artists.</div>
             </div>
+            <button class="pill" type="button" onclick="scanSeedNewReleases()">scan releases</button>
+          </div>
+          <div class="seed-section-panel">
             <div class="seed-release-shelves" id="seedReleaseGrid">
               <div class="spotify-empty">run a scan to build a new-release grid from your Last.fm artist orbit.</div>
             </div>
