@@ -2323,6 +2323,183 @@
     letter-spacing: 0.3px;
   }
 
+  .fresh-path {
+    width: 100%;
+    display: grid;
+    gap: 22px;
+  }
+
+  .fresh-path.hidden {
+    display: none;
+  }
+
+  .fresh-path-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .fresh-path-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--silver);
+    line-height: 1;
+    letter-spacing: 0.8px;
+  }
+
+  .fresh-path-sub {
+    margin-top: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    line-height: 1.65;
+    color: rgba(204,204,204,0.42);
+  }
+
+  .seed-playlist-row {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(128px, 1fr));
+    gap: 14px;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .seed-playlist-card {
+    appearance: none;
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--amethyst-mid) 10%, transparent), color-mix(in srgb, var(--charcoal-light) 8%, transparent)),
+      rgba(204,204,204,0.024);
+    padding: 12px;
+    min-width: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.22s, border-color 0.22s, background 0.22s;
+  }
+
+  .seed-playlist-card:hover,
+  .seed-playlist-card.active {
+    transform: translateY(-3px);
+    border-color: var(--border-hover);
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--amethyst-mid) 18%, transparent), color-mix(in srgb, var(--charcoal-light) 12%, transparent)),
+      rgba(204,204,204,0.035);
+  }
+
+  .seed-playlist-cover {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    object-fit: cover;
+    background:
+      radial-gradient(circle at 28% 24%, color-mix(in srgb, var(--silver) 18%, transparent), transparent 34%),
+      linear-gradient(135deg, color-mix(in srgb, var(--amethyst-mid) 18%, transparent), color-mix(in srgb, var(--cherry-bright) 14%, transparent));
+    border: 1px solid rgba(204,204,204,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 26px rgba(0,0,0,0.24);
+    display: block;
+    margin-bottom: 10px;
+  }
+
+  .seed-playlist-name {
+    font-family: 'Afacad', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.08;
+    color: rgba(238,238,238,0.92);
+    overflow-wrap: anywhere;
+  }
+
+  .seed-playlist-meta {
+    margin-top: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    line-height: 1.45;
+    color: rgba(204,204,204,0.34);
+  }
+
+  .seed-detail-panel {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+    min-height: 180px;
+  }
+
+  .seed-detail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .seed-detail-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 21px;
+    font-weight: 600;
+    color: rgba(204,204,204,0.86);
+  }
+
+  .seed-open-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 0 15px;
+    border: 1px solid rgba(204,204,204,0.1);
+    border-radius: 999px;
+    color: var(--silver);
+    text-decoration: none;
+    font-family: 'Quicksand', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(204,204,204,0.035);
+  }
+
+  .seed-open-link:hover {
+    border-color: var(--border-hover);
+    background: rgba(204,204,204,0.06);
+  }
+
+  .seed-track-list {
+    display: grid;
+    gap: 10px;
+  }
+
+  .seed-track-row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid rgba(204,204,204,0.055);
+  }
+
+  .seed-track-rank,
+  .seed-track-duration {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: rgba(204,204,204,0.34);
+  }
+
+  .seed-track-duration {
+    text-align: right;
+  }
+
+  .seed-track-name {
+    font-family: 'Afacad', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--silver);
+    line-height: 1.12;
+  }
+
   .fresh-command {
     border: 1px solid rgba(204,204,204,0.08);
     border-radius: 16px;
@@ -2490,6 +2667,16 @@
   @media (max-width: 860px) {
     .fresh-gate-grid {
       grid-template-columns: 1fr;
+    }
+
+    .fresh-path-head,
+    .seed-detail-head {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .seed-playlist-row {
+      grid-template-columns: repeat(6, minmax(116px, 1fr));
     }
 
     .fresh-command,
@@ -2670,6 +2857,23 @@
 
   body.display-horizontal .fresh-gate-desc {
     font-size: 18px;
+  }
+
+  body.display-horizontal .seed-playlist-row {
+    grid-template-columns: repeat(6, minmax(150px, 1fr));
+    gap: 18px;
+  }
+
+  body.display-horizontal .seed-playlist-card {
+    padding: 14px;
+  }
+
+  body.display-horizontal .seed-playlist-name {
+    font-size: 19px;
+  }
+
+  body.display-horizontal .seed-detail-title {
+    font-size: 24px;
   }
 
   body.display-horizontal .fresh-command,
@@ -3967,7 +4171,7 @@
     <div class="section-content">
       <div class="fresh-hub">
         <div class="fresh-gate-grid" aria-label="fresh section paths">
-          <button class="fresh-gate-card" type="button" onclick="showCopyToast('seed bento coming next')">
+          <button class="fresh-gate-card" type="button" onclick="openFreshPath('seed')">
             <img class="fresh-gate-icon" src="assets/icons/seed.svg" alt="" aria-hidden="true">
             <div class="fresh-gate-title">seed</div>
             <div class="fresh-gate-desc">new songs, new releases, and fresh-start discovery from artists already orbiting your taste.</div>
@@ -3978,6 +4182,21 @@
             <div class="fresh-gate-title">harvest</div>
             <div class="fresh-gate-desc">the songs that survived the seedling stage and earned a place in your lasting rotation.</div>
           </button>
+        </div>
+
+        <div class="fresh-path hidden" id="freshSeedPath">
+          <div class="fresh-path-head">
+            <div>
+              <div class="fresh-path-title">seed</div>
+              <div class="fresh-path-sub" id="seedPlaylistStatus">new-to-you playlists from the fresh seeds family.</div>
+            </div>
+            <button class="pill" type="button" onclick="openFreshPath('gate')">fresh home</button>
+          </div>
+
+          <div class="seed-playlist-row" id="seedPlaylistRow" aria-label="fresh seeds playlists"></div>
+          <div class="seed-detail-panel" id="seedPlaylistDetail">
+            <div class="spotify-empty">select a seed playlist to inspect its contents.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -7503,7 +7722,20 @@ let freshReleaseResults = [];
 const SPOTIFY_ARTIST_MATCH_KEY = 'melophile.spotify.artistMatches';
 const SPOTIFY_ALBUM_ART_KEY = 'melophile.spotify.albumArt';
 const LASTFM_ALBUM_ART_KEY = 'melophile.lastfm.albumArt';
+const FRESH_SEED_PLAYLISTS = [
+  { id: '37i9dQZF1FwR0bga849pTD', name: 'fresh seeds: hip hop', family: 'hip hop', url: 'https://open.spotify.com/playlist/37i9dQZF1FwR0bga849pTD' },
+  { id: '37i9dQZF1FwJ7aPHCJ004i', name: 'fresh seeds: chill & relax', family: 'chill & relax', url: 'https://open.spotify.com/playlist/37i9dQZF1FwJ7aPHCJ004i' },
+  { id: '37i9dQZF1FwIQMYA4uqyGS', name: 'fresh seeds: r&b/soul', family: 'r&b/soul', url: 'https://open.spotify.com/playlist/37i9dQZF1FwIQMYA4uqyGS' },
+  { id: '37i9dQZF1FwM1iOp3PfuOk', name: 'fresh seeds: rock', family: 'rock', url: 'https://open.spotify.com/playlist/37i9dQZF1FwM1iOp3PfuOk' },
+  { id: '37i9dQZF1FwJTPsNGfiv8x', name: 'fresh seeds: dance', family: 'dance', url: 'https://open.spotify.com/playlist/37i9dQZF1FwJTPsNGfiv8x' },
+  { id: '37i9dQZF1Fx21S4Nrr7gDn', name: 'fresh seeds: pop', family: 'pop', url: 'https://open.spotify.com/playlist/37i9dQZF1Fx21S4Nrr7gDn' }
+];
 let freshAlbumArtLoading = false;
+let freshPath = 'gate';
+let selectedSeedPlaylistId = null;
+const seedPlaylistCache = {};
+const seedPlaylistTracksCache = {};
+let seedPlaylistHydrating = false;
 
 function populateFresh() {
   renderFreshHub();
@@ -7511,9 +7743,162 @@ function populateFresh() {
 }
 
 function renderFreshHub() {
-  renderFreshAlbumGrid();
-  renderFreshPlaylistFamilies();
-  renderFreshReleaseList();
+  renderFreshPath();
+  renderSeedPlaylistRow();
+}
+
+function openFreshPath(path) {
+  freshPath = path === 'seed' ? 'seed' : 'gate';
+  renderFreshHub();
+  scheduleScrollControlUpdate();
+}
+
+function renderFreshPath() {
+  const gate = document.querySelector('#screenFresh .fresh-gate-grid');
+  const seed = document.getElementById('freshSeedPath');
+  if (gate) gate.classList.toggle('hidden', freshPath !== 'gate');
+  if (seed) seed.classList.toggle('hidden', freshPath !== 'seed');
+}
+
+function spotifyPlaylistUri(id) {
+  return 'spotify:playlist:' + id;
+}
+
+function spotifyPlaylistUrl(id) {
+  return 'https://open.spotify.com/playlist/' + id;
+}
+
+function seedPlaylistFromDirectory(entry) {
+  return seedPlaylistCache[entry.id] || {
+    ...entry,
+    tracks: { total: 0 },
+    images: [],
+    uri: spotifyPlaylistUri(entry.id),
+    external_urls: { spotify: spotifyPlaylistUrl(entry.id) }
+  };
+}
+
+function renderSeedPlaylistRow() {
+  const target = document.getElementById('seedPlaylistRow');
+  const status = document.getElementById('seedPlaylistStatus');
+  if (!target) return;
+
+  const spotifyReady = readSpotifyToken() || hasRefreshableSpotifyToken();
+  if (status) {
+    const hydrated = Object.keys(seedPlaylistCache).length;
+    status.textContent = hydrated
+      ? hydrated + ' of 6 seed playlists loaded from spotify · tap a card to inspect tracks'
+      : (spotifyReady ? 'loading seed playlists from spotify...' : 'connect spotify in settings to load covers and contents');
+  }
+
+  target.innerHTML = FRESH_SEED_PLAYLISTS.map(entry => {
+    const playlist = seedPlaylistFromDirectory(entry);
+    const image = playlist.images && playlist.images[0] ? playlist.images[0].url : '';
+    const total = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+    const activeClass = selectedSeedPlaylistId === entry.id ? ' active' : '';
+    return '<button class="seed-playlist-card' + activeClass + '" type="button" onclick="selectSeedPlaylist(\'' + esc(entry.id) + '\')">' +
+      (image ? '<img class="seed-playlist-cover" src="' + esc(image) + '" alt="">' : '<div class="seed-playlist-cover"></div>') +
+      '<div class="seed-playlist-name">' + esc(playlist.name || entry.name) + '</div>' +
+      '<div class="seed-playlist-meta">' + esc(entry.family) + (total ? ' · ' + total.toLocaleString() + ' tracks' : ' · spotify details pending') + '</div>' +
+      '</button>';
+  }).join('');
+
+  hydrateSeedPlaylists();
+}
+
+async function hydrateSeedPlaylists() {
+  if (seedPlaylistHydrating || !(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
+  const missing = FRESH_SEED_PLAYLISTS.filter(entry => !seedPlaylistCache[entry.id]);
+  if (!missing.length) return;
+
+  seedPlaylistHydrating = true;
+  try {
+    for (const entry of missing) {
+      const data = await loadSeedPlaylist(entry.id);
+      seedPlaylistCache[entry.id] = {
+        ...entry,
+        ...data,
+        url: spotifyPlaylistUrl(entry.id),
+        uri: spotifyPlaylistUri(entry.id)
+      };
+    }
+    renderSeedPlaylistRow();
+    if (selectedSeedPlaylistId) selectSeedPlaylist(selectedSeedPlaylistId, { quiet: true });
+  } catch {
+    const status = document.getElementById('seedPlaylistStatus');
+    if (status) status.textContent = 'spotify seed playlist details could not be loaded. reconnect spotify and try again.';
+  } finally {
+    seedPlaylistHydrating = false;
+  }
+}
+
+async function loadSeedPlaylist(playlistId) {
+  const fields = 'id,name,description,uri,external_urls,images,tracks(total)';
+  return spotifyFetch('/v1/playlists/' + encodeURIComponent(playlistId) + '?fields=' + encodeURIComponent(fields));
+}
+
+async function selectSeedPlaylist(playlistId, options = {}) {
+  selectedSeedPlaylistId = playlistId;
+  renderSeedPlaylistRow();
+  const entry = FRESH_SEED_PLAYLISTS.find(item => item.id === playlistId);
+  const playlist = seedPlaylistCache[playlistId] || (entry ? seedPlaylistFromDirectory(entry) : null);
+  renderSeedPlaylistDetail(playlist, { loading: true });
+  if (!options.quiet) showCopyToast('loading seed playlist');
+
+  try {
+    const tracks = seedPlaylistTracksCache[playlistId] || await loadSpotifyPlaylistTracks(playlistId);
+    seedPlaylistTracksCache[playlistId] = tracks;
+    renderSeedPlaylistDetail(playlist, { tracks });
+    if (!options.quiet) showCopyToast('seed playlist opened');
+  } catch {
+    renderSeedPlaylistDetail(playlist, { error: true });
+    if (!options.quiet) showCopyToast('could not load playlist tracks');
+  }
+}
+
+function renderSeedPlaylistDetail(playlist, state = {}) {
+  const target = document.getElementById('seedPlaylistDetail');
+  if (!target) return;
+  if (!playlist) {
+    target.innerHTML = '<div class="spotify-empty">select a seed playlist to inspect its contents.</div>';
+    return;
+  }
+
+  const declaredCount = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+  const spotifyHref = playlist.uri || spotifyPlaylistUri(playlist.id);
+  if (state.loading) {
+    target.innerHTML = '<div class="seed-detail-head"><div>' +
+      '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
+      '<div class="seed-playlist-meta">loading tracks from spotify...</div>' +
+      '</div><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+  if (state.error) {
+    target.innerHTML = '<div class="seed-detail-head"><div>' +
+      '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
+      '<div class="seed-playlist-meta">tracks could not be loaded. reconnect spotify and try again.</div>' +
+      '</div><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  const tracks = state.tracks || [];
+  target.innerHTML = '<div class="seed-detail-head"><div>' +
+    '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
+    '<div class="seed-playlist-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + '</div>' +
+    '</div><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div>' +
+    '<div class="seed-track-list">' + tracks.slice(0, 24).map((track, index) => {
+      const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
+      const album = track.album && track.album.name ? track.album.name : '';
+      return '<div class="seed-track-row">' +
+        '<div class="seed-track-rank">' + (index + 1) + '</div>' +
+        '<div><div class="seed-track-name">' + esc(track.name) + '</div>' +
+        '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' · ' + esc(album) : '') + '</div></div>' +
+        '<div class="seed-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
+        '</div>';
+    }).join('') + '</div>';
+  scheduleScrollControlUpdate();
 }
 
 function topAllTimeAlbums(limit = 16) {
