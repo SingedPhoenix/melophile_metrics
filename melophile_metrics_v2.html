@@ -2981,6 +2981,7 @@
         <button class="pill"        data-window="30" onclick="setLastWindow(30)">30 months</button>
         <button class="pill"        data-window="60" onclick="setLastWindow(60)">60 months</button>
         <button class="pill"        data-window="120" onclick="setLastWindow(120)">120 months</button>
+        <button class="pill"        data-window="cy" onclick="setLastWindow('cy')">current year</button>
       </div>
 
       <div class="pill-row" id="lastTypePills">
@@ -2991,6 +2992,15 @@
       </div>
 
       <div class="gem-range-label visible" id="lastRangeLabel">last 1 month · top 100 tracks</div>
+
+      <div class="fresh-cols" id="lastCurrentYearWrap" style="display:none">
+        <div class="fresh-col">
+          <div class="fresh-stat">
+            <div class="fresh-stat-num" id="lastCurrentYearCount">—</div>
+            <div class="fresh-stat-label" id="lastCurrentYearCountLabel">new tracks in 2026</div>
+          </div>
+        </div>
+      </div>
 
       <div class="rankings-wrap">
         <table class="rankings-table">
@@ -3185,6 +3195,12 @@
       </div>
 
       <div class="gem-range-label visible" id="ghostedRangeLabel">not played in 6 months · middle 10-60% pull · tracks</div>
+
+      <div class="fresh-panel full">
+        <div class="fresh-panel-title">expansion watchlist</div>
+        <div class="fresh-panel-sub">favorite artists whose recent listening record looks quiet.</div>
+        <div class="fresh-release-list" id="ghostedWatchList"></div>
+      </div>
 
       <div class="rankings-wrap">
         <table class="rankings-table">
@@ -3560,46 +3576,10 @@
             <div class="fresh-release-list" id="freshReleaseList"></div>
           </div>
 
-          <div class="fresh-panel">
-            <div class="fresh-panel-title">expansion watchlist</div>
-            <div class="fresh-panel-sub">favorite artists whose recent listening record looks quiet.</div>
-            <div class="fresh-release-list" id="freshWatchList"></div>
-          </div>
-
           <div class="fresh-panel full">
             <div class="fresh-panel-title">fresh playlists</div>
             <div class="fresh-panel-sub">your cherry playlists and fresh seeds playlists will live here before playlist-family tagging becomes formal.</div>
             <div class="fresh-playlist-grid" id="freshPlaylistFamilies"></div>
-          </div>
-
-          <div class="fresh-panel full">
-            <div class="fresh-panel-title">new in your library</div>
-            <div class="fresh-panel-sub">the original fresh view: tracks and artists first appearing in your current-year last.fm records.</div>
-            <div class="fresh-cols">
-              <div class="fresh-col">
-                <div class="fresh-stat">
-                  <div class="fresh-stat-num" id="freshTrackCount">—</div>
-                  <div class="fresh-stat-label">new tracks in 2026</div>
-                </div>
-                <div class="fresh-list-wrap">
-                  <table class="rankings-table">
-                    <tbody id="freshTracksBody"></tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div class="fresh-col">
-                <div class="fresh-stat">
-                  <div class="fresh-stat-num" id="freshArtistCount">—</div>
-                  <div class="fresh-stat-label">new artists in 2026</div>
-                </div>
-                <div class="fresh-list-wrap">
-                  <table class="rankings-table">
-                    <tbody id="freshArtistsBody"></tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -4137,6 +4117,10 @@ function countAllTimeGem(type, range) {
 }
 
 function countLastEntries(months, type) {
+  if (months === 'cy') {
+    const source = type === 'artists' ? cyData.newArtists : cyData.newTracks;
+    return Object.keys(source).length;
+  }
   const anchor = latestScrobbleMs ? new Date(latestScrobbleMs) : new Date();
   const cutoff = new Date(anchor);
   cutoff.setUTCMonth(cutoff.getUTCMonth() - months);
@@ -4291,10 +4275,11 @@ function buildSmartJumpoffPool() {
     ['tracks', 'artists'].forEach(type => {
       const count = countLastEntries(windowInfo.months, type);
       if (!count) return;
+      const isCurrentYearWindow = windowInfo.months === 'cy';
       suggestions.push({
         id: 'last-' + windowInfo.months + '-' + type,
-        kicker: 'recent listening window',
-        action: 'explore the ' + type + ' from the last ' + windowInfo.label,
+        kicker: isCurrentYearWindow ? 'first-heard library' : 'recent listening window',
+        action: isCurrentYearWindow ? 'explore current-year new ' + type : 'explore the ' + type + ' from the last ' + windowInfo.label,
         route: [
           { label: 'pulse', kind: 'pulse' },
           { label: 'last...', kind: 'time' },
@@ -4577,7 +4562,8 @@ let cyData = {
   dayCounts: {},   // "YYYY-MM-DD" -> count
   newTracks: {},   // track key -> count (first heard in CY)
   newArtists: {},  // artist -> count (first heard in CY)
-  allTimeArtists: {}, allTimeTracks: {},
+  newAlbums: {},   // album key -> count (first heard in CY)
+  allTimeArtists: {}, allTimeTracks: {}, allTimeAlbums: {},
 };
 
 // Gem classification (current year scrobbles)
@@ -4657,8 +4643,8 @@ function buildAllData(rows) {
     artistCounts:{}, trackCounts:{}, albumCounts:{},
     hourCounts:Array(24).fill(0), dowCounts:Array(7).fill(0),
     monthCounts:Array(12).fill(0), dayCounts:{},
-    newTracks:{}, newArtists:{},
-    allTimeArtists:{}, allTimeTracks:{},
+    newTracks:{}, newArtists:{}, newAlbums:{},
+    allTimeArtists:{}, allTimeTracks:{}, allTimeAlbums:{},
   };
 
   // First pass: build all-time maps to detect "new in CY"
@@ -4680,6 +4666,10 @@ function buildAllData(rows) {
     if (track) {
       if (!cyData.allTimeTracks[tKey]) cyData.allTimeTracks[tKey] = yr;
       else cyData.allTimeTracks[tKey] = Math.min(cyData.allTimeTracks[tKey], yr);
+    }
+    if (album) {
+      if (!cyData.allTimeAlbums[aKey]) cyData.allTimeAlbums[aKey] = yr;
+      else cyData.allTimeAlbums[aKey] = Math.min(cyData.allTimeAlbums[aKey], yr);
     }
   });
 
@@ -4717,6 +4707,9 @@ function buildAllData(rows) {
       cyData.newArtists[artist] = (cyData.newArtists[artist]||0) + 1;
     if (cyData.allTimeTracks[tKey] === CY)
       cyData.newTracks[tKey] = (cyData.newTracks[tKey]||0) + 1;
+    if (album && cyData.allTimeAlbums[(artist+'|||'+album).toLowerCase()] === CY)
+      cyData.newAlbums[(artist+'|||'+album).toLowerCase()] =
+        (cyData.newAlbums[(artist+'|||'+album).toLowerCase()]||0) + 1;
   });
 
   // Populate stat boxes
@@ -5465,6 +5458,7 @@ const LAST_WINDOWS = [
   { months: 30, label: '30 months' },
   { months: 60, label: '60 months' },
   { months: 120, label: '120 months' },
+  { months: 'cy', label: 'current year' },
 ];
 
 let lastWindow = 1;
@@ -5492,11 +5486,13 @@ const ALBUM_COPY_ICON =
 
 function setLastWindow(months) {
   lastWindow = months;
+  if (lastWindow === 'cy' && lastType === 'averages') lastType = 'tracks';
   syncLastControls();
   renderLastList();
 }
 
 function setLastType(type) {
+  if (lastWindow === 'cy' && type === 'averages') type = 'tracks';
   lastType = type;
   syncLastControls();
   renderLastList();
@@ -5504,7 +5500,7 @@ function setLastType(type) {
 
 function syncLastControls() {
   document.querySelectorAll('#lastWindowPills .pill').forEach(p => {
-    p.classList.toggle('active', parseInt(p.dataset.window) === lastWindow);
+    p.classList.toggle('active', p.dataset.window === String(lastWindow));
   });
   document.querySelectorAll('#lastTypePills .pill').forEach(p => {
     p.classList.toggle('active', p.dataset.type === lastType);
@@ -5516,12 +5512,23 @@ function renderLastList() {
   const empty = document.getElementById('lastEmpty');
   const label = document.getElementById('lastRangeLabel');
   const averagesWrap = document.getElementById('lastAveragesWrap');
+  const currentYearWrap = document.getElementById('lastCurrentYearWrap');
   const windowInfo = LAST_WINDOWS.find(w => w.months === lastWindow) || LAST_WINDOWS[0];
   label.textContent = 'last ' + windowInfo.label + (lastType === 'averages' ? ' · listening rates' : ' · top 100 ' + lastType);
 
+  if (currentYearWrap) currentYearWrap.style.display = 'none';
+
   const anchor = latestScrobbleMs ? new Date(latestScrobbleMs) : new Date();
   const cutoff = new Date(anchor);
-  cutoff.setUTCMonth(cutoff.getUTCMonth() - lastWindow);
+
+  if (lastWindow === 'cy') {
+    tbody.closest('table').style.display = '';
+    averagesWrap.classList.remove('visible');
+    renderLastCurrentYear();
+    return;
+  }
+
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - Number(lastWindow));
 
   if (lastType === 'averages') {
     tbody.closest('table').style.display = 'none';
@@ -5568,6 +5575,7 @@ function renderLastList() {
   if (!entries.length) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
+    empty.textContent = 'no listening data found for this period';
     scheduleScrollControlUpdate();
     return;
   }
@@ -5623,6 +5631,57 @@ function renderLastList() {
       '<td>' + nameCell + '</td>' +
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
       '<td class="r-count">' + entry.count.toLocaleString() + '</td>' +
+    '</tr>';
+  }).join('');
+  scheduleScrollControlUpdate();
+}
+
+function renderLastCurrentYear() {
+  const tbody = document.getElementById('lastBody');
+  const empty = document.getElementById('lastEmpty');
+  const label = document.getElementById('lastRangeLabel');
+  const currentYearWrap = document.getElementById('lastCurrentYearWrap');
+  const countNum = document.getElementById('lastCurrentYearCount');
+  const countLabel = document.getElementById('lastCurrentYearCountLabel');
+
+  const currentYearType = lastType === 'averages' ? 'tracks' : lastType;
+  const source = currentYearType === 'artists'
+    ? cyData.newArtists
+    : currentYearType === 'albums'
+      ? cyData.newAlbums
+      : cyData.newTracks;
+  const entries = Object.entries(source)
+    .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 100);
+
+  label.textContent = 'current year · first-heard ' + currentYearType + ' in ' + CY;
+  if (currentYearWrap) currentYearWrap.style.display = '';
+  if (countNum) countNum.textContent = Object.keys(source).length.toLocaleString();
+  if (countLabel) countLabel.textContent = 'new ' + currentYearType + ' in ' + CY;
+
+  if (!entries.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'no current-year first-heard ' + currentYearType + ' found';
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  empty.style.display = 'none';
+  const maxVal = entries[0][1] || 1;
+  tbody.innerHTML = entries.map(([key, count], index) => {
+    const parts = key.split('|||');
+    const artist = parts[0] || '';
+    const name = currentYearType === 'artists' ? key : (parts[1] || key);
+    const barW = count / maxVal * 100;
+    const nameCell = currentYearType === 'artists'
+      ? '<div class="r-name">' + esc(name) + '</div>'
+      : '<div class="r-name">' + esc(name) + '</div><div class="r-artist">' + esc(artist) + '</div>';
+    return '<tr>' +
+      '<td class="r-rank">' + (index + 1) + '</td>' +
+      '<td>' + nameCell + '</td>' +
+      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
+      '<td class="r-count">' + count.toLocaleString() + '</td>' +
     '</tr>';
   }).join('');
   scheduleScrollControlUpdate();
@@ -6619,6 +6678,7 @@ function summarizeGhostedEntities() {
 }
 
 function renderGhostedList() {
+  renderGhostedWatchList();
   const tbody = document.getElementById('ghostedBody');
   const empty = document.getElementById('ghostedEmpty');
   const label = document.getElementById('ghostedRangeLabel');
@@ -7006,38 +7066,11 @@ let freshReleaseResults = [];
 const SPOTIFY_ARTIST_MATCH_KEY = 'melophile.spotify.artistMatches';
 
 function populateFresh() {
-  const newTracksSorted = Object.entries(cyData.newTracks).sort((a,b)=>b[1]-a[1]);
-  const newArtistsSorted = Object.entries(cyData.newArtists).sort((a,b)=>b[1]-a[1]);
-
-  document.getElementById('freshTrackCount').textContent  = newTracksSorted.length.toLocaleString();
-  document.getElementById('freshArtistCount').textContent = newArtistsSorted.length.toLocaleString();
-
-  const maxT = newTracksSorted[0]?.[1] || 1;
-  const maxA = newArtistsSorted[0]?.[1] || 1;
-
-  document.getElementById('freshTracksBody').innerHTML = newTracksSorted.map(([k,v],i) => {
-    const parts = k.split('|||');
-    const artist = parts[0] || '';
-    const name = parts[1] || k;
-    const barW = (v/maxT*100);
-    const nameCell = '<div class="r-name">' + esc(name) + '</div><div class="r-artist">' + esc(artist) + '</div>';
-    return '<tr><td class="r-rank">'+(i+1)+'</td><td>'+nameCell+'</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:'+barW+'%"></div></div></td>' +
-      '<td class="r-count">'+v+'</td></tr>';
-  }).join('');
-
-  document.getElementById('freshArtistsBody').innerHTML = newArtistsSorted.map(([name,v],i) => {
-    const barW = (v/maxA*100);
-    return '<tr><td class="r-rank">'+(i+1)+'</td><td><div class="r-name">'+esc(name)+'</div></td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:'+barW+'%;background:var(--bar-gradient-soft)"></div></div></td>' +
-      '<td class="r-count">'+v+'</td></tr>';
-  }).join('');
   renderFreshHub();
   scheduleScrollControlUpdate();
 }
 
 function renderFreshHub() {
-  renderFreshWatchList();
   renderFreshPlaylistFamilies();
   renderFreshReleaseList();
 }
@@ -7066,8 +7099,8 @@ function favoriteArtistScores(limit = 40) {
     .slice(0, limit);
 }
 
-function renderFreshWatchList() {
-  const target = document.getElementById('freshWatchList');
+function renderGhostedWatchList() {
+  const target = document.getElementById('ghostedWatchList');
   if (!target) return;
   const cutoff = Date.now() / 1000 - 180 * 86400;
   const rows = favoriteArtistScores(60)
