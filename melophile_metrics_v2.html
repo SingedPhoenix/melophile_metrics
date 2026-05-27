@@ -2405,30 +2405,108 @@
     padding-top: 40px;
   }
 
-  body.display-horizontal .bento-grid {
+  body.display-horizontal .header {
+    padding-top: 28px;
+    padding-bottom: 22px;
+  }
+
+  body.display-horizontal .wordmark {
+    font-size: 46px;
+  }
+
+  body.display-horizontal #screenSelect.active {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+    grid-template-areas: "home-bentos home-jumpoff";
     gap: 28px;
+    align-items: stretch;
+    justify-content: stretch;
+    min-height: calc(100vh - 158px);
+    padding-top: 28px;
+    padding-bottom: 28px;
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-card {
+    grid-area: home-jumpoff;
+    min-height: 0;
+    height: 100%;
+    margin: 0;
+    grid-template-columns: 1fr;
+    align-content: center;
+    justify-items: center;
+    padding: 30px;
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-main {
+    justify-content: center;
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-route {
+    gap: 10px;
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-route-step {
+    font-size: 10px;
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-route-step .sq-icon {
+    width: 42px;
+    height: 42px;
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-route-step .sq-icon svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-divider {
+    height: 42px;
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-action {
+    font-size: clamp(20px, 1.55vw, 30px);
+  }
+
+  body.display-horizontal #screenSelect .jumpoff-shuffle {
+    position: absolute;
+    right: 24px;
+    bottom: 24px;
+  }
+
+  body.display-horizontal #screenSelect .bento-section-label,
+  body.display-horizontal #screenSelect .legacy-home-grid {
+    display: none;
+  }
+
+  body.display-horizontal .bento-grid {
+    grid-area: home-bentos;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    height: 100%;
+    min-height: 0;
+    margin-bottom: 0;
   }
 
   body.display-horizontal .bento-card {
-    min-height: clamp(300px, 22vw, 430px);
-    padding: 42px;
+    min-height: 0;
+    padding: clamp(16px, 1.4vw, 26px);
   }
 
   body.display-horizontal .bento-card img,
   body.display-horizontal .sq-icon {
-    width: 86px;
-    height: 86px;
-    margin-bottom: 30px;
+    width: clamp(56px, 4.7vw, 78px);
+    height: clamp(56px, 4.7vw, 78px);
+    margin-bottom: clamp(14px, 1.6vw, 24px);
   }
 
   body.display-horizontal .bento-card-title,
   body.display-horizontal .sq-name {
-    font-size: 34px;
+    font-size: clamp(24px, 1.9vw, 34px);
   }
 
   body.display-horizontal .bento-card-desc,
   body.display-horizontal .sq-desc {
-    font-size: 17px;
+    font-size: clamp(13px, 1vw, 17px);
     line-height: 1.55;
   }
 
