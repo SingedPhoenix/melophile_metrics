@@ -24,6 +24,9 @@
     --bar-gradient:   linear-gradient(90deg, #A00000, #3D0066);
     --bar-gradient-soft: linear-gradient(90deg, rgba(160,0,0,0.78), rgba(61,0,102,0.32));
     --app-max-width: 1200px;
+    --font-floor-xs: 12px;
+    --font-floor-sm: 14px;
+    --font-floor-md: 16px;
   }
 
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -35,6 +38,7 @@
     background: var(--onyx);
     color: var(--silver);
     font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-md);
     min-height: 100vh;
     overflow-x: hidden;
   }
@@ -2342,7 +2346,7 @@
 
   .fresh-path-title {
     font-family: 'Quicksand', sans-serif;
-    font-size: 26px;
+    font-size: 31px;
     font-weight: 500;
     color: var(--silver);
     line-height: 1;
@@ -2352,7 +2356,7 @@
   .fresh-path-sub {
     margin-top: 8px;
     font-family: 'DM Mono', monospace;
-    font-size: 12px;
+    font-size: var(--font-floor-sm);
     line-height: 1.65;
     color: rgba(204,204,204,0.42);
   }
@@ -2408,7 +2412,7 @@
 
   .seed-playlist-name {
     font-family: 'Afacad', sans-serif;
-    font-size: 17px;
+    font-size: 20px;
     font-weight: 700;
     line-height: 1.08;
     color: rgba(238,238,238,0.92);
@@ -2418,7 +2422,7 @@
   .seed-playlist-meta {
     margin-top: 6px;
     font-family: 'DM Mono', monospace;
-    font-size: 10px;
+    font-size: var(--font-floor-xs);
     line-height: 1.45;
     color: rgba(204,204,204,0.34);
   }
@@ -2441,7 +2445,7 @@
 
   .seed-detail-title {
     font-family: 'Quicksand', sans-serif;
-    font-size: 21px;
+    font-size: 25px;
     font-weight: 600;
     color: rgba(204,204,204,0.86);
   }
@@ -2457,7 +2461,7 @@
     color: var(--silver);
     text-decoration: none;
     font-family: 'Quicksand', sans-serif;
-    font-size: 13px;
+    font-size: var(--font-floor-md);
     font-weight: 600;
     background: rgba(204,204,204,0.035);
   }
@@ -2484,7 +2488,7 @@
   .seed-track-rank,
   .seed-track-duration {
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: var(--font-floor-sm);
     color: rgba(204,204,204,0.34);
   }
 
@@ -2494,7 +2498,7 @@
 
   .seed-track-name {
     font-family: 'Afacad', sans-serif;
-    font-size: 18px;
+    font-size: 22px;
     font-weight: 600;
     color: var(--silver);
     line-height: 1.12;
@@ -2869,11 +2873,11 @@
   }
 
   body.display-horizontal .seed-playlist-name {
-    font-size: 19px;
+    font-size: 23px;
   }
 
   body.display-horizontal .seed-detail-title {
-    font-size: 24px;
+    font-size: 30px;
   }
 
   body.display-horizontal .fresh-command,
