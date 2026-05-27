@@ -2370,6 +2370,36 @@
     padding-bottom: 4px;
   }
 
+  .seed-section-panel {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+  }
+
+  .seed-section-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .seed-section-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 25px;
+    font-weight: 600;
+    color: rgba(204,204,204,0.86);
+  }
+
+  .seed-section-sub {
+    margin-top: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-xs);
+    line-height: 1.55;
+    color: rgba(204,204,204,0.38);
+  }
+
   .seed-playlist-card {
     appearance: none;
     border: 1px solid rgba(204,204,204,0.08);
@@ -2435,6 +2465,10 @@
     min-height: 180px;
   }
 
+  .seed-detail-panel.hidden {
+    display: none;
+  }
+
   .seed-detail-head {
     display: flex;
     align-items: center;
@@ -2471,6 +2505,13 @@
     background: rgba(204,204,204,0.06);
   }
 
+  .seed-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
   .seed-track-list {
     display: grid;
     gap: 10px;
@@ -2502,6 +2543,75 @@
     font-weight: 600;
     color: var(--silver);
     line-height: 1.12;
+  }
+
+  .seed-release-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .seed-release-card {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--amethyst-mid) 10%, transparent), color-mix(in srgb, var(--charcoal-light) 8%, transparent)),
+      rgba(204,204,204,0.024);
+    padding: 12px;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+    display: block;
+    overflow: hidden;
+    transition: transform 0.22s, border-color 0.22s, background 0.22s;
+  }
+
+  .seed-release-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-hover);
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--amethyst-mid) 18%, transparent), color-mix(in srgb, var(--charcoal-light) 12%, transparent)),
+      rgba(204,204,204,0.035);
+  }
+
+  .seed-release-cover {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    object-fit: cover;
+    display: block;
+    margin-bottom: 10px;
+    border: 1px solid rgba(204,204,204,0.08);
+    background:
+      radial-gradient(circle at 30% 24%, color-mix(in srgb, var(--silver) 16%, transparent), transparent 34%),
+      linear-gradient(135deg, color-mix(in srgb, var(--cherry-bright) 16%, transparent), color-mix(in srgb, var(--amethyst-mid) 16%, transparent));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 26px rgba(0,0,0,0.24);
+  }
+
+  .seed-release-name {
+    font-family: 'Afacad', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.08;
+    color: rgba(238,238,238,0.92);
+    overflow-wrap: anywhere;
+  }
+
+  .seed-release-artist {
+    margin-top: 5px;
+    font-family: 'Afacad', sans-serif;
+    font-size: 16px;
+    line-height: 1.2;
+    color: rgba(204,204,204,0.64);
+    overflow-wrap: anywhere;
+  }
+
+  .seed-release-meta {
+    margin-top: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-xs);
+    line-height: 1.45;
+    color: rgba(204,204,204,0.34);
   }
 
   .fresh-command {
@@ -2868,6 +2978,11 @@
     gap: 18px;
   }
 
+  body.display-horizontal .seed-release-grid {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 12px;
+  }
+
   body.display-horizontal .seed-playlist-card {
     padding: 14px;
   }
@@ -2878,6 +2993,18 @@
 
   body.display-horizontal .seed-detail-title {
     font-size: 30px;
+  }
+
+  body.display-horizontal .seed-section-title {
+    font-size: 30px;
+  }
+
+  body.display-horizontal .seed-release-name {
+    font-size: 18px;
+  }
+
+  body.display-horizontal .seed-release-artist {
+    font-size: 15px;
   }
 
   body.display-horizontal .fresh-command,
@@ -4198,8 +4325,20 @@
           </div>
 
           <div class="seed-playlist-row" id="seedPlaylistRow" aria-label="fresh seeds playlists"></div>
-          <div class="seed-detail-panel" id="seedPlaylistDetail">
+          <div class="seed-detail-panel hidden" id="seedPlaylistDetail">
             <div class="spotify-empty">select a seed playlist to inspect its contents.</div>
+          </div>
+          <div class="seed-section-panel">
+            <div class="seed-section-head">
+              <div>
+                <div class="seed-section-title">new release seeds</div>
+                <div class="seed-section-sub" id="seedReleaseStatus">scan spotify for releases from your all-time favorites and newly-added artists.</div>
+              </div>
+              <button class="pill" type="button" onclick="scanSeedNewReleases()">scan releases</button>
+            </div>
+            <div class="seed-release-grid" id="seedReleaseGrid">
+              <div class="spotify-empty">run a scan to build a new-release grid from your Last.fm artist orbit.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -7725,6 +7864,7 @@ let freshReleaseWindowDays = 90;
 let freshReleaseResults = [];
 const SPOTIFY_ARTIST_MATCH_KEY = 'melophile.spotify.artistMatches';
 const SPOTIFY_ALBUM_ART_KEY = 'melophile.spotify.albumArt';
+const SEED_NEW_RELEASES_KEY = 'melophile.seed.newReleases';
 const LASTFM_ALBUM_ART_KEY = 'melophile.lastfm.albumArt';
 const FRESH_SEED_PLAYLISTS = [
   { id: '37i9dQZF1FwR0bga849pTD', name: 'fresh seeds: hip hop', family: 'hip hop', url: 'https://open.spotify.com/playlist/37i9dQZF1FwR0bga849pTD' },
@@ -7740,6 +7880,8 @@ let selectedSeedPlaylistId = null;
 const seedPlaylistCache = {};
 const seedPlaylistTracksCache = {};
 let seedPlaylistHydrating = false;
+let seedReleaseScanning = false;
+let seedReleaseResults = [];
 
 function populateFresh() {
   renderFreshHub();
@@ -7749,6 +7891,7 @@ function populateFresh() {
 function renderFreshHub() {
   renderFreshPath();
   renderSeedPlaylistRow();
+  renderSeedNewReleaseGrid();
 }
 
 function openFreshPath(path) {
@@ -7810,6 +7953,13 @@ function renderSeedPlaylistRow() {
   hydrateSeedPlaylists();
 }
 
+function closeSeedPlaylist() {
+  selectedSeedPlaylistId = null;
+  renderSeedPlaylistRow();
+  renderSeedPlaylistDetail(null);
+  showCopyToast('seed playlist closed');
+}
+
 async function hydrateSeedPlaylists() {
   if (seedPlaylistHydrating || !(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
   const missing = FRESH_SEED_PLAYLISTS.filter(entry => !seedPlaylistCache[entry.id]);
@@ -7842,6 +7992,10 @@ async function loadSeedPlaylist(playlistId) {
 }
 
 async function selectSeedPlaylist(playlistId, options = {}) {
+  if (selectedSeedPlaylistId === playlistId && !options.quiet) {
+    closeSeedPlaylist();
+    return;
+  }
   selectedSeedPlaylistId = playlistId;
   renderSeedPlaylistRow();
   const entry = FRESH_SEED_PLAYLISTS.find(item => item.id === playlistId);
@@ -7864,9 +8018,11 @@ function renderSeedPlaylistDetail(playlist, state = {}) {
   const target = document.getElementById('seedPlaylistDetail');
   if (!target) return;
   if (!playlist) {
+    target.classList.add('hidden');
     target.innerHTML = '<div class="spotify-empty">select a seed playlist to inspect its contents.</div>';
     return;
   }
+  target.classList.remove('hidden');
 
   const declaredCount = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
   const spotifyHref = playlist.uri || spotifyPlaylistUri(playlist.id);
@@ -7874,7 +8030,7 @@ function renderSeedPlaylistDetail(playlist, state = {}) {
     target.innerHTML = '<div class="seed-detail-head"><div>' +
       '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
       '<div class="seed-playlist-meta">loading tracks from spotify...</div>' +
-      '</div><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div>';
+      '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeSeedPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>';
     scheduleScrollControlUpdate();
     return;
   }
@@ -7882,7 +8038,7 @@ function renderSeedPlaylistDetail(playlist, state = {}) {
     target.innerHTML = '<div class="seed-detail-head"><div>' +
       '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
       '<div class="seed-playlist-meta">tracks could not be loaded. reconnect spotify and try again.</div>' +
-      '</div><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div>';
+      '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeSeedPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>';
     scheduleScrollControlUpdate();
     return;
   }
@@ -7891,7 +8047,7 @@ function renderSeedPlaylistDetail(playlist, state = {}) {
   target.innerHTML = '<div class="seed-detail-head"><div>' +
     '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
     '<div class="seed-playlist-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + '</div>' +
-    '</div><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div>' +
+    '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeSeedPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>' +
     '<div class="seed-track-list">' + tracks.slice(0, 24).map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
@@ -7903,6 +8059,187 @@ function renderSeedPlaylistDetail(playlist, state = {}) {
         '</div>';
     }).join('') + '</div>';
   scheduleScrollControlUpdate();
+}
+
+function readSeedNewReleaseCache() {
+  try {
+    return JSON.parse(localStorage.getItem(SEED_NEW_RELEASES_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function writeSeedNewReleaseCache(releases) {
+  try {
+    localStorage.setItem(SEED_NEW_RELEASES_KEY, JSON.stringify(releases));
+  } catch {}
+}
+
+function topAllTimeArtists(limit = 1000) {
+  const artists = {};
+  allScrobbles.forEach(scrobble => {
+    if (!scrobble.artist) return;
+    const key = scrobble.artist.toLowerCase();
+    if (!artists[key]) artists[key] = { key, name: scrobble.artist, plays: 0, firstUts: scrobble.uts || 0, latestUts: scrobble.uts || 0 };
+    artists[key].plays++;
+    artists[key].firstUts = Math.min(artists[key].firstUts || scrobble.uts || 0, scrobble.uts || artists[key].firstUts || 0);
+    artists[key].latestUts = Math.max(artists[key].latestUts || 0, scrobble.uts || 0);
+  });
+  return Object.values(artists)
+    .sort((a, b) => b.plays - a.plays || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}
+
+function recentlyAddedArtists(limit = 250, days = 250) {
+  const cutoffUts = Math.floor((Date.now() - days * 86400000) / 1000);
+  return topAllTimeArtists(Number.MAX_SAFE_INTEGER)
+    .filter(artist => artist.firstUts >= cutoffUts)
+    .sort((a, b) => b.plays - a.plays || b.latestUts - a.latestUts || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}
+
+function seedReleaseArtistCandidates() {
+  const candidates = new Map();
+  topAllTimeArtists(1000).forEach((artist, index) => {
+    candidates.set(artist.key, { ...artist, source: 'all-time top ' + (index + 1) });
+  });
+  recentlyAddedArtists(250, 250).forEach((artist, index) => {
+    const existing = candidates.get(artist.key);
+    candidates.set(artist.key, {
+      ...(existing || artist),
+      source: existing ? existing.source + ' + recent artist' : 'recent artist ' + (index + 1)
+    });
+  });
+  return Array.from(candidates.values()).sort((a, b) => b.plays - a.plays || a.name.localeCompare(b.name));
+}
+
+function releasePlayCount(release) {
+  const releaseName = (release.name || '').toLowerCase();
+  const releaseArtists = (release.artists || []).map(artist => (artist.name || '').toLowerCase()).filter(Boolean);
+  if (!releaseName || !releaseArtists.length) return 0;
+  return allScrobbles.reduce((count, scrobble) => {
+    const scrobbleArtist = (scrobble.artist || '').toLowerCase();
+    if (!releaseArtists.includes(scrobbleArtist)) return count;
+    const albumMatch = (scrobble.album || '').toLowerCase() === releaseName;
+    const trackMatch = (scrobble.track || '').toLowerCase() === releaseName;
+    return count + (albumMatch || trackMatch ? 1 : 0);
+  }, 0);
+}
+
+function renderSeedNewReleaseGrid() {
+  const target = document.getElementById('seedReleaseGrid');
+  const status = document.getElementById('seedReleaseStatus');
+  if (!target) return;
+
+  if (!seedReleaseResults.length) seedReleaseResults = readSeedNewReleaseCache();
+  const candidates = seedReleaseArtistCandidates();
+  const cutoff = Date.now() - 183 * 86400000;
+  const visible = seedReleaseResults
+    .filter(release => release.releaseMs >= cutoff)
+    .filter(release => (release.listenCount || 0) < 4)
+    .sort((a, b) => b.releaseMs - a.releaseMs || b.artistPlays - a.artistPlays)
+    .slice(0, 80);
+
+  if (status) {
+    const cached = seedReleaseResults.length ? ' · ' + seedReleaseResults.length.toLocaleString() + ' cached releases' : '';
+    status.textContent = candidates.length.toLocaleString() + ' Last.fm artists eligible · last 6 months · hidden after 4 listens' + cached;
+  }
+
+  if (!visible.length) {
+    target.innerHTML = '<div class="spotify-empty">run a scan to build a new-release grid from your Last.fm artist orbit.</div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  target.innerHTML = visible.map(release => {
+    const image = release.image
+      ? '<img class="seed-release-cover" src="' + esc(release.image) + '" alt="">'
+      : '<div class="seed-release-cover" aria-hidden="true"></div>';
+    const date = new Date(release.releaseMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const href = release.uri || release.url || '#';
+    return '<a class="seed-release-card" href="' + esc(href) + '">' +
+      image +
+      '<div class="seed-release-name">' + esc(release.name) + '</div>' +
+      '<div class="seed-release-artist">' + esc(release.artist) + '</div>' +
+      '<div class="seed-release-meta">' + esc(release.type) + ' · ' + esc(date) + ' · ' + (release.listenCount || 0) + ' listens</div>' +
+      '</a>';
+  }).join('');
+  scheduleScrollControlUpdate();
+}
+
+async function scanSeedNewReleases() {
+  if (seedReleaseScanning) return;
+  const token = await getValidSpotifyToken();
+  if (!token) {
+    showCopyToast('spotify connection needed');
+    renderSpotifyPanel();
+    return;
+  }
+
+  const candidates = seedReleaseArtistCandidates();
+  if (!candidates.length) {
+    showCopyToast('last.fm history needed');
+    return;
+  }
+
+  const status = document.getElementById('seedReleaseStatus');
+  const artistCache = readSpotifyArtistMatchCache();
+  const cutoff = Date.now() - 183 * 86400000;
+  const releases = [];
+  seedReleaseScanning = true;
+
+  try {
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      if (status) status.textContent = 'scanning ' + candidate.name + ' · ' + (i + 1).toLocaleString() + ' of ' + candidates.length.toLocaleString();
+      let spotifyArtist = artistCache[candidate.name];
+      if (!spotifyArtist) {
+        spotifyArtist = await findSpotifyArtist(candidate.name);
+        if (spotifyArtist) artistCache[candidate.name] = spotifyArtist;
+      }
+      if (!spotifyArtist) continue;
+
+      const artistReleases = await loadSpotifyArtistReleases(spotifyArtist.id, 50);
+      artistReleases.forEach(release => {
+        const releaseMs = spotifyReleaseDateMs(release.release_date);
+        if (!releaseMs || releaseMs < cutoff) return;
+        const listenCount = releasePlayCount(release);
+        if (listenCount >= 4) return;
+        const artists = (release.artists || []).map(artist => artist.name).filter(Boolean);
+        releases.push({
+          id: release.id,
+          name: release.name || 'untitled release',
+          artist: artists.join(', ') || candidate.name,
+          artists,
+          type: release.album_type || 'release',
+          releaseMs,
+          releaseDate: release.release_date || '',
+          image: release.images && release.images[0] ? release.images[0].url : '',
+          uri: release.uri || '',
+          url: release.external_urls && release.external_urls.spotify ? release.external_urls.spotify : '',
+          listenCount,
+          artistPlays: candidate.plays,
+          source: candidate.source
+        });
+      });
+    }
+
+    writeSpotifyArtistMatchCache(artistCache);
+    const unique = {};
+    releases.forEach(release => {
+      const key = release.id || (release.artist + '|||' + release.name + '|||' + release.releaseDate).toLowerCase();
+      unique[key] = release;
+    });
+    seedReleaseResults = Object.values(unique);
+    writeSeedNewReleaseCache(seedReleaseResults);
+    renderSeedNewReleaseGrid();
+    showCopyToast('seed releases scanned');
+  } catch {
+    if (status) status.textContent = 'spotify release scan paused. try again in a bit if rate limits kicked in.';
+    showCopyToast('release scan stopped');
+  } finally {
+    seedReleaseScanning = false;
+  }
 }
 
 function topAllTimeAlbums(limit = 16) {
@@ -8293,11 +8630,11 @@ async function findSpotifyArtist(artistName) {
   return data.artists && data.artists.items && data.artists.items[0] ? data.artists.items[0] : null;
 }
 
-async function loadSpotifyArtistReleases(artistId) {
+async function loadSpotifyArtistReleases(artistId, limit = 20) {
   const params = new URLSearchParams({
     include_groups: 'album,single',
     market: 'US',
-    limit: '20'
+    limit: String(limit)
   });
   const data = await spotifyFetch('/v1/artists/' + encodeURIComponent(artistId) + '/albums?' + params.toString());
   return data.items || [];
@@ -8555,13 +8892,22 @@ async function loadSpotifyPlaylists() {
   }
 }
 
-async function spotifyFetch(pathOrUrl) {
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function spotifyFetch(pathOrUrl, attempt = 0) {
   const token = await getValidSpotifyToken();
   if (!token) throw new Error('spotify token missing');
   const url = pathOrUrl.startsWith('http') ? pathOrUrl : 'https://api.spotify.com' + pathOrUrl;
   const response = await fetch(url, {
     headers: { Authorization: 'Bearer ' + token.access_token }
   });
+  if (response.status === 429 && attempt < 2) {
+    const retryAfter = Number(response.headers.get('Retry-After') || '2');
+    await sleep(Math.max(1, retryAfter) * 1000);
+    return spotifyFetch(pathOrUrl, attempt + 1);
+  }
   if (!response.ok) throw new Error('spotify request failed');
   return response.json();
 }
