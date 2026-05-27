@@ -912,6 +912,42 @@
     display: block;
   }
 
+  .seed-scan-panel {
+    grid-column: 1 / -1;
+    border-top: 1px solid rgba(204,204,204,0.08);
+    padding-top: 18px;
+    display: grid;
+    gap: 12px;
+  }
+
+  .seed-scan-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .seed-scan-stat {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 10px;
+    background: rgba(204,204,204,0.025);
+    padding: 12px;
+  }
+
+  .seed-scan-value {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 24px;
+    font-weight: 600;
+    color: rgba(238,238,238,0.9);
+  }
+
+  .seed-scan-label {
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-xs);
+    line-height: 1.45;
+    color: rgba(204,204,204,0.38);
+  }
+
   .spotify-detail-head {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2784,6 +2820,7 @@
     }
 
     .fresh-path-head,
+    .seed-section-head,
     .seed-detail-head {
       align-items: flex-start;
       flex-direction: column;
@@ -2804,6 +2841,10 @@
 
     .fresh-album-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .seed-scan-grid {
+      grid-template-columns: 1fr;
     }
   }
 
@@ -3569,6 +3610,31 @@
           <button class="pill" type="button" onclick="disconnectSpotify()">disconnect</button>
         </div>
         <div class="spotify-meta" id="spotifyMeta">client id is stored in this browser only.</div>
+      </div>
+      <div class="seed-scan-panel" id="seedScanPanel">
+        <div>
+          <div class="spotify-title">seed release scanner</div>
+          <div class="spotify-sub">automatically audits Last.fm artist pools and scans spotify for new releases at 9:01 p.m. every tuesday, thursday, and sunday while the app is open, or on the next open after a missed scan.</div>
+        </div>
+        <div class="seed-scan-grid">
+          <div class="seed-scan-stat">
+            <div class="seed-scan-value" id="seedScanAllTimeCount">—</div>
+            <div class="seed-scan-label">all-time artists audited</div>
+          </div>
+          <div class="seed-scan-stat">
+            <div class="seed-scan-value" id="seedScanRecentCount">—</div>
+            <div class="seed-scan-label">newly-added artists audited</div>
+          </div>
+          <div class="seed-scan-stat">
+            <div class="seed-scan-value" id="seedScanReleaseCount">—</div>
+            <div class="seed-scan-label">seed releases stored</div>
+          </div>
+        </div>
+        <div class="spotify-actions">
+          <button class="pill" type="button" onclick="runSeedReleaseScanNow()">run scan now</button>
+          <button class="pill" type="button" onclick="refreshSeedArtistAudit()">refresh artist audit</button>
+        </div>
+        <div class="spotify-meta" id="seedScanStatus">scheduled scans wait for Last.fm data and a valid Spotify connection.</div>
       </div>
       <div class="spotify-playlists" id="spotifyPlaylists">
         <div class="spotify-empty">playlist inventory will appear here after connection.</div>
@@ -4706,6 +4772,7 @@ function showScreen(id) {
   if (id === 'screenSettings') {
     renderLastfmPanel();
     renderSpotifyPanel();
+    renderSeedScanSettings();
   }
   window.scrollTo({ top: 0 });
   scheduleScrollControlUpdate();
@@ -5342,6 +5409,8 @@ function handleFile(file) {
 
 function activateDataRows(rows, sourceLabel) {
   buildAllData(rows);
+  buildSeedArtistAudit();
+  startSeedScanScheduler();
   document.getElementById('loadingOverlay').classList.add('hidden');
   navStack = ['screenSelect'];
   showScreen('screenSelect');
@@ -7865,6 +7934,8 @@ let freshReleaseResults = [];
 const SPOTIFY_ARTIST_MATCH_KEY = 'melophile.spotify.artistMatches';
 const SPOTIFY_ALBUM_ART_KEY = 'melophile.spotify.albumArt';
 const SEED_NEW_RELEASES_KEY = 'melophile.seed.newReleases';
+const SEED_ARTIST_AUDIT_KEY = 'melophile.seed.artistAudit';
+const SEED_SCAN_SCHEDULE_KEY = 'melophile.seed.scanSchedule';
 const LASTFM_ALBUM_ART_KEY = 'melophile.lastfm.albumArt';
 const FRESH_SEED_PLAYLISTS = [
   { id: '37i9dQZF1FwR0bga849pTD', name: 'fresh seeds: hip hop', family: 'hip hop', url: 'https://open.spotify.com/playlist/37i9dQZF1FwR0bga849pTD' },
@@ -7882,6 +7953,7 @@ const seedPlaylistTracksCache = {};
 let seedPlaylistHydrating = false;
 let seedReleaseScanning = false;
 let seedReleaseResults = [];
+let seedScanTimer = null;
 
 function populateFresh() {
   renderFreshHub();
@@ -7892,6 +7964,7 @@ function renderFreshHub() {
   renderFreshPath();
   renderSeedPlaylistRow();
   renderSeedNewReleaseGrid();
+  renderSeedScanSettings();
 }
 
 function openFreshPath(path) {
@@ -8075,6 +8148,59 @@ function writeSeedNewReleaseCache(releases) {
   } catch {}
 }
 
+function readSeedArtistAudit() {
+  try {
+    return JSON.parse(localStorage.getItem(SEED_ARTIST_AUDIT_KEY) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function writeSeedArtistAudit(audit) {
+  try {
+    localStorage.setItem(SEED_ARTIST_AUDIT_KEY, JSON.stringify(audit));
+  } catch {}
+}
+
+function readSeedScanSchedule() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(SEED_SCAN_SCHEDULE_KEY) || 'null');
+    if (stored) return stored;
+  } catch {}
+  return {
+    enabled: true,
+    days: [0, 2, 4],
+    hour: 21,
+    minute: 1,
+    lastScanMs: 0,
+    nextScanMs: nextSeedScanMs(new Date()),
+    lastStatus: 'scheduled scans wait for Last.fm data and a valid Spotify connection.'
+  };
+}
+
+function writeSeedScanSchedule(schedule) {
+  try {
+    localStorage.setItem(SEED_SCAN_SCHEDULE_KEY, JSON.stringify(schedule));
+  } catch {}
+}
+
+function nextSeedScanMs(fromDate) {
+  const days = [0, 2, 4];
+  const from = fromDate instanceof Date ? fromDate : new Date();
+  for (let offset = 0; offset <= 7; offset++) {
+    const candidate = new Date(from);
+    candidate.setDate(from.getDate() + offset);
+    candidate.setHours(21, 1, 0, 0);
+    if (days.includes(candidate.getDay()) && candidate.getTime() > from.getTime()) {
+      return candidate.getTime();
+    }
+  }
+  const fallback = new Date(from);
+  fallback.setDate(from.getDate() + 1);
+  fallback.setHours(21, 1, 0, 0);
+  return fallback.getTime();
+}
+
 function topAllTimeArtists(limit = 1000) {
   const artists = {};
   allScrobbles.forEach(scrobble => {
@@ -8099,18 +8225,38 @@ function recentlyAddedArtists(limit = 250, days = 250) {
 }
 
 function seedReleaseArtistCandidates() {
+  return buildSeedArtistAudit().candidates;
+}
+
+function buildSeedArtistAudit() {
+  const allTime = topAllTimeArtists(1000);
+  const recent = recentlyAddedArtists(250, 250);
   const candidates = new Map();
-  topAllTimeArtists(1000).forEach((artist, index) => {
-    candidates.set(artist.key, { ...artist, source: 'all-time top ' + (index + 1) });
+  allTime.forEach((artist, index) => {
+    candidates.set(artist.key, { ...artist, rank: index + 1, source: 'all-time top ' + (index + 1) });
   });
-  recentlyAddedArtists(250, 250).forEach((artist, index) => {
+  recent.forEach((artist, index) => {
     const existing = candidates.get(artist.key);
     candidates.set(artist.key, {
       ...(existing || artist),
       source: existing ? existing.source + ' + recent artist' : 'recent artist ' + (index + 1)
     });
   });
-  return Array.from(candidates.values()).sort((a, b) => b.plays - a.plays || a.name.localeCompare(b.name));
+  const audit = {
+    createdAtMs: Date.now(),
+    allTime,
+    recent,
+    candidates: Array.from(candidates.values()).sort((a, b) => b.plays - a.plays || a.name.localeCompare(b.name))
+  };
+  writeSeedArtistAudit(audit);
+  return audit;
+}
+
+function refreshSeedArtistAudit() {
+  const audit = buildSeedArtistAudit();
+  renderSeedScanSettings();
+  renderSeedNewReleaseGrid();
+  showCopyToast(audit.candidates.length.toLocaleString() + ' seed artists audited');
 }
 
 function releasePlayCount(release) {
@@ -8132,7 +8278,8 @@ function renderSeedNewReleaseGrid() {
   if (!target) return;
 
   if (!seedReleaseResults.length) seedReleaseResults = readSeedNewReleaseCache();
-  const candidates = seedReleaseArtistCandidates();
+  const audit = readSeedArtistAudit() || buildSeedArtistAudit();
+  const candidates = audit.candidates || [];
   const cutoff = Date.now() - 183 * 86400000;
   const visible = seedReleaseResults
     .filter(release => release.releaseMs >= cutoff)
@@ -8176,7 +8323,8 @@ async function scanSeedNewReleases() {
     return;
   }
 
-  const candidates = seedReleaseArtistCandidates();
+  const audit = buildSeedArtistAudit();
+  const candidates = audit.candidates || [];
   if (!candidates.length) {
     showCopyToast('last.fm history needed');
     return;
@@ -8192,36 +8340,38 @@ async function scanSeedNewReleases() {
     for (let i = 0; i < candidates.length; i++) {
       const candidate = candidates[i];
       if (status) status.textContent = 'scanning ' + candidate.name + ' · ' + (i + 1).toLocaleString() + ' of ' + candidates.length.toLocaleString();
-      let spotifyArtist = artistCache[candidate.name];
-      if (!spotifyArtist) {
-        spotifyArtist = await findSpotifyArtist(candidate.name);
-        if (spotifyArtist) artistCache[candidate.name] = spotifyArtist;
-      }
-      if (!spotifyArtist) continue;
+      try {
+        let spotifyArtist = artistCache[candidate.name];
+        if (!spotifyArtist) {
+          spotifyArtist = await findSpotifyArtist(candidate.name);
+          if (spotifyArtist) artistCache[candidate.name] = spotifyArtist;
+        }
+        if (!spotifyArtist) continue;
 
-      const artistReleases = await loadSpotifyArtistReleases(spotifyArtist.id, 50);
-      artistReleases.forEach(release => {
-        const releaseMs = spotifyReleaseDateMs(release.release_date);
-        if (!releaseMs || releaseMs < cutoff) return;
-        const listenCount = releasePlayCount(release);
-        if (listenCount >= 4) return;
-        const artists = (release.artists || []).map(artist => artist.name).filter(Boolean);
-        releases.push({
-          id: release.id,
-          name: release.name || 'untitled release',
-          artist: artists.join(', ') || candidate.name,
-          artists,
-          type: release.album_type || 'release',
-          releaseMs,
-          releaseDate: release.release_date || '',
-          image: release.images && release.images[0] ? release.images[0].url : '',
-          uri: release.uri || '',
-          url: release.external_urls && release.external_urls.spotify ? release.external_urls.spotify : '',
-          listenCount,
-          artistPlays: candidate.plays,
-          source: candidate.source
+        const artistReleases = await loadSpotifyArtistReleases(spotifyArtist.id, 50);
+        artistReleases.forEach(release => {
+          const releaseMs = spotifyReleaseDateMs(release.release_date);
+          if (!releaseMs || releaseMs < cutoff) return;
+          const listenCount = releasePlayCount(release);
+          if (listenCount >= 4) return;
+          const artists = (release.artists || []).map(artist => artist.name).filter(Boolean);
+          releases.push({
+            id: release.id,
+            name: release.name || 'untitled release',
+            artist: artists.join(', ') || candidate.name,
+            artists,
+            type: release.album_type || 'release',
+            releaseMs,
+            releaseDate: release.release_date || '',
+            image: release.images && release.images[0] ? release.images[0].url : '',
+            uri: release.uri || '',
+            url: release.external_urls && release.external_urls.spotify ? release.external_urls.spotify : '',
+            listenCount,
+            artistPlays: candidate.plays,
+            source: candidate.source
+          });
         });
-      });
+      } catch {}
     }
 
     writeSpotifyArtistMatchCache(artistCache);
@@ -8232,14 +8382,86 @@ async function scanSeedNewReleases() {
     });
     seedReleaseResults = Object.values(unique);
     writeSeedNewReleaseCache(seedReleaseResults);
+    updateSeedScanScheduleAfterRun(seedReleaseResults.length);
     renderSeedNewReleaseGrid();
+    renderSeedScanSettings();
     showCopyToast('seed releases scanned');
   } catch {
     if (status) status.textContent = 'spotify release scan paused. try again in a bit if rate limits kicked in.';
     showCopyToast('release scan stopped');
   } finally {
     seedReleaseScanning = false;
+    startSeedScanScheduler();
   }
+}
+
+function updateSeedScanScheduleAfterRun(releaseCount) {
+  const schedule = readSeedScanSchedule();
+  schedule.lastScanMs = Date.now();
+  schedule.nextScanMs = nextSeedScanMs(new Date());
+  schedule.lastStatus = releaseCount.toLocaleString() + ' seed releases stored · next scan ' + formatSeedScanDate(schedule.nextScanMs);
+  writeSeedScanSchedule(schedule);
+}
+
+async function runSeedReleaseScanNow() {
+  await scanSeedNewReleases();
+}
+
+function formatSeedScanDate(ms) {
+  if (!ms) return 'not scheduled';
+  return new Date(ms).toLocaleString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function renderSeedScanSettings() {
+  const audit = readSeedArtistAudit();
+  const releases = seedReleaseResults.length ? seedReleaseResults : readSeedNewReleaseCache();
+  const schedule = readSeedScanSchedule();
+  const allTimeEl = document.getElementById('seedScanAllTimeCount');
+  const recentEl = document.getElementById('seedScanRecentCount');
+  const releaseEl = document.getElementById('seedScanReleaseCount');
+  const statusEl = document.getElementById('seedScanStatus');
+  if (allTimeEl) allTimeEl.textContent = audit && audit.allTime ? audit.allTime.length.toLocaleString() : '—';
+  if (recentEl) recentEl.textContent = audit && audit.recent ? audit.recent.length.toLocaleString() : '—';
+  if (releaseEl) releaseEl.textContent = releases.length ? releases.length.toLocaleString() : '—';
+  if (statusEl) {
+    const next = schedule.nextScanMs ? 'next scan ' + formatSeedScanDate(schedule.nextScanMs) : 'next scan not scheduled';
+    statusEl.textContent = (schedule.lastStatus || 'scheduled scans are active') + ' · ' + next;
+  }
+}
+
+function seedScanReady() {
+  return allScrobbles.length > 0 && (readSpotifyToken() || hasRefreshableSpotifyToken());
+}
+
+function startSeedScanScheduler() {
+  clearTimeout(seedScanTimer);
+  const schedule = readSeedScanSchedule();
+  if (!schedule.enabled) return;
+
+  if (!schedule.nextScanMs || schedule.nextScanMs < Date.now() - 60000) {
+    schedule.nextScanMs = nextSeedScanMs(new Date(schedule.lastScanMs || Date.now()));
+    if (schedule.nextScanMs < Date.now()) schedule.nextScanMs = Date.now() + 5000;
+    writeSeedScanSchedule(schedule);
+  }
+
+  const cachedReleases = readSeedNewReleaseCache();
+  const shouldInitialScan = !cachedReleases.length && seedScanReady();
+  const shouldScheduledScan = Date.now() >= schedule.nextScanMs && seedScanReady();
+  if ((shouldInitialScan || shouldScheduledScan) && !seedReleaseScanning) {
+    seedScanTimer = setTimeout(() => scanSeedNewReleases(), 2500);
+    renderSeedScanSettings();
+    return;
+  }
+
+  const delay = Math.min(Math.max((schedule.nextScanMs || Date.now() + 60000) - Date.now(), 30000), 3600000);
+  seedScanTimer = setTimeout(startSeedScanScheduler, delay);
+  renderSeedScanSettings();
 }
 
 function topAllTimeAlbums(limit = 16) {
@@ -8885,6 +9107,7 @@ async function loadSpotifyPlaylists() {
     renderSpotifyPlaylists();
     renderSpotifyPlaylistDetail(null);
     renderSpotifyPanel();
+    startSeedScanScheduler();
     showCopyToast('spotify playlists loaded');
   } catch (err) {
     showCopyToast('could not load spotify playlists');
@@ -9274,8 +9497,10 @@ loadLocalServiceConfig()
     bindServiceSettingsInputs();
     renderLastfmPanel();
     renderSpotifyPanel();
+    renderSeedScanSettings();
     showScreen('screenSelect');
     loadLastfmCache({ silent: true });
+    startSeedScanScheduler();
   });
 
 </script>
