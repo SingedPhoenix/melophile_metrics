@@ -3620,7 +3620,7 @@
       <div class="fresh-hub">
         <div class="fresh-panel full">
           <div class="fresh-panel-title">all-time album orbit</div>
-          <div class="fresh-panel-sub" id="freshAlbumStatus">your top 16 all-time albums from last.fm, with spotify artwork when available.</div>
+          <div class="fresh-panel-sub" id="freshAlbumStatus">your top 16 all-time albums from last.fm, with last.fm artwork first and spotify fallback when needed.</div>
           <div class="fresh-album-grid" id="freshAlbumGrid"></div>
         </div>
 
@@ -7133,6 +7133,7 @@ let freshReleaseWindowDays = 90;
 let freshReleaseResults = [];
 const SPOTIFY_ARTIST_MATCH_KEY = 'melophile.spotify.artistMatches';
 const SPOTIFY_ALBUM_ART_KEY = 'melophile.spotify.albumArt';
+const LASTFM_ALBUM_ART_KEY = 'melophile.lastfm.albumArt';
 let freshAlbumArtLoading = false;
 
 function populateFresh() {
@@ -7173,13 +7174,28 @@ function saveSpotifyAlbumArtCache(cache) {
   } catch {}
 }
 
+function readLastfmAlbumArtCache() {
+  try {
+    return JSON.parse(localStorage.getItem(LASTFM_ALBUM_ART_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveLastfmAlbumArtCache(cache) {
+  try {
+    localStorage.setItem(LASTFM_ALBUM_ART_KEY, JSON.stringify(cache));
+  } catch {}
+}
+
 function renderFreshAlbumGrid() {
   const target = document.getElementById('freshAlbumGrid');
   const status = document.getElementById('freshAlbumStatus');
   if (!target) return;
 
   const albums = topAllTimeAlbums(16);
-  const artCache = readSpotifyAlbumArtCache();
+  const lastfmArtCache = readLastfmAlbumArtCache();
+  const spotifyArtCache = readSpotifyAlbumArtCache();
   if (!albums.length) {
     target.innerHTML = '<div class="spotify-empty">load last.fm history to see your all-time album orbit.</div>';
     if (status) status.textContent = 'album orbit needs last.fm album history.';
@@ -7187,11 +7203,13 @@ function renderFreshAlbumGrid() {
   }
 
   if (status) {
-    status.textContent = 'top 16 all-time albums from last.fm' + (readSpotifyToken() || hasRefreshableSpotifyToken() ? ' · spotify artwork enabled' : ' · connect spotify for cover art');
+    const lastfmReady = getLastfmSettings().username && getLastfmSettings().apiKey;
+    const spotifyReady = readSpotifyToken() || hasRefreshableSpotifyToken();
+    status.textContent = 'top 16 all-time albums from last.fm' + (lastfmReady ? ' · last.fm artwork enabled' : '') + (!lastfmReady && spotifyReady ? ' · spotify fallback enabled' : '') + (!lastfmReady && !spotifyReady ? ' · connect last.fm in settings for cover art' : '');
   }
 
   target.innerHTML = albums.map((album, index) => {
-    const art = artCache[album.key] || '';
+    const art = lastfmArtCache[album.key] || spotifyArtCache[album.key] || '';
     const cover = art
       ? '<img class="fresh-album-cover" src="' + esc(art) + '" alt="">'
       : '<div class="fresh-album-cover" aria-hidden="true"></div>';
@@ -7208,28 +7226,111 @@ function renderFreshAlbumGrid() {
 
 async function hydrateFreshAlbumArtwork(albums) {
   if (freshAlbumArtLoading) return;
-  if (!albums.length || (!readSpotifyToken() && !hasRefreshableSpotifyToken())) return;
+  if (!albums.length) return;
 
-  const artCache = readSpotifyAlbumArtCache();
-  const missing = albums.filter(album => !artCache[album.key]).slice(0, 16);
+  const lastfmArtCache = readLastfmAlbumArtCache();
+  const spotifyArtCache = readSpotifyAlbumArtCache();
+  const missing = albums.filter(album => !lastfmArtCache[album.key] && !spotifyArtCache[album.key]).slice(0, 16);
   if (!missing.length) return;
 
   freshAlbumArtLoading = true;
   try {
-    for (const album of missing) {
-      const art = await findSpotifyAlbumArt(album);
-      if (art) {
-        artCache[album.key] = art;
-        saveSpotifyAlbumArtCache(artCache);
+    const lastfmSettings = getLastfmSettings();
+    if (lastfmSettings.username && lastfmSettings.apiKey) {
+      try {
+        await hydrateLastfmTopAlbumArtwork(albums, lastfmSettings, lastfmArtCache);
+      } catch {}
+      for (const album of missing) {
+        if (lastfmArtCache[album.key]) continue;
+        let art = '';
+        try {
+          art = await findLastfmAlbumArt(album, lastfmSettings);
+        } catch {}
+        if (art) {
+          lastfmArtCache[album.key] = art;
+          saveLastfmAlbumArtCache(lastfmArtCache);
+        }
+      }
+    }
+
+    const stillMissing = albums.filter(album => !lastfmArtCache[album.key] && !spotifyArtCache[album.key]).slice(0, 16);
+    if (stillMissing.length && (readSpotifyToken() || hasRefreshableSpotifyToken())) {
+      for (const album of stillMissing) {
+        let art = '';
+        try {
+          art = await findSpotifyAlbumArt(album);
+        } catch {}
+        if (art) {
+          spotifyArtCache[album.key] = art;
+          saveSpotifyAlbumArtCache(spotifyArtCache);
+        }
       }
     }
     renderFreshAlbumGrid();
   } catch {
     const status = document.getElementById('freshAlbumStatus');
-    if (status) status.textContent = 'top 16 all-time albums from last.fm · spotify artwork could not be loaded';
+    if (status) status.textContent = 'top 16 all-time albums from last.fm · album artwork could not be loaded';
   } finally {
     freshAlbumArtLoading = false;
   }
+}
+
+async function hydrateLastfmTopAlbumArtwork(albums, settings, cache) {
+  const data = await fetchLastfmTopAlbums(settings, Math.max(50, albums.length * 4));
+  const topAlbums = data.topalbums && data.topalbums.album ? data.topalbums.album : [];
+  const list = Array.isArray(topAlbums) ? topAlbums : [topAlbums];
+  list.forEach(item => {
+    const name = item.name || '';
+    const artist = item.artist && (item.artist.name || item.artist['#text']) ? (item.artist.name || item.artist['#text']) : '';
+    const image = lastfmBestImage(item.image);
+    if (!name || !artist || !image) return;
+    const key = (artist + '|||' + name).toLowerCase();
+    if (albums.some(album => album.key === key)) cache[key] = image;
+  });
+  saveLastfmAlbumArtCache(cache);
+}
+
+async function fetchLastfmTopAlbums(settings, limit = 50) {
+  const params = new URLSearchParams({
+    method: 'user.gettopalbums',
+    user: settings.username,
+    api_key: settings.apiKey,
+    format: 'json',
+    period: 'overall',
+    limit: String(limit)
+  });
+  return fetchLastfmApi(params);
+}
+
+async function fetchLastfmApi(params) {
+  const response = await fetch('https://ws.audioscrobbler.com/2.0/?' + params.toString());
+  if (!response.ok) throw new Error('last.fm request failed');
+  const data = await response.json();
+  if (data.error) throw new Error(data.message || 'last.fm error');
+  return data;
+}
+
+async function findLastfmAlbumArt(album, settings) {
+  const params = new URLSearchParams({
+    method: 'album.getinfo',
+    artist: album.artist,
+    album: album.name,
+    api_key: settings.apiKey,
+    format: 'json'
+  });
+  const data = await fetchLastfmApi(params);
+  return data.album ? lastfmBestImage(data.album.image) : '';
+}
+
+function lastfmBestImage(images) {
+  const list = Array.isArray(images) ? images : [];
+  const preferred = ['mega', 'extralarge', 'large', 'medium', 'small'];
+  for (const size of preferred) {
+    const match = list.find(image => image.size === size && image['#text']);
+    if (match) return match['#text'];
+  }
+  const fallback = list.find(image => image['#text']);
+  return fallback ? fallback['#text'] : '';
 }
 
 async function findSpotifyAlbumArt(album) {
