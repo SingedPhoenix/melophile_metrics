@@ -2581,9 +2581,41 @@
     line-height: 1.12;
   }
 
+  .seed-release-shelves {
+    display: grid;
+    gap: 28px;
+  }
+
+  .seed-release-shelf {
+    display: grid;
+    gap: 14px;
+  }
+
+  .seed-release-shelf-head {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .seed-release-shelf-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: rgba(204,204,204,0.82);
+  }
+
+  .seed-release-shelf-sub {
+    margin-top: 5px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-xs);
+    line-height: 1.45;
+    color: rgba(204,204,204,0.36);
+  }
+
   .seed-release-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 14px;
   }
 
@@ -2595,6 +2627,7 @@
       rgba(204,204,204,0.024);
     padding: 12px;
     min-width: 0;
+    min-height: 100%;
     color: inherit;
     text-decoration: none;
     display: block;
@@ -3020,8 +3053,8 @@
   }
 
   body.display-horizontal .seed-release-grid {
-    grid-template-columns: repeat(10, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    gap: 14px;
   }
 
   body.display-horizontal .seed-playlist-card {
@@ -4402,7 +4435,7 @@
               </div>
               <button class="pill" type="button" onclick="scanSeedNewReleases()">scan releases</button>
             </div>
-            <div class="seed-release-grid" id="seedReleaseGrid">
+            <div class="seed-release-shelves" id="seedReleaseGrid">
               <div class="spotify-empty">run a scan to build a new-release grid from your Last.fm artist orbit.</div>
             </div>
           </div>
@@ -8216,10 +8249,18 @@ function topAllTimeArtists(limit = 1000) {
     .slice(0, limit);
 }
 
-function recentlyAddedArtists(limit = 250, days = 250) {
-  const cutoffUts = Math.floor((Date.now() - days * 86400000) / 1000);
-  return topAllTimeArtists(Number.MAX_SAFE_INTEGER)
-    .filter(artist => artist.firstUts >= cutoffUts)
+function topPeriodArtists(limit = 250, months = 18) {
+  const cutoffUts = Math.floor((Date.now() - months * 30.4375 * 86400000) / 1000);
+  const artists = {};
+  allScrobbles.forEach(scrobble => {
+    if (!scrobble.artist || (scrobble.uts || 0) < cutoffUts) return;
+    const key = scrobble.artist.toLowerCase();
+    if (!artists[key]) artists[key] = { key, name: scrobble.artist, plays: 0, firstUts: scrobble.uts || 0, latestUts: scrobble.uts || 0 };
+    artists[key].plays++;
+    artists[key].firstUts = Math.min(artists[key].firstUts || scrobble.uts || 0, scrobble.uts || artists[key].firstUts || 0);
+    artists[key].latestUts = Math.max(artists[key].latestUts || 0, scrobble.uts || 0);
+  });
+  return Object.values(artists)
     .sort((a, b) => b.plays - a.plays || b.latestUts - a.latestUts || a.name.localeCompare(b.name))
     .slice(0, limit);
 }
@@ -8230,16 +8271,28 @@ function seedReleaseArtistCandidates() {
 
 function buildSeedArtistAudit() {
   const allTime = topAllTimeArtists(1000);
-  const recent = recentlyAddedArtists(250, 250);
+  const recent = topPeriodArtists(250, 18);
   const candidates = new Map();
   allTime.forEach((artist, index) => {
-    candidates.set(artist.key, { ...artist, rank: index + 1, source: 'all-time top ' + (index + 1) });
+    candidates.set(artist.key, {
+      ...artist,
+      allTimeRank: index + 1,
+      allTimePlays: artist.plays,
+      recentRank: null,
+      recentPlays: 0,
+      pools: ['allTime'],
+      source: 'all-time top ' + (index + 1)
+    });
   });
   recent.forEach((artist, index) => {
     const existing = candidates.get(artist.key);
     candidates.set(artist.key, {
       ...(existing || artist),
-      source: existing ? existing.source + ' + recent artist' : 'recent artist ' + (index + 1)
+      recentRank: index + 1,
+      recentPlays: artist.plays,
+      allTimePlays: existing ? existing.allTimePlays : 0,
+      pools: existing ? Array.from(new Set([...(existing.pools || []), 'recent'])) : ['recent'],
+      source: existing ? existing.source + ' + 18-month top ' + (index + 1) : '18-month top ' + (index + 1)
     });
   });
   const audit = {
@@ -8272,6 +8325,66 @@ function releasePlayCount(release) {
   }, 0);
 }
 
+function seedReleaseArtistKeys(release) {
+  const artists = Array.isArray(release.artists) && release.artists.length
+    ? release.artists
+    : String(release.artist || '').split(',');
+  return artists.map(artist => String(artist || '').trim().toLowerCase()).filter(Boolean);
+}
+
+function seedReleaseShelfEntries(releases, audit, pool) {
+  const artistMap = {};
+  (pool === 'allTime' ? audit.allTime : audit.recent || []).forEach((artist, index) => {
+    artistMap[artist.key] = { ...artist, shelfRank: index + 1 };
+  });
+  return releases.map(release => {
+    const artistKeys = seedReleaseArtistKeys(release);
+    const matchedArtist = artistKeys
+      .map(key => artistMap[key])
+      .filter(Boolean)
+      .sort((a, b) => b.plays - a.plays || a.shelfRank - b.shelfRank)[0];
+    const explicitPool = Array.isArray(release.pools) && release.pools.includes(pool);
+    if (!matchedArtist && !explicitPool) return null;
+    const fallbackWeight = pool === 'allTime' ? release.allTimePlays || release.artistPlays || 0 : release.recentPlays || 0;
+    return {
+      ...release,
+      shelfArtistPlays: matchedArtist ? matchedArtist.plays : fallbackWeight,
+      shelfArtistRank: matchedArtist ? matchedArtist.shelfRank : 999999
+    };
+  }).filter(Boolean)
+    .sort((a, b) =>
+      b.shelfArtistPlays - a.shelfArtistPlays ||
+      a.shelfArtistRank - b.shelfArtistRank ||
+      b.releaseMs - a.releaseMs
+    );
+}
+
+function renderSeedReleaseCard(release) {
+  const image = release.image
+    ? '<img class="seed-release-cover" src="' + esc(release.image) + '" alt="">'
+    : '<div class="seed-release-cover" aria-hidden="true"></div>';
+  const date = new Date(release.releaseMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const href = release.uri || release.url || '#';
+  return '<a class="seed-release-card" href="' + esc(href) + '">' +
+    image +
+    '<div class="seed-release-name">' + esc(release.name) + '</div>' +
+    '<div class="seed-release-artist">' + esc(release.artist) + '</div>' +
+    '<div class="seed-release-meta">' + esc(release.type) + ' · ' + esc(date) + ' · ' + (release.listenCount || 0) + ' listens</div>' +
+    '</a>';
+}
+
+function renderSeedReleaseShelf(title, sub, releases) {
+  return '<div class="seed-release-shelf">' +
+    '<div class="seed-release-shelf-head"><div>' +
+    '<div class="seed-release-shelf-title">' + esc(title) + '</div>' +
+    '<div class="seed-release-shelf-sub">' + esc(sub) + '</div>' +
+    '</div><div class="seed-release-shelf-sub">' + releases.length.toLocaleString() + ' releases</div></div>' +
+    (releases.length
+      ? '<div class="seed-release-grid">' + releases.map(renderSeedReleaseCard).join('') + '</div>'
+      : '<div class="spotify-empty">no matching releases found for this shelf yet.</div>') +
+    '</div>';
+}
+
 function renderSeedNewReleaseGrid() {
   const target = document.getElementById('seedReleaseGrid');
   const status = document.getElementById('seedReleaseStatus');
@@ -8283,34 +8396,24 @@ function renderSeedNewReleaseGrid() {
   const cutoff = Date.now() - 183 * 86400000;
   const visible = seedReleaseResults
     .filter(release => release.releaseMs >= cutoff)
-    .filter(release => (release.listenCount || 0) < 4)
-    .sort((a, b) => b.releaseMs - a.releaseMs || b.artistPlays - a.artistPlays)
-    .slice(0, 80);
+    .filter(release => (release.listenCount || 0) < 4);
+  const allTimeReleases = seedReleaseShelfEntries(visible, audit, 'allTime');
+  const recentReleases = seedReleaseShelfEntries(visible, audit, 'recent');
 
   if (status) {
     const cached = seedReleaseResults.length ? ' · ' + seedReleaseResults.length.toLocaleString() + ' cached releases' : '';
     status.textContent = candidates.length.toLocaleString() + ' Last.fm artists eligible · last 6 months · hidden after 4 listens' + cached;
   }
 
-  if (!visible.length) {
+  if (!allTimeReleases.length && !recentReleases.length) {
     target.innerHTML = '<div class="spotify-empty">run a scan to build a new-release grid from your Last.fm artist orbit.</div>';
     scheduleScrollControlUpdate();
     return;
   }
 
-  target.innerHTML = visible.map(release => {
-    const image = release.image
-      ? '<img class="seed-release-cover" src="' + esc(release.image) + '" alt="">'
-      : '<div class="seed-release-cover" aria-hidden="true"></div>';
-    const date = new Date(release.releaseMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const href = release.uri || release.url || '#';
-    return '<a class="seed-release-card" href="' + esc(href) + '">' +
-      image +
-      '<div class="seed-release-name">' + esc(release.name) + '</div>' +
-      '<div class="seed-release-artist">' + esc(release.artist) + '</div>' +
-      '<div class="seed-release-meta">' + esc(release.type) + ' · ' + esc(date) + ' · ' + (release.listenCount || 0) + ' listens</div>' +
-      '</a>';
-  }).join('');
+  target.innerHTML =
+    renderSeedReleaseShelf('all-time artist releases', 'top 1,000 artists overall · sorted by artist scrobble count', allTimeReleases) +
+    renderSeedReleaseShelf('18-month artist releases', 'top 250 artists from the last 18 months · sorted by recent scrobble count', recentReleases);
   scheduleScrollControlUpdate();
 }
 
@@ -8360,6 +8463,7 @@ async function scanSeedNewReleases() {
             name: release.name || 'untitled release',
             artist: artists.join(', ') || candidate.name,
             artists,
+            pools: candidate.pools || [],
             type: release.album_type || 'release',
             releaseMs,
             releaseDate: release.release_date || '',
@@ -8368,6 +8472,8 @@ async function scanSeedNewReleases() {
             url: release.external_urls && release.external_urls.spotify ? release.external_urls.spotify : '',
             listenCount,
             artistPlays: candidate.plays,
+            allTimePlays: candidate.allTimePlays || 0,
+            recentPlays: candidate.recentPlays || 0,
             source: candidate.source
           });
         });
