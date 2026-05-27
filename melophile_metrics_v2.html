@@ -2577,6 +2577,41 @@
     border-top: 1px solid rgba(204,204,204,0.055);
   }
 
+  .seed-track-row.harvest-overripe {
+    grid-template-columns: 34px minmax(0, 1fr) auto auto;
+    margin: 0 -10px;
+    padding: 12px 10px;
+    border-top-color: transparent;
+    border-radius: 12px;
+    background:
+      linear-gradient(135deg, rgba(238,238,238,0.92), color-mix(in srgb, var(--amethyst-mid) 18%, rgba(238,238,238,0.92))),
+      var(--silver);
+    box-shadow: 0 14px 30px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.42);
+  }
+
+  .seed-track-row.harvest-overripe .seed-track-name,
+  .seed-track-row.harvest-overripe .seed-track-rank,
+  .seed-track-row.harvest-overripe .seed-track-duration,
+  .seed-track-row.harvest-overripe .seed-playlist-meta {
+    color: rgba(12,12,16,0.82);
+  }
+
+  .seed-track-row.harvest-overripe .seed-track-name {
+    color: rgba(8,8,12,0.96);
+  }
+
+  .harvest-scrobble-badge {
+    justify-self: end;
+    border: 1px solid rgba(12,12,16,0.18);
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-xs);
+    color: rgba(8,8,12,0.78);
+    background: rgba(12,12,16,0.08);
+    white-space: nowrap;
+  }
+
   .seed-track-rank,
   .seed-track-duration {
     font-family: 'DM Mono', monospace;
@@ -8346,21 +8381,56 @@ function renderHarvestPlaylistDetail(playlist, state = {}) {
   }
 
   const tracks = state.tracks || [];
+  const auditedTracks = tracks.map(track => ({
+    track,
+    scrobbles: harvestTrackScrobbleCount(track)
+  }));
+  const overripeCount = auditedTracks.filter(item => item.scrobbles >= 12).length;
+  const auditNote = allScrobbles.length
+    ? (overripeCount ? ' · ' + overripeCount.toLocaleString() + ' ready to prune at 12+ scrobbles' : ' · no 12+ scrobble alerts')
+    : ' · load last.fm history for 12+ scrobble alerts';
   target.innerHTML = '<div class="seed-detail-head"><div>' +
     '<div class="seed-detail-title">' + esc(playlist.name) + '</div>' +
-    '<div class="seed-playlist-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + '</div>' +
+    '<div class="seed-playlist-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + auditNote + '</div>' +
     '</div><div class="seed-detail-actions"><button class="seed-open-link" type="button" onclick="closeHarvestPlaylist()">close</button><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div>' +
-    '<div class="seed-track-list">' + tracks.map((track, index) => {
+    '<div class="seed-track-list">' + auditedTracks.map((item, index) => {
+      const track = item.track;
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
-      return '<div class="seed-track-row">' +
+      const overripe = item.scrobbles >= 12;
+      return '<div class="seed-track-row' + (overripe ? ' harvest-overripe' : '') + '">' +
         '<div class="seed-track-rank">' + (index + 1) + '</div>' +
         '<div><div class="seed-track-name">' + esc(track.name) + '</div>' +
         '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' · ' + esc(album) : '') + '</div></div>' +
+        (overripe ? '<div class="harvest-scrobble-badge">' + item.scrobbles.toLocaleString() + ' scrobbles</div>' : '') +
         '<div class="seed-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
         '</div>';
     }).join('') + '</div>';
   scheduleScrollControlUpdate();
+}
+
+function normalizeHarvestTrackText(value) {
+  return (value || '')
+    .toString()
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function harvestTrackScrobbleCount(track) {
+  if (!track || !track.name || !allScrobbles.length) return 0;
+  const title = normalizeHarvestTrackText(track.name);
+  const artistNames = (track.artists || [])
+    .map(artist => normalizeHarvestTrackText(artist.name))
+    .filter(Boolean);
+  if (!title || !artistNames.length) return 0;
+  return allScrobbles.reduce((count, scrobble) => {
+    if (normalizeHarvestTrackText(scrobble.track) !== title) return count;
+    return artistNames.includes(normalizeHarvestTrackText(scrobble.artist)) ? count + 1 : count;
+  }, 0);
 }
 
 function readSeedNewReleaseCache() {
