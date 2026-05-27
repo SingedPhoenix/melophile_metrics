@@ -3656,7 +3656,7 @@
           </div>
           <div class="seed-scan-stat">
             <div class="seed-scan-value" id="seedScanRecentCount">—</div>
-            <div class="seed-scan-label">newly-added artists audited</div>
+            <div class="seed-scan-label">new artists audited</div>
           </div>
           <div class="seed-scan-stat">
             <div class="seed-scan-value" id="seedScanReleaseCount">—</div>
@@ -4431,7 +4431,7 @@
             <div class="seed-section-head">
               <div>
                 <div class="seed-section-title">new release seeds</div>
-                <div class="seed-section-sub" id="seedReleaseStatus">scan spotify for releases from your all-time favorites and newly-added artists.</div>
+                <div class="seed-section-sub" id="seedReleaseStatus">scan spotify for releases from your all-time favorites and qualifying new artists.</div>
               </div>
               <button class="pill" type="button" onclick="scanSeedNewReleases()">scan releases</button>
             </div>
@@ -7969,6 +7969,7 @@ const SPOTIFY_ALBUM_ART_KEY = 'melophile.spotify.albumArt';
 const SEED_NEW_RELEASES_KEY = 'melophile.seed.newReleases';
 const SEED_ARTIST_AUDIT_KEY = 'melophile.seed.artistAudit';
 const SEED_SCAN_SCHEDULE_KEY = 'melophile.seed.scanSchedule';
+const SEED_ARTIST_AUDIT_VERSION = 2;
 const LASTFM_ALBUM_ART_KEY = 'melophile.lastfm.albumArt';
 const FRESH_SEED_PLAYLISTS = [
   { id: '37i9dQZF1FwR0bga849pTD', name: 'fresh seeds: hip hop', family: 'hip hop', url: 'https://open.spotify.com/playlist/37i9dQZF1FwR0bga849pTD' },
@@ -8195,6 +8196,11 @@ function writeSeedArtistAudit(audit) {
   } catch {}
 }
 
+function currentSeedArtistAudit() {
+  const audit = readSeedArtistAudit();
+  return audit && audit.version === SEED_ARTIST_AUDIT_VERSION ? audit : buildSeedArtistAudit();
+}
+
 function readSeedScanSchedule() {
   try {
     const stored = JSON.parse(localStorage.getItem(SEED_SCAN_SCHEDULE_KEY) || 'null');
@@ -8249,37 +8255,29 @@ function topAllTimeArtists(limit = 1000) {
     .slice(0, limit);
 }
 
-function topPeriodArtists(limit = 250, months = 18) {
+function newlyLoggedArtists(months = 18, minimumPlays = 6) {
   const cutoffUts = Math.floor((Date.now() - months * 30.4375 * 86400000) / 1000);
-  const artists = {};
-  allScrobbles.forEach(scrobble => {
-    if (!scrobble.artist || (scrobble.uts || 0) < cutoffUts) return;
-    const key = scrobble.artist.toLowerCase();
-    if (!artists[key]) artists[key] = { key, name: scrobble.artist, plays: 0, firstUts: scrobble.uts || 0, latestUts: scrobble.uts || 0 };
-    artists[key].plays++;
-    artists[key].firstUts = Math.min(artists[key].firstUts || scrobble.uts || 0, scrobble.uts || artists[key].firstUts || 0);
-    artists[key].latestUts = Math.max(artists[key].latestUts || 0, scrobble.uts || 0);
-  });
-  return Object.values(artists)
+  return topAllTimeArtists(Number.MAX_SAFE_INTEGER)
+    .filter(artist => artist.firstUts >= cutoffUts)
+    .filter(artist => artist.plays >= minimumPlays)
     .sort((a, b) => b.plays - a.plays || b.latestUts - a.latestUts || a.name.localeCompare(b.name))
-    .slice(0, limit);
 }
 
 function seedReleaseArtistCandidates() {
-  return buildSeedArtistAudit().candidates;
+  return currentSeedArtistAudit().candidates;
 }
 
 function buildSeedArtistAudit() {
   const allTime = topAllTimeArtists(1000);
-  const recent = topPeriodArtists(250, 18);
+  const recent = newlyLoggedArtists(18, 6);
   const candidates = new Map();
   allTime.forEach((artist, index) => {
     candidates.set(artist.key, {
       ...artist,
       allTimeRank: index + 1,
       allTimePlays: artist.plays,
-      recentRank: null,
-      recentPlays: 0,
+      newArtistRank: null,
+      newArtistPlays: 0,
       pools: ['allTime'],
       source: 'all-time top ' + (index + 1)
     });
@@ -8288,14 +8286,15 @@ function buildSeedArtistAudit() {
     const existing = candidates.get(artist.key);
     candidates.set(artist.key, {
       ...(existing || artist),
-      recentRank: index + 1,
-      recentPlays: artist.plays,
+      newArtistRank: index + 1,
+      newArtistPlays: artist.plays,
       allTimePlays: existing ? existing.allTimePlays : 0,
       pools: existing ? Array.from(new Set([...(existing.pools || []), 'recent'])) : ['recent'],
-      source: existing ? existing.source + ' + 18-month top ' + (index + 1) : '18-month top ' + (index + 1)
+      source: existing ? existing.source + ' + new artist ' + (index + 1) : 'new artist ' + (index + 1)
     });
   });
   const audit = {
+    version: SEED_ARTIST_AUDIT_VERSION,
     createdAtMs: Date.now(),
     allTime,
     recent,
@@ -8343,13 +8342,11 @@ function seedReleaseShelfEntries(releases, audit, pool) {
       .map(key => artistMap[key])
       .filter(Boolean)
       .sort((a, b) => b.plays - a.plays || a.shelfRank - b.shelfRank)[0];
-    const explicitPool = Array.isArray(release.pools) && release.pools.includes(pool);
-    if (!matchedArtist && !explicitPool) return null;
-    const fallbackWeight = pool === 'allTime' ? release.allTimePlays || release.artistPlays || 0 : release.recentPlays || 0;
+    if (!matchedArtist) return null;
     return {
       ...release,
-      shelfArtistPlays: matchedArtist ? matchedArtist.plays : fallbackWeight,
-      shelfArtistRank: matchedArtist ? matchedArtist.shelfRank : 999999
+      shelfArtistPlays: matchedArtist.plays,
+      shelfArtistRank: matchedArtist.shelfRank
     };
   }).filter(Boolean)
     .sort((a, b) =>
@@ -8391,7 +8388,7 @@ function renderSeedNewReleaseGrid() {
   if (!target) return;
 
   if (!seedReleaseResults.length) seedReleaseResults = readSeedNewReleaseCache();
-  const audit = readSeedArtistAudit() || buildSeedArtistAudit();
+  const audit = currentSeedArtistAudit();
   const candidates = audit.candidates || [];
   const cutoff = Date.now() - 183 * 86400000;
   const visible = seedReleaseResults
@@ -8413,7 +8410,7 @@ function renderSeedNewReleaseGrid() {
 
   target.innerHTML =
     renderSeedReleaseShelf('all-time artist releases', 'top 1,000 artists overall · sorted by artist scrobble count', allTimeReleases) +
-    renderSeedReleaseShelf('18-month artist releases', 'top 250 artists from the last 18 months · sorted by recent scrobble count', recentReleases);
+    renderSeedReleaseShelf('new artist releases', 'first logged in the rolling last 18 months · 6+ total scrobbles · sorted by total scrobble count', recentReleases);
   scheduleScrollControlUpdate();
 }
 
@@ -8473,7 +8470,7 @@ async function scanSeedNewReleases() {
             listenCount,
             artistPlays: candidate.plays,
             allTimePlays: candidate.allTimePlays || 0,
-            recentPlays: candidate.recentPlays || 0,
+            newArtistPlays: candidate.newArtistPlays || 0,
             source: candidate.source
           });
         });
@@ -8525,7 +8522,7 @@ function formatSeedScanDate(ms) {
 }
 
 function renderSeedScanSettings() {
-  const audit = readSeedArtistAudit();
+  const audit = currentSeedArtistAudit();
   const releases = seedReleaseResults.length ? seedReleaseResults : readSeedNewReleaseCache();
   const schedule = readSeedScanSchedule();
   const allTimeEl = document.getElementById('seedScanAllTimeCount');
