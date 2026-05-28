@@ -8080,6 +8080,10 @@ const FRESH_HARVEST_PLAYLISTS = [
   { id: '4GfxT07xjxyYOakOR2F4Gc', name: '🍒 fresh dance', family: 'dance', url: 'https://open.spotify.com/playlist/4GfxT07xjxyYOakOR2F4Gc' },
   { id: '5cQqCookFY65bas8l5fe8l', name: '🍒 fresh pop', family: 'pop', url: 'https://open.spotify.com/playlist/5cQqCookFY65bas8l5fe8l' }
 ];
+const FRESH_DECISION_PLAYLISTS = [
+  ...FRESH_HARVEST_PLAYLISTS,
+  { id: '1LQdBqvVyYOWWXE7wkh7Cf', name: '🍒 not-so-fresh compost', family: 'compost', url: 'https://open.spotify.com/playlist/1LQdBqvVyYOWWXE7wkh7Cf' }
+];
 let freshAlbumArtLoading = false;
 let freshPath = 'gate';
 let selectedSeedPlaylistId = null;
@@ -8367,7 +8371,7 @@ async function selectHarvestPlaylist(playlistId, options = {}) {
   try {
     const tracks = harvestPlaylistTracksCache[playlistId] || await loadSpotifyPlaylistTracks(playlistId);
     harvestPlaylistTracksCache[playlistId] = tracks;
-    writeHarvestTrackIndex(buildHarvestTrackIndexFromCaches());
+    writeHarvestTrackIndex({ ...buildHarvestTrackIndexFromCaches(), includesCompost: readHarvestTrackIndex().includesCompost });
     renderHarvestPlaylistDetail(playlist, { tracks });
     renderSeedNewReleaseGrid();
     if (!options.quiet) showCopyToast('harvest playlist opened');
@@ -8463,9 +8467,9 @@ function harvestTrackScrobbleCount(track) {
 function readHarvestTrackIndex() {
   try {
     const stored = JSON.parse(localStorage.getItem(HARVEST_TRACK_INDEX_KEY) || 'null');
-    if (stored && Array.isArray(stored.trackKeys) && Array.isArray(stored.albumKeys)) return stored;
+    if (stored && Array.isArray(stored.trackKeys) && Array.isArray(stored.albumKeys) && stored.includesCompost) return stored;
   } catch {}
-  return { trackKeys: [], albumKeys: [], updatedAtMs: 0 };
+  return { trackKeys: [], albumKeys: [], updatedAtMs: 0, includesCompost: false };
 }
 
 function writeHarvestTrackIndex(index) {
@@ -8523,21 +8527,21 @@ function buildHarvestTrackIndexFromCaches() {
 async function hydrateHarvestTrackIndex(options = {}) {
   const stored = readHarvestTrackIndex();
   const stale = Date.now() - (stored.updatedAtMs || 0) > 6 * 3600000;
-  if (harvestTrackIndexHydrating || !(options.force || stale || !stored.trackKeys.length)) return;
+  if (harvestTrackIndexHydrating || !(options.force || stale || !stored.trackKeys.length || !stored.includesCompost)) return;
   if (!(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
 
   harvestTrackIndexHydrating = true;
   try {
-    for (const playlist of FRESH_HARVEST_PLAYLISTS) {
+    for (const playlist of FRESH_DECISION_PLAYLISTS) {
       if (!harvestPlaylistTracksCache[playlist.id]) {
         harvestPlaylistTracksCache[playlist.id] = await loadSpotifyPlaylistTracks(playlist.id);
       }
     }
-    writeHarvestTrackIndex(buildHarvestTrackIndexFromCaches());
+    writeHarvestTrackIndex({ ...buildHarvestTrackIndexFromCaches(), includesCompost: true });
     renderSeedNewReleaseGrid();
   } catch {
     const status = document.getElementById('seedReleaseStatus');
-    if (status) status.textContent += ' · 🍒 fresh playlist filter could not refresh';
+    if (status) status.textContent += ' · decision playlist filter could not refresh';
   } finally {
     harvestTrackIndexHydrating = false;
   }
@@ -8956,8 +8960,8 @@ function renderSeedNewReleaseGrid() {
   if (status) {
     const cached = seedReleaseResults.length ? ' · ' + seedReleaseResults.length.toLocaleString() + ' cached releases' : '';
     const harvestFilter = harvestIndex.trackKeys.length
-      ? ' · hidden if already in 🍒 fresh'
-      : ' · 🍒 fresh filter pending spotify';
+      ? ' · hidden if in 🍒 fresh or compost'
+      : ' · decision playlist filter pending spotify';
     status.textContent = candidates.length.toLocaleString() + ' Last.fm artists eligible · last 6 months · hidden after 4 listens' + harvestFilter + cached;
   }
 
