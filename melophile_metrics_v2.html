@@ -8061,6 +8061,7 @@ const SEED_NEW_RELEASES_KEY = 'melophile.seed.newReleases';
 const SEED_ARTIST_AUDIT_KEY = 'melophile.seed.artistAudit';
 const SEED_SCAN_SCHEDULE_KEY = 'melophile.seed.scanSchedule';
 const SEED_RELEASE_SORT_KEY = 'melophile.seed.releaseSort';
+const HARVEST_TRACK_INDEX_KEY = 'melophile.harvest.trackIndex';
 const SEED_ARTIST_AUDIT_VERSION = 2;
 const LASTFM_ALBUM_ART_KEY = 'melophile.lastfm.albumArt';
 const FRESH_SEED_PLAYLISTS = [
@@ -8091,6 +8092,7 @@ const harvestPlaylistTracksCache = {};
 let harvestPlaylistHydrating = false;
 let harvestRankWindow = 1;
 let harvestRankType = 'tracks';
+let harvestTrackIndexHydrating = false;
 let seedReleaseScanning = false;
 let seedReleaseResults = [];
 let seedScanTimer = null;
@@ -8365,7 +8367,9 @@ async function selectHarvestPlaylist(playlistId, options = {}) {
   try {
     const tracks = harvestPlaylistTracksCache[playlistId] || await loadSpotifyPlaylistTracks(playlistId);
     harvestPlaylistTracksCache[playlistId] = tracks;
+    writeHarvestTrackIndex(buildHarvestTrackIndexFromCaches());
     renderHarvestPlaylistDetail(playlist, { tracks });
+    renderSeedNewReleaseGrid();
     if (!options.quiet) showCopyToast('harvest playlist opened');
   } catch {
     renderHarvestPlaylistDetail(playlist, { error: true });
@@ -8454,6 +8458,89 @@ function harvestTrackScrobbleCount(track) {
     if (normalizeHarvestTrackText(scrobble.track) !== title) return count;
     return artistNames.includes(normalizeHarvestTrackText(scrobble.artist)) ? count + 1 : count;
   }, 0);
+}
+
+function readHarvestTrackIndex() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(HARVEST_TRACK_INDEX_KEY) || 'null');
+    if (stored && Array.isArray(stored.trackKeys) && Array.isArray(stored.albumKeys)) return stored;
+  } catch {}
+  return { trackKeys: [], albumKeys: [], updatedAtMs: 0 };
+}
+
+function writeHarvestTrackIndex(index) {
+  try {
+    localStorage.setItem(HARVEST_TRACK_INDEX_KEY, JSON.stringify(index));
+  } catch {}
+}
+
+function harvestTrackKey(artist, name) {
+  const safeArtist = normalizeHarvestTrackText(artist);
+  const safeName = normalizeHarvestTrackText(name);
+  return safeArtist && safeName ? safeArtist + '|||' + safeName : '';
+}
+
+function releaseArtistNames(release) {
+  if (Array.isArray(release.artists) && release.artists.length) {
+    return release.artists
+      .map(artist => typeof artist === 'string' ? artist : (artist && artist.name ? artist.name : ''))
+      .filter(Boolean);
+  }
+  return String(release.artist || '').split(',').map(name => name.trim()).filter(Boolean);
+}
+
+function releaseFoundInHarvestIndex(release, index = readHarvestTrackIndex()) {
+  const releaseName = release && release.name ? release.name : '';
+  if (!releaseName) return false;
+  const trackKeys = new Set(index.trackKeys || []);
+  const albumKeys = new Set(index.albumKeys || []);
+  return releaseArtistNames(release).some(artist => {
+    const key = harvestTrackKey(artist, releaseName);
+    return trackKeys.has(key) || albumKeys.has(key);
+  });
+}
+
+function buildHarvestTrackIndexFromCaches() {
+  const trackKeys = new Set();
+  const albumKeys = new Set();
+  Object.values(harvestPlaylistTracksCache).flat().forEach(track => {
+    const artists = (track.artists || []).map(artist => artist.name).filter(Boolean);
+    const album = track.album && track.album.name ? track.album.name : '';
+    artists.forEach(artist => {
+      const trackKey = harvestTrackKey(artist, track.name);
+      const albumKey = harvestTrackKey(artist, album);
+      if (trackKey) trackKeys.add(trackKey);
+      if (albumKey) albumKeys.add(albumKey);
+    });
+  });
+  return {
+    trackKeys: Array.from(trackKeys),
+    albumKeys: Array.from(albumKeys),
+    updatedAtMs: Date.now()
+  };
+}
+
+async function hydrateHarvestTrackIndex(options = {}) {
+  const stored = readHarvestTrackIndex();
+  const stale = Date.now() - (stored.updatedAtMs || 0) > 6 * 3600000;
+  if (harvestTrackIndexHydrating || !(options.force || stale || !stored.trackKeys.length)) return;
+  if (!(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
+
+  harvestTrackIndexHydrating = true;
+  try {
+    for (const playlist of FRESH_HARVEST_PLAYLISTS) {
+      if (!harvestPlaylistTracksCache[playlist.id]) {
+        harvestPlaylistTracksCache[playlist.id] = await loadSpotifyPlaylistTracks(playlist.id);
+      }
+    }
+    writeHarvestTrackIndex(buildHarvestTrackIndexFromCaches());
+    renderSeedNewReleaseGrid();
+  } catch {
+    const status = document.getElementById('seedReleaseStatus');
+    if (status) status.textContent += ' · 🍒 fresh playlist filter could not refresh';
+  } finally {
+    harvestTrackIndexHydrating = false;
+  }
 }
 
 function setHarvestRankWindow(windowValue) {
@@ -8856,16 +8943,22 @@ function renderSeedNewReleaseGrid() {
   const audit = currentSeedArtistAudit();
   const candidates = audit.candidates || [];
   const cutoff = Date.now() - 183 * 86400000;
+  const harvestIndex = readHarvestTrackIndex();
   const visible = seedReleaseResults
     .filter(release => release.releaseMs >= cutoff)
-    .filter(release => (release.listenCount || 0) < 4);
+    .filter(release => (release.listenCount || 0) < 4)
+    .filter(release => !releaseFoundInHarvestIndex(release, harvestIndex));
   const allTimeReleases = seedReleaseShelfEntries(visible, audit, 'allTime');
   const recentReleases = seedReleaseShelfEntries(visible, audit, 'recent');
   syncSeedReleaseSortToggle();
+  hydrateHarvestTrackIndex();
 
   if (status) {
     const cached = seedReleaseResults.length ? ' · ' + seedReleaseResults.length.toLocaleString() + ' cached releases' : '';
-    status.textContent = candidates.length.toLocaleString() + ' Last.fm artists eligible · last 6 months · hidden after 4 listens' + cached;
+    const harvestFilter = harvestIndex.trackKeys.length
+      ? ' · hidden if already in 🍒 fresh'
+      : ' · 🍒 fresh filter pending spotify';
+    status.textContent = candidates.length.toLocaleString() + ' Last.fm artists eligible · last 6 months · hidden after 4 listens' + harvestFilter + cached;
   }
 
   if (!allTimeReleases.length && !recentReleases.length) {
@@ -8945,7 +9038,9 @@ async function scanSeedNewReleases() {
 
     writeSpotifyArtistMatchCache(artistCache);
     const unique = {};
+    const harvestIndex = readHarvestTrackIndex();
     releases.forEach(release => {
+      if (releaseFoundInHarvestIndex(release, harvestIndex)) return;
       const key = release.id || (release.artist + '|||' + release.name + '|||' + release.releaseDate).toLowerCase();
       unique[key] = release;
     });
