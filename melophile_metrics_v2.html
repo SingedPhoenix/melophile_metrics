@@ -2420,6 +2420,10 @@
     padding: 22px;
   }
 
+  .harvest-rank-head {
+    margin-top: 34px;
+  }
+
   .seed-section-head {
     display: flex;
     align-items: end;
@@ -4497,6 +4501,34 @@
           </div>
           <div class="seed-detail-panel hidden" id="harvestPlaylistDetail">
             <div class="spotify-empty">select a harvest playlist to inspect its contents.</div>
+          </div>
+
+          <div class="seed-section-head harvest-rank-head">
+            <div>
+              <div class="seed-section-title">harvest rankings</div>
+              <div class="seed-section-sub" id="harvestRankStatus">first-logged music from your selected window, ranked by listens inside that same window.</div>
+            </div>
+          </div>
+          <div class="seed-section-panel">
+            <div class="pill-row" id="harvestRankWindowPills">
+              <button class="pill active" data-window="1" type="button" onclick="setHarvestRankWindow(1)">1 month</button>
+              <button class="pill" data-window="3" type="button" onclick="setHarvestRankWindow(3)">3 months</button>
+              <button class="pill" data-window="6" type="button" onclick="setHarvestRankWindow(6)">6 months</button>
+              <button class="pill" data-window="12" type="button" onclick="setHarvestRankWindow(12)">12 months</button>
+              <button class="pill" data-window="cy" type="button" onclick="setHarvestRankWindow('cy')">current year</button>
+            </div>
+            <div class="pill-row" id="harvestRankTypePills">
+              <button class="pill active" data-type="tracks" type="button" onclick="setHarvestRankType('tracks')">tracks</button>
+              <button class="pill" data-type="artists" type="button" onclick="setHarvestRankType('artists')">artists</button>
+              <button class="pill" data-type="albums" type="button" onclick="setHarvestRankType('albums')">albums</button>
+            </div>
+            <div class="gem-range-label visible" id="harvestRankLabel">last 1 month · newly logged tracks</div>
+            <div class="rankings-wrap">
+              <table class="rankings-table">
+                <tbody id="harvestRankBody"></tbody>
+              </table>
+              <div class="rankings-empty" id="harvestRankEmpty" style="display:none">no newly logged music found for this window</div>
+            </div>
           </div>
         </div>
       </div>
@@ -8057,6 +8089,8 @@ let selectedHarvestPlaylistId = null;
 const harvestPlaylistCache = {};
 const harvestPlaylistTracksCache = {};
 let harvestPlaylistHydrating = false;
+let harvestRankWindow = 1;
+let harvestRankType = 'tracks';
 let seedReleaseScanning = false;
 let seedReleaseResults = [];
 let seedScanTimer = null;
@@ -8071,6 +8105,7 @@ function renderFreshHub() {
   renderFreshPath();
   renderSeedPlaylistRow();
   renderHarvestPlaylistRow();
+  renderHarvestRankings();
   renderSeedNewReleaseGrid();
   renderSeedScanSettings();
 }
@@ -8419,6 +8454,156 @@ function harvestTrackScrobbleCount(track) {
     if (normalizeHarvestTrackText(scrobble.track) !== title) return count;
     return artistNames.includes(normalizeHarvestTrackText(scrobble.artist)) ? count + 1 : count;
   }, 0);
+}
+
+function setHarvestRankWindow(windowValue) {
+  harvestRankWindow = windowValue;
+  syncHarvestRankControls();
+  renderHarvestRankings();
+}
+
+function setHarvestRankType(type) {
+  harvestRankType = ['tracks', 'artists', 'albums'].includes(type) ? type : 'tracks';
+  syncHarvestRankControls();
+  renderHarvestRankings();
+}
+
+function syncHarvestRankControls() {
+  document.querySelectorAll('#harvestRankWindowPills .pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.window === String(harvestRankWindow));
+  });
+  document.querySelectorAll('#harvestRankTypePills .pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.type === harvestRankType);
+  });
+}
+
+function harvestRankWindowInfo() {
+  const anchor = latestScrobbleMs ? new Date(latestScrobbleMs) : new Date();
+  if (harvestRankWindow === 'cy') {
+    return {
+      label: 'current year',
+      anchor,
+      cutoff: new Date(Date.UTC(CY, 0, 1))
+    };
+  }
+  const months = Number(harvestRankWindow) || 1;
+  const cutoff = new Date(anchor);
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - months);
+  return {
+    label: months === 1 ? '1 month' : months + ' months',
+    anchor,
+    cutoff
+  };
+}
+
+function harvestRankEntity(scrobble, type) {
+  if (type === 'artists') {
+    if (!scrobble.artist) return null;
+    return {
+      key: scrobble.artist.toLowerCase(),
+      name: scrobble.artist,
+      artist: ''
+    };
+  }
+  if (type === 'albums') {
+    if (!scrobble.album) return null;
+    return {
+      key: scrobble.aKey,
+      name: scrobble.album,
+      artist: scrobble.artist
+    };
+  }
+  if (!scrobble.track) return null;
+  return {
+    key: scrobble.tKey,
+    name: scrobble.track,
+    artist: scrobble.artist
+  };
+}
+
+function harvestNewlyLoggedRankings(type, cutoff, anchor) {
+  const firstSeen = {};
+  const counts = {};
+  allScrobbles.forEach(scrobble => {
+    const entity = harvestRankEntity(scrobble, type);
+    if (!entity) return;
+    if (!firstSeen[entity.key] || scrobble.uts < firstSeen[entity.key].uts) {
+      firstSeen[entity.key] = { ...entity, uts: scrobble.uts };
+    }
+  });
+
+  allScrobbles.forEach(scrobble => {
+    const playedMs = scrobble.uts * 1000;
+    if (playedMs < cutoff.getTime() || playedMs > anchor.getTime()) return;
+    const entity = harvestRankEntity(scrobble, type);
+    if (!entity) return;
+    const first = firstSeen[entity.key];
+    if (!first) return;
+    const firstMs = first.uts * 1000;
+    if (firstMs < cutoff.getTime() || firstMs > anchor.getTime()) return;
+    if (!counts[entity.key]) {
+      counts[entity.key] = {
+        key: entity.key,
+        name: first.name,
+        artist: first.artist,
+        count: 0,
+        firstUts: first.uts
+      };
+    }
+    counts[entity.key].count++;
+  });
+
+  return Object.values(counts)
+    .sort((a, b) => b.count - a.count || b.firstUts - a.firstUts || a.name.localeCompare(b.name))
+    .slice(0, 100);
+}
+
+function renderHarvestRankings() {
+  const tbody = document.getElementById('harvestRankBody');
+  const empty = document.getElementById('harvestRankEmpty');
+  const label = document.getElementById('harvestRankLabel');
+  const status = document.getElementById('harvestRankStatus');
+  if (!tbody || !empty || !label) return;
+
+  syncHarvestRankControls();
+  const info = harvestRankWindowInfo();
+  label.textContent = (harvestRankWindow === 'cy' ? 'current year' : 'last ' + info.label) + ' · newly logged ' + harvestRankType;
+  if (status) {
+    status.textContent = 'only ' + harvestRankType + ' whose first Last.fm log landed inside the selected window.';
+  }
+
+  if (!allScrobbles.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'load or sync last.fm history to build harvest rankings';
+    return;
+  }
+
+  const entries = harvestNewlyLoggedRankings(harvestRankType, info.cutoff, info.anchor);
+  if (!entries.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'no newly logged ' + harvestRankType + ' found for ' + info.label;
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  empty.style.display = 'none';
+  const maxVal = entries[0].count || 1;
+  tbody.innerHTML = entries.map((entry, index) => {
+    const barW = entry.count / maxVal * 100;
+    const firstSeen = new Date(entry.firstUts * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const nameCell = harvestRankType === 'artists'
+      ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">first logged · ' + esc(firstSeen) + '</div>'
+      : '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + ' · first logged ' + esc(firstSeen) + '</div>';
+    return '<tr>' +
+      '<td class="r-rank">' + (index + 1) + '</td>' +
+      '<td>' + nameCell + '</td>' +
+      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
+      '<td class="r-count">' + entry.count.toLocaleString() + '</td>' +
+    '</tr>';
+  }).join('');
+  scheduleScrollControlUpdate();
 }
 
 function readSeedNewReleaseCache() {
