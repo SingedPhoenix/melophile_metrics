@@ -239,6 +239,12 @@
     margin: 0 auto;
   }
 
+  .section-grid.one-col {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 430px;
+    margin: 0 auto;
+  }
+
   .section-grid.crate-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     max-width: 1040px;
@@ -389,7 +395,8 @@
   }
 
   @media (max-width: 560px) {
-    .section-grid.two-col { grid-template-columns: 1fr; }
+    .section-grid.two-col,
+    .section-grid.one-col { grid-template-columns: 1fr; }
   }
 
   @media (max-width: 820px) {
@@ -3829,8 +3836,8 @@
             <rect x="18" y="4" width="3" height="14" rx="1" stroke="rgba(180,200,220,0.42)" stroke-width="1.7"/>
           </svg>
         </div>
-        <div class="sq-name">analytics</div>
-        <div class="sq-desc">hard statistics<br>for listening history</div>
+        <div class="sq-name">dashboard</div>
+        <div class="sq-desc">hard statistics<br>and timeframe charts</div>
       </div>
 
     </div>
@@ -4154,20 +4161,8 @@
       </div>
     </div>
 
-    <!-- 2 nav bentos -->
-    <div class="section-grid two-col">
-
-      <div class="section-square sq-crate" onclick="navStack.push('screenTimeframe'); enterSection('timeframe')">
-        <div class="sq-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="position:relative;z-index:1">
-            <circle cx="12" cy="12" r="9" stroke="rgba(180,200,220,0.9)" stroke-width="1.8"/>
-            <path d="M12 7 L12 12 L16 14" stroke="rgba(180,200,220,0.9)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M7 3.5 L5 1.5 M17 3.5 L19 1.5" stroke="rgba(180,200,220,0.5)" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="sq-name">timeframe</div>
-        <div class="sq-desc">time · day · month · year<br>listening pattern charts</div>
-      </div>
+    <!-- 1 nav bento -->
+    <div class="section-grid one-col">
 
       <div class="section-square sq-chronicle" onclick="navStack.push('screenFresh'); enterSection('fresh')">
         <div class="sq-icon">
@@ -4247,7 +4242,7 @@
 
   <!-- ── Screen 13: Analytics ── -->
   <div class="screen" id="screenAnalytics">
-    <div class="detail-title">analytics</div>
+    <div class="detail-title">dashboard</div>
     <div class="section-subtitle" id="analyticsSubtitle">listening history statistics</div>
 
     <div class="stat-row">
@@ -4289,12 +4284,13 @@
     </div>
 
     <div class="year-review-table-wrap">
-      <div class="year-review-heading">all-time timeframe</div>
+      <div class="year-review-heading" id="analyticsTimeframeHeading">timeframe</div>
+      <div class="pill-row" id="analyticsYearPills"></div>
       <div class="timeframe-pills" id="analyticsTimeframePills">
         <button class="pill active" data-atf="time"  onclick="setAnalyticsTimeframe('time')">time of day</button>
         <button class="pill"        data-atf="day"   onclick="setAnalyticsTimeframe('day')">day of week</button>
         <button class="pill"        data-atf="month" onclick="setAnalyticsTimeframe('month')">by month</button>
-        <button class="pill"        data-atf="year"  onclick="setAnalyticsTimeframe('year')">full history</button>
+        <button class="pill"        data-atf="year"  onclick="setAnalyticsTimeframe('year')">calendar map</button>
       </div>
 
       <div class="chart-wrap" id="analyticsChartWrap">
@@ -4995,7 +4991,7 @@ function enterSection(key) {
 
 const SECTIONS = {
   rankings:      { screen: 'screenRankings'  },
-  timeframe:     { screen: 'screenTimeframe' },
+  timeframe:     { screen: 'screenAnalytics'  },
   fresh:         { screen: 'screenFresh'     },
   'last':         { screen: 'screenLast'      },
   metallurgy:    { screen: 'screenMetallurgy' },
@@ -5989,7 +5985,11 @@ function renderAnalytics() {
   document.getElementById('analyticsAvgDay').textContent = avgDay.toLocaleString();
   document.getElementById('analyticsPeakYear').textContent = peak ? String(peak.year) : '—';
   renderAnalyticsAnnualPulse(years);
-  setAnalyticsTimeframe('time');
+  renderAnalyticsYearPills();
+  document.querySelectorAll('#analyticsTimeframePills .pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.atf === analyticsTf);
+  });
+  renderAnalyticsTimeframe(analyticsTf);
   scheduleScrollControlUpdate();
 }
 
@@ -6045,8 +6045,32 @@ function renderAnalyticsAnnualPulse(years) {
 // ── Analytics all-time timeframe ─────────────────────────────────────
 let analyticsTfChart = null;
 let analyticsTf = 'time';
+let analyticsYearScope = 'allTime';
 
-function buildAllTimeframeData() {
+function analyticsYears() {
+  return availableReviewYears().slice().sort((a,b) => b - a);
+}
+
+function renderAnalyticsYearPills() {
+  const container = document.getElementById('analyticsYearPills');
+  if (!container) return;
+  const years = analyticsYears();
+  if (analyticsYearScope !== 'allTime' && !years.includes(Number(analyticsYearScope))) {
+    analyticsYearScope = 'allTime';
+  }
+  container.innerHTML = [
+    '<button class="pill ' + (analyticsYearScope === 'allTime' ? 'active' : '') + '" data-year-scope="allTime" onclick="setAnalyticsYearScope(\'allTime\')">all-time</button>',
+    ...years.map(year => '<button class="pill ' + (analyticsYearScope === year ? 'active' : '') + '" data-year-scope="' + year + '" onclick="setAnalyticsYearScope(' + year + ')">' + (year === CY ? 'current year' : year) + '</button>')
+  ].join('');
+}
+
+function setAnalyticsYearScope(scope) {
+  analyticsYearScope = scope === 'allTime' ? 'allTime' : Number(scope);
+  renderAnalyticsYearPills();
+  renderAnalyticsTimeframe(analyticsTf);
+}
+
+function buildAnalyticsTimeframeData() {
   const data = {
     hourCounts: Array(24).fill(0),
     dowCounts: Array(7).fill(0),
@@ -6054,10 +6078,12 @@ function buildAllTimeframeData() {
     dayCounts: {},
     firstDate: null,
     lastDate: null,
+    yearScope: analyticsYearScope === 'allTime' ? null : Number(analyticsYearScope),
   };
 
   allScrobbles.forEach(scrobble => {
     const dt = scrobble.playedAt;
+    if (data.yearScope && dt.getFullYear() !== data.yearScope) return;
     const ymd = dt.toISOString().slice(0,10);
     data.hourCounts[dt.getHours()]++;
     data.dowCounts[dt.getDay()]++;
@@ -6083,8 +6109,10 @@ function renderAnalyticsTimeframe(tf) {
   const canvas = document.getElementById('chartAnalyticsTimeframe');
   const chartWrap = document.getElementById('analyticsChartWrap');
   const heatWrap = document.getElementById('analyticsHeatmapWrap');
-  const data = buildAllTimeframeData();
+  const data = buildAnalyticsTimeframeData();
   const theme = themeChartColors();
+  const heading = document.getElementById('analyticsTimeframeHeading');
+  if (heading) heading.textContent = analyticsYearScope === 'allTime' ? 'all-time timeframe' : analyticsYearScope + ' timeframe';
 
   analyticsScreen.classList.toggle('is-radial', tf === 'time');
   chartWrap.classList.toggle('is-wide', tf === 'day' || tf === 'month');
@@ -6217,15 +6245,20 @@ function renderAnalyticsHeatmap(data) {
   const theme = themeChartColors();
   grid.innerHTML = '';
 
-  if (!data.firstDate || !data.lastDate) {
+  if (!data.firstDate && !data.yearScope) {
     scheduleScrollControlUpdate();
     return;
   }
 
   const HEATMAP_COLUMNS = 53;
   const days = [];
-  const start = new Date(data.firstDate.getFullYear(), data.firstDate.getMonth(), data.firstDate.getDate());
-  const end = new Date(data.lastDate.getFullYear(), data.lastDate.getMonth(), data.lastDate.getDate());
+  const start = data.yearScope
+    ? new Date(data.yearScope, 0, 1)
+    : new Date(data.firstDate.getFullYear(), data.firstDate.getMonth(), data.firstDate.getDate());
+  const end = data.yearScope
+    ? new Date(data.yearScope, 11, 31)
+    : new Date(data.lastDate.getFullYear(), data.lastDate.getMonth(), data.lastDate.getDate());
+  const today = new Date();
   const dt = new Date(start);
   while (dt <= end) {
     days.push(new Date(dt));
@@ -6245,7 +6278,8 @@ function renderAnalyticsHeatmap(data) {
 
     const ymd = d.toISOString().slice(0,10);
     const count = data.dayCounts[ymd] || 0;
-    if (count === 0) {
+    const isFuture = data.yearScope && d > today;
+    if (isFuture || count === 0) {
       cell.style.background = cssVarRgba('--silver', 0.035);
     } else {
       const intensity = count / maxDay;
@@ -6255,6 +6289,7 @@ function renderAnalyticsHeatmap(data) {
     }
 
     cell.addEventListener('mouseenter', () => {
+      if (isFuture) return;
       const dateStr = d.toLocaleDateString('en-US', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
       tooltip.innerHTML = dateStr + '<br><strong>' + count.toLocaleString() + ' listens</strong>';
       tooltip.style.display = 'block';
