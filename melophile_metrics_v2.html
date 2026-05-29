@@ -3769,8 +3769,8 @@
             <path d="M8.5 18h9" stroke="rgba(180,200,220,0.45)" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </div>
-        <div class="sq-name">metallurgy lab</div>
-        <div class="sq-desc">top songs from each<br>all-time gem mine</div>
+        <div class="sq-name">gem mines</div>
+        <div class="sq-desc">annual and all-time<br>gem mine rankings</div>
       </div>
 
       <div class="section-square sq-chronicle" onclick="navStack.push('screenGhosted'); enterSection('ghosted')">
@@ -4000,10 +4000,12 @@
     </div>
   </div>
 
-  <!-- ── Screen 8: Metallurgy Lab ── -->
+  <!-- ── Screen 8: Gem Mines ── -->
   <div class="screen" id="screenMetallurgy">
-    <div class="detail-title">metallurgy lab</div>
+    <div class="detail-title">gem mines</div>
     <div class="section-content">
+
+      <div class="pill-row" id="metallurgyScopePills"></div>
 
       <div class="pill-row" id="metallurgyTypePills">
         <button class="pill active" data-type="tracks" onclick="setMetallurgyType('tracks')">tracks</button>
@@ -4152,20 +4154,8 @@
       </div>
     </div>
 
-    <!-- 3 nav bentos -->
-    <div class="section-grid three-col">
-
-      <div class="section-square sq-pulse" onclick="navStack.push('screenRankings'); enterSection('rankings')">
-        <div class="sq-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style="position:relative;z-index:1">
-            <rect x="3" y="10" width="4" height="11" rx="1" stroke="rgba(200,160,255,0.9)" stroke-width="1.8"/>
-            <rect x="10" y="6" width="4" height="15" rx="1" stroke="rgba(200,160,255,0.9)" stroke-width="1.8"/>
-            <rect x="17" y="2" width="4" height="19" rx="1" stroke="rgba(200,160,255,0.9)" stroke-width="1.8"/>
-          </svg>
-        </div>
-        <div class="sq-name">rankings</div>
-        <div class="sq-desc">top artists & tracks<br>filtered by gem tier</div>
-      </div>
+    <!-- 2 nav bentos -->
+    <div class="section-grid two-col">
 
       <div class="section-square sq-crate" onclick="navStack.push('screenTimeframe'); enterSection('timeframe')">
         <div class="sq-icon">
@@ -4967,6 +4957,7 @@ function enterSection(key) {
       renderLastList();
     }
     if (s.screen === 'screenMetallurgy') {
+      metallurgyScope = 'allTime';
       metallurgyType = 'tracks';
       metallurgyGems = new Set(['amethyst']);
       syncMetallurgyControls();
@@ -5184,20 +5175,7 @@ function countApotheosisCandidates() {
 }
 
 function openRankingsSuggestion(type, gem) {
-  rankType = type;
-  rankGems = new Set([gem]);
-  navStack = ['screenSelect', 'screenPulse', 'screenCurrentYear', 'screenRankings'];
-  showScreen('screenRankings');
-  document.querySelectorAll('#rankTypePills .pill').forEach(p => p.classList.toggle('active', p.dataset.type === type));
-  updateGemPills();
-  document.querySelectorAll('#rankGemPills .pill').forEach(p => p.classList.toggle('active', p.dataset.gem === gem));
-  const label = document.getElementById('gemRangeLabel');
-  const range = GEM_RANGES.find(r => r.name === gem);
-  if (label && range) {
-    label.textContent = range.name + ' (' + range.label.replace(' plays this year','') + ')';
-    label.classList.add('visible');
-  }
-  renderRankings();
+  openMetallurgySuggestion(type, gem, CY);
 }
 
 function openLastSuggestion(months, type) {
@@ -5209,9 +5187,10 @@ function openLastSuggestion(months, type) {
   renderLastList();
 }
 
-function openMetallurgySuggestion(type, gem) {
+function openMetallurgySuggestion(type, gem, scope = 'allTime') {
   metallurgyType = type;
   metallurgyGems = new Set([gem]);
+  metallurgyScope = scope;
   navStack = ['screenSelect', 'screenCrate', 'screenMetallurgy'];
   showScreen('screenMetallurgy');
   syncMetallurgyControls();
@@ -5247,11 +5226,11 @@ function buildSmartJumpoffPool() {
       if (!count) return;
       suggestions.push({
         id: 'current-' + type + '-' + range.name,
-        kicker: 'current year ranking',
-        action: 'explore the current year ' + range.name + ' mine for ' + type,
+        kicker: 'current year gem mine',
+        action: 'explore the ' + CY + ' ' + range.name + ' mine for ' + type,
         route: [
-          { label: 'pulse', kind: 'pulse' },
-          { label: 'current year', kind: 'time' },
+          { label: 'gem mines', kind: 'gem' },
+          { label: String(CY), kind: 'time' },
           { label: range.name, kind: 'gem' },
           { label: type, kind: 'type' }
         ],
@@ -5292,7 +5271,7 @@ function buildSmartJumpoffPool() {
         action: 'explore the ' + range.name + ' mine for ' + type,
         route: [
           { label: 'crate', kind: 'crate' },
-          { label: 'metallurgy', kind: 'gem' },
+          { label: 'gem mines', kind: 'gem' },
           { label: range.name, kind: 'gem' },
           { label: type, kind: 'type' }
         ],
@@ -7500,9 +7479,24 @@ function renderLastAverages(cutoff, anchor) {
   renderAverageSlide();
 }
 
-// ── Metallurgy lab ───────────────────────────────────────────────────
+// ── Gem Mines ────────────────────────────────────────────────────────
+let metallurgyScope = 'allTime';
 let metallurgyType = 'tracks';
 let metallurgyGems = new Set(['amethyst']);
+
+function metallurgyYears() {
+  return availableReviewYears().slice().sort((a,b) => b - a);
+}
+
+function metallurgyRangesForScope() {
+  return metallurgyScope === 'allTime' ? metallurgyRangesFor(metallurgyType) : GEM_RANGES;
+}
+
+function setMetallurgyScope(scope) {
+  metallurgyScope = scope === 'allTime' ? 'allTime' : Number(scope);
+  syncMetallurgyControls();
+  renderMetallurgyLab();
+}
 
 function setMetallurgyType(type) {
   metallurgyType = type;
@@ -7521,6 +7515,16 @@ function setMetallurgyGem(gem) {
 }
 
 function syncMetallurgyControls() {
+  const scopePills = document.getElementById('metallurgyScopePills');
+  if (scopePills) {
+    const years = metallurgyYears();
+    const currentScope = metallurgyScope === 'allTime' || years.includes(Number(metallurgyScope)) ? metallurgyScope : 'allTime';
+    if (currentScope !== metallurgyScope) metallurgyScope = currentScope;
+    scopePills.innerHTML = [
+      '<button class="pill ' + (metallurgyScope === 'allTime' ? 'active' : '') + '" data-scope="allTime" onclick="setMetallurgyScope(\'allTime\')">all-time</button>',
+      ...years.map(year => '<button class="pill ' + (metallurgyScope === year ? 'active' : '') + '" data-scope="' + year + '" onclick="setMetallurgyScope(' + year + ')">' + (year === CY ? 'current year' : year) + '</button>')
+    ].join('');
+  }
   document.querySelectorAll('#metallurgyTypePills .pill').forEach(p => {
     p.classList.toggle('active', p.dataset.type === metallurgyType);
   });
@@ -7533,7 +7537,7 @@ function renderMetallurgyLab() {
   const tbody = document.getElementById('metallurgyBody');
   const empty = document.getElementById('metallurgyEmpty');
   const label = document.getElementById('metallurgyRangeLabel');
-  const ranges = metallurgyRangesFor(metallurgyType);
+  const ranges = metallurgyRangesForScope();
   const activeRanges = ranges.filter(g => metallurgyGems.has(g.name));
   if (!activeRanges.length) {
     label.textContent = 'select one or more gem mines';
@@ -7543,10 +7547,15 @@ function renderMetallurgyLab() {
     scheduleScrollControlUpdate();
     return;
   }
-  label.textContent = metallurgyType + ' · ' + activeRanges.map(r => r.name + ' (' + r.label.replace(' all-time plays','') + ')').join(' · ');
+  const scopeLabel = metallurgyScope === 'allTime' ? 'all-time' : String(metallurgyScope);
+  label.textContent = scopeLabel + ' · ' + metallurgyType + ' · ' + activeRanges.map(r => {
+    const cleaned = r.label.replace(' plays this year','').replace(' all-time plays','').replace(' all-time','');
+    return r.name + ' (' + cleaned + ')';
+  }).join(' · ');
 
   const counts = {};
   allScrobbles.forEach(scrobble => {
+    if (metallurgyScope !== 'allTime' && scrobble.playedAt.getFullYear() !== metallurgyScope) return;
     let key, name, artist;
     if (metallurgyType === 'artists') {
       key = scrobble.artist.toLowerCase();
@@ -7579,6 +7588,7 @@ function renderMetallurgyLab() {
   if (!entriesToShow.length) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
+    empty.textContent = 'no entries found in this mine';
     scheduleScrollControlUpdate();
     return;
   }
