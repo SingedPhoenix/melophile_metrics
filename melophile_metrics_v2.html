@@ -3736,7 +3736,7 @@
   <!-- ── Screen 3: Pulse Sub-Nav ── -->
   <div class="screen" id="screenPulse">
     <div class="detail-title">pulse</div>
-    <div class="section-grid one-col">
+    <div class="section-grid two-col">
 
       <div class="section-square sq-chronicle" onclick="navStack.push('screenLast'); enterSection('last')">
         <div class="sq-icon">
@@ -3747,7 +3747,19 @@
           </svg>
         </div>
         <div class="sq-name">last...</div>
-        <div class="sq-desc">a visual guide of the listening<br>trends of various timeframes</div>
+        <div class="sq-desc">dynamic rankings from<br>rolling listening windows</div>
+      </div>
+
+      <div class="section-square sq-pulse" onclick="navStack.push('screenMomentous'); enterSection('momentous')">
+        <div class="sq-icon">
+          <svg width="32" height="32" viewBox="0 0 26 26" fill="none" style="position:relative;z-index:1">
+            <rect x="5" y="5" width="16" height="16" rx="4" stroke="rgba(200,160,255,0.9)" stroke-width="2"/>
+            <path d="M8 10h10M9 14h3M15 14h2M9 18h2M14 18h3" stroke="rgba(200,160,255,0.55)" stroke-width="1.7" stroke-linecap="round"/>
+            <path d="M9 3v4M17 3v4" stroke="rgba(200,160,255,0.9)" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="sq-name">momentous</div>
+        <div class="sq-desc">static rankings from<br>specific listening years</div>
       </div>
 
     </div>
@@ -4415,6 +4427,35 @@
     </div>
   </div>
 
+  <!-- ── Screen 7b: Momentous ── -->
+  <div class="screen" id="screenMomentous">
+    <div class="detail-title">momentous</div>
+    <div class="section-content">
+
+      <div class="year-review-years" id="momentousYearPills"></div>
+
+      <div class="pill-row" id="momentousTypePills">
+        <button class="pill active" data-type="tracks"  onclick="setMomentousType('tracks')">tracks</button>
+        <button class="pill"        data-type="artists" onclick="setMomentousType('artists')">artists</button>
+        <button class="pill"        data-type="albums"  onclick="setMomentousType('albums')">albums</button>
+      </div>
+
+      <div class="gem-range-label visible" id="momentousRangeLabel">current year · top 100 tracks</div>
+
+      <div class="rankings-wrap">
+        <table class="rankings-table">
+          <tbody id="momentousBody"></tbody>
+        </table>
+        <div class="rankings-empty" id="momentousEmpty" style="display:none">no listening data found for this year</div>
+      </div>
+
+    </div>
+    <div class="detail-nav">
+      <button class="back-btn" onclick="goBack()">back</button>
+      <button class="home-btn" onclick="goHome()">home</button>
+    </div>
+  </div>
+
   <!-- ── Screen 8: Fresh ── -->
   <div class="screen" id="screenFresh">
     <div class="detail-title">fresh</div>
@@ -4945,6 +4986,9 @@ function enterSection(key) {
       syncLastControls();
       renderLastList();
     }
+    if (s.screen === 'screenMomentous') {
+      initMomentous();
+    }
     if (s.screen === 'screenMetallurgy') {
       metallurgyScope = 'allTime';
       metallurgyType = 'tracks';
@@ -4987,6 +5031,7 @@ const SECTIONS = {
   timeframe:     { screen: 'screenAnalytics'  },
   fresh:         { screen: 'screenFresh'     },
   'last':         { screen: 'screenLast'      },
+  momentous:      { screen: 'screenMomentous' },
   metallurgy:    { screen: 'screenMetallurgy' },
   ghosted:       { screen: 'screenGhosted'    },
   apotheosis:    { screen: 'screenApotheosis' },
@@ -6692,6 +6737,108 @@ function renderLastCurrentYear() {
       '<td>' + nameCell + '</td>' +
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
       '<td class="r-count">' + count.toLocaleString() + '</td>' +
+    '</tr>';
+  }).join('');
+  scheduleScrollControlUpdate();
+}
+
+// ── Momentous fixed-year reports ─────────────────────────────────────
+let momentousYear = null;
+let momentousType = 'tracks';
+
+function initMomentous() {
+  const years = availableReviewYears();
+  if (!years.length) {
+    document.getElementById('momentousYearPills').innerHTML = '';
+    document.getElementById('momentousBody').innerHTML = '';
+    document.getElementById('momentousEmpty').style.display = 'block';
+    scheduleScrollControlUpdate();
+    return;
+  }
+  if (!momentousYear || !years.includes(momentousYear)) {
+    momentousYear = years.includes(CY) ? CY : years[years.length - 1];
+  }
+  momentousType = momentousType || 'tracks';
+  syncMomentousControls();
+  renderMomentousList();
+}
+
+function setMomentousYear(year) {
+  momentousYear = Number(year);
+  syncMomentousControls();
+  renderMomentousList();
+}
+
+function setMomentousType(type) {
+  momentousType = type;
+  syncMomentousControls();
+  renderMomentousList();
+}
+
+function syncMomentousControls() {
+  const years = availableReviewYears();
+  document.getElementById('momentousYearPills').innerHTML = renderPillRows(years, year =>
+    '<button class="pill' + (year === momentousYear ? ' active' : '') + '" onclick="setMomentousYear(' + year + ')">' + (year === CY ? 'current year' : year) + '</button>'
+  );
+  document.querySelectorAll('#momentousTypePills .pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.type === momentousType);
+  });
+}
+
+function renderMomentousList() {
+  const tbody = document.getElementById('momentousBody');
+  const empty = document.getElementById('momentousEmpty');
+  const label = document.getElementById('momentousRangeLabel');
+  const yearLabel = momentousYear === CY ? 'current year' : String(momentousYear);
+  label.textContent = yearLabel + ' · top 100 ' + momentousType;
+
+  const counts = {};
+  allScrobbles.forEach(scrobble => {
+    if (scrobble.playedAt.getFullYear() !== momentousYear) return;
+    let key, name, artist;
+    if (momentousType === 'artists') {
+      key = scrobble.artist.toLowerCase();
+      name = scrobble.artist;
+      artist = '';
+    } else if (momentousType === 'albums') {
+      if (!scrobble.album) return;
+      key = scrobble.aKey;
+      name = scrobble.album;
+      artist = scrobble.artist;
+    } else {
+      if (!scrobble.track) return;
+      key = scrobble.tKey;
+      name = scrobble.track;
+      artist = scrobble.artist;
+    }
+    if (!counts[key]) counts[key] = { name, artist, count: 0 };
+    counts[key].count++;
+  });
+
+  const entries = Object.values(counts)
+    .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, 100);
+
+  if (!entries.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = 'no ' + momentousType + ' found for ' + yearLabel;
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  empty.style.display = 'none';
+  const maxVal = entries[0].count || 1;
+  tbody.innerHTML = entries.map((entry, i) => {
+    const barW = entry.count / maxVal * 100;
+    const nameCell = entry.artist
+      ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
+      : '<div class="r-name">' + esc(entry.name) + '</div>';
+    return '<tr>' +
+      '<td class="r-rank">' + (i + 1) + '</td>' +
+      '<td>' + nameCell + '</td>' +
+      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
+      '<td class="r-count">' + entry.count.toLocaleString() + '</td>' +
     '</tr>';
   }).join('');
   scheduleScrollControlUpdate();
