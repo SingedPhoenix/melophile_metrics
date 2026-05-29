@@ -1212,6 +1212,10 @@
     justify-content: center;
   }
 
+  .pill-row.year-scope-row {
+    margin-bottom: 8px;
+  }
+
   .pill {
     font-family: 'Afacad', sans-serif;
     font-weight: 400;
@@ -5704,6 +5708,18 @@ function availableReviewYears() {
     .sort((a,b) => a - b);
 }
 
+function splitYearPillRows(items) {
+  if (items.length <= 11) return [items];
+  const topCount = Math.min(11, Math.floor(items.length / 2));
+  return [items.slice(0, topCount), items.slice(topCount)];
+}
+
+function renderPillRows(items, renderItem) {
+  return splitYearPillRows(items).map(row =>
+    '<div class="pill-row year-scope-row">' + row.map(renderItem).join('') + '</div>'
+  ).join('');
+}
+
 function initYearsReview() {
   const years = availableReviewYears();
   if (!years.length) {
@@ -5720,13 +5736,9 @@ function initYearsReview() {
 }
 
 function renderYearReviewPills(years) {
-  const topCount = years.length > 11 ? years.length - 11 : years.length;
-  const rows = [years.slice(0, topCount), years.slice(topCount)].filter(row => row.length);
-  document.getElementById('yearReviewPills').innerHTML = rows.map(row =>
-    '<div class="pill-row">' + row.map(year =>
+  document.getElementById('yearReviewPills').innerHTML = renderPillRows(years, year =>
     '<button class="pill' + (year === yearReviewYear ? ' active' : '') + '" onclick="setYearReview(' + year + ')">' + year + '</button>'
-    ).join('') + '</div>'
-  ).join('');
+  );
 }
 
 function setYearReview(year) {
@@ -6048,7 +6060,7 @@ let analyticsTf = 'time';
 let analyticsYearScope = 'allTime';
 
 function analyticsYears() {
-  return availableReviewYears().slice().sort((a,b) => b - a);
+  return availableReviewYears();
 }
 
 function renderAnalyticsYearPills() {
@@ -6058,10 +6070,13 @@ function renderAnalyticsYearPills() {
   if (analyticsYearScope !== 'allTime' && !years.includes(Number(analyticsYearScope))) {
     analyticsYearScope = 'allTime';
   }
-  container.innerHTML = [
-    '<button class="pill ' + (analyticsYearScope === 'allTime' ? 'active' : '') + '" data-year-scope="allTime" onclick="setAnalyticsYearScope(\'allTime\')">all-time</button>',
-    ...years.map(year => '<button class="pill ' + (analyticsYearScope === year ? 'active' : '') + '" data-year-scope="' + year + '" onclick="setAnalyticsYearScope(' + year + ')">' + (year === CY ? 'current year' : year) + '</button>')
-  ].join('');
+  const items = [
+    { type: 'allTime', label: 'all-time' },
+    ...years.map(year => ({ type: year, label: year === CY ? 'current year' : String(year) }))
+  ];
+  container.innerHTML = renderPillRows(items, item =>
+    '<button class="pill ' + (analyticsYearScope === item.type ? 'active' : '') + '" data-year-scope="' + item.type + '" onclick="setAnalyticsYearScope(' + (item.type === 'allTime' ? '\'allTime\'' : item.type) + ')">' + item.label + '</button>'
+  );
 }
 
 function setAnalyticsYearScope(scope) {
@@ -7520,7 +7535,7 @@ let metallurgyType = 'tracks';
 let metallurgyGems = new Set(['amethyst']);
 
 function metallurgyYears() {
-  return availableReviewYears().slice().sort((a,b) => b - a);
+  return availableReviewYears();
 }
 
 function metallurgyRangesForScope() {
@@ -7555,10 +7570,13 @@ function syncMetallurgyControls() {
     const years = metallurgyYears();
     const currentScope = metallurgyScope === 'allTime' || years.includes(Number(metallurgyScope)) ? metallurgyScope : 'allTime';
     if (currentScope !== metallurgyScope) metallurgyScope = currentScope;
-    scopePills.innerHTML = [
-      '<button class="pill ' + (metallurgyScope === 'allTime' ? 'active' : '') + '" data-scope="allTime" onclick="setMetallurgyScope(\'allTime\')">all-time</button>',
-      ...years.map(year => '<button class="pill ' + (metallurgyScope === year ? 'active' : '') + '" data-scope="' + year + '" onclick="setMetallurgyScope(' + year + ')">' + (year === CY ? 'current year' : year) + '</button>')
-    ].join('');
+    const items = [
+      { type: 'allTime', label: 'all-time' },
+      ...years.map(year => ({ type: year, label: year === CY ? 'current year' : String(year) }))
+    ];
+    scopePills.innerHTML = renderPillRows(items, item =>
+      '<button class="pill ' + (metallurgyScope === item.type ? 'active' : '') + '" data-scope="' + item.type + '" onclick="setMetallurgyScope(' + (item.type === 'allTime' ? '\'allTime\'' : item.type) + ')">' + item.label + '</button>'
+    );
   }
   document.querySelectorAll('#metallurgyTypePills .pill').forEach(p => {
     p.classList.toggle('active', p.dataset.type === metallurgyType);
