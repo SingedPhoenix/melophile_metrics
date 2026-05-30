@@ -6816,9 +6816,44 @@ function renderLastCurrentYear() {
     const artist = parts[0] || '';
     const name = currentYearType === 'artists' ? key : (parts[1] || key);
     const barW = count / maxVal * 100;
-    const nameCell = currentYearType === 'artists'
-      ? '<div class="r-name">' + esc(name) + '</div>'
-      : '<div class="r-name">' + esc(name) + '</div><div class="r-artist">' + esc(artist) + '</div>';
+    let nameCell;
+    if (currentYearType === 'artists') {
+      nameCell =
+        '<div class="r-name-actions">' +
+          '<button class="r-action-btn r-action-copy" type="button" data-copy-kind="artist-name" data-artist="' + esc(name) + '" aria-label="copy artist name" title="copy artist name">' +
+            ARTIST_COPY_ICON +
+          '</button>' +
+          '<button class="r-action-btn r-action-prompt" type="button" data-copy-kind="artist-spotlight-prompt" data-artist="' + esc(name) + '" aria-label="copy artist spotlight prompt" title="copy artist spotlight prompt">' +
+            SPOTIFY_PROMPT_ICON +
+          '</button>' +
+          '<div class="r-name" data-copy="' + esc(name) + '">' + esc(name) + '</div>' +
+        '</div>';
+    } else if (currentYearType === 'tracks') {
+      nameCell =
+        '<div class="r-name-actions">' +
+          '<button class="r-action-btn r-action-track" type="button" data-copy-kind="track-title-artist" data-track="' + esc(name) + '" data-artist="' + esc(artist) + '" aria-label="copy song and artist" title="copy song and artist">' +
+            TRACK_COPY_ICON +
+          '</button>' +
+          '<div>' +
+            '<div class="r-name" data-copy="' + esc(name) + '">' + esc(name) + '</div>' +
+            '<div class="r-artist">' + esc(artist) + '</div>' +
+          '</div>' +
+        '</div>';
+    } else {
+      nameCell =
+        '<div class="r-name-actions">' +
+          '<button class="r-action-btn r-action-album" type="button" data-copy-kind="album-title-artist" data-album="' + esc(name) + '" data-artist="' + esc(artist) + '" aria-label="copy album and artist" title="copy album and artist">' +
+            ALBUM_COPY_ICON +
+          '</button>' +
+          '<button class="r-action-btn r-action-prompt" type="button" data-copy-kind="album-spotlight-prompt" data-album="' + esc(name) + '" data-artist="' + esc(artist) + '" aria-label="copy album spotlight prompt" title="copy album spotlight prompt">' +
+            SPOTIFY_PROMPT_ICON +
+          '</button>' +
+          '<div>' +
+            '<div class="r-name" data-copy="' + esc(name) + '">' + esc(name) + '</div>' +
+            '<div class="r-artist">' + esc(artist) + '</div>' +
+          '</div>' +
+        '</div>';
+    }
     return '<tr>' +
       '<td class="r-rank">' + (pageStart + index + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
