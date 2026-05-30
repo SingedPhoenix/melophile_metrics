@@ -3904,6 +3904,13 @@
         </table>
         <div class="rankings-empty" id="lastEmpty" style="display:none">no listening data found for this period</div>
       </div>
+      <div class="year-review-pager" id="lastPager">
+        <button class="pager-btn" type="button" id="lastPrev" onclick="changeLastPage(-1)">prev</button>
+        <span class="pager-label" id="lastPageLabel">page 1 of 1</span>
+        <input class="pager-input" id="lastPageInput" type="number" min="1" value="1" aria-label="last rankings page number" onkeydown="if(event.key==='Enter') jumpLastPage()">
+        <button class="pager-btn" type="button" onclick="jumpLastPage()">jump</button>
+        <button class="pager-btn" type="button" id="lastNext" onclick="changeLastPage(1)">next</button>
+      </div>
 
     </div>
     <div class="detail-nav">
@@ -4991,6 +4998,7 @@ function enterSection(key) {
     if (s.screen === 'screenLast') {
       lastWindow = 1;
       lastType = 'tracks';
+      lastPage = 1;
       syncLastControls();
       renderLastList();
     }
@@ -6555,8 +6563,16 @@ const LAST_WINDOWS = [
   { months: 'cy', label: 'current year' },
 ];
 
+const LAST_PAGE_SIZE = 50;
+const LAST_PAGE_LIMITS = {
+  tracks:  { 1: 100, 3: 150, 6: 250, 12: 500, 30: 1250, 60: 1750, 120: 2500 },
+  artists: { 1: 100, 3: 150, 6: 250, 12: 500, 30: 1000, 60: 1250, 120: 1500 },
+  albums:  { 1: 100, 3: 150, 6: 250, 12: 500, 30: 750,  60: 1000, 120: 1250 }
+};
+
 let lastWindow = 1;
 let lastType = 'tracks';
+let lastPage = 1;
 
 const ARTIST_COPY_ICON =
   '<svg class="r-action-icon r-icon-sing" viewBox="0 0 122.88 122.5" aria-hidden="true">' +
@@ -6580,12 +6596,14 @@ const ALBUM_COPY_ICON =
 
 function setLastWindow(months) {
   lastWindow = months;
+  lastPage = 1;
   syncLastControls();
   renderLastList();
 }
 
 function setLastType(type) {
   lastType = type;
+  lastPage = 1;
   syncLastControls();
   renderLastList();
 }
@@ -6599,13 +6617,50 @@ function syncLastControls() {
   });
 }
 
+function lastPageLimit() {
+  if (lastWindow === 'cy') return Infinity;
+  return LAST_PAGE_LIMITS[lastType] && LAST_PAGE_LIMITS[lastType][Number(lastWindow)]
+    ? LAST_PAGE_LIMITS[lastType][Number(lastWindow)]
+    : 100;
+}
+
+function lastLimitLabel(limit) {
+  return Number.isFinite(limit) ? 'top ' + limit.toLocaleString() : 'all';
+}
+
+function changeLastPage(delta) {
+  lastPage += delta;
+  renderLastList();
+}
+
+function jumpLastPage() {
+  const input = document.getElementById('lastPageInput');
+  lastPage = parseInt(input.value, 10) || 1;
+  renderLastList();
+}
+
+function syncLastPager(totalEntries) {
+  const pager = document.getElementById('lastPager');
+  if (!pager) return;
+  const pageCount = Math.max(1, Math.ceil(totalEntries / LAST_PAGE_SIZE));
+  lastPage = Math.min(Math.max(lastPage, 1), pageCount);
+  document.getElementById('lastPageLabel').textContent = 'page ' + lastPage.toLocaleString() + ' of ' + pageCount.toLocaleString();
+  const input = document.getElementById('lastPageInput');
+  input.value = lastPage;
+  input.max = pageCount;
+  document.getElementById('lastPrev').disabled = lastPage <= 1;
+  document.getElementById('lastNext').disabled = lastPage >= pageCount;
+  pager.classList.toggle('visible', totalEntries > LAST_PAGE_SIZE);
+}
+
 function renderLastList() {
   const tbody = document.getElementById('lastBody');
   const empty = document.getElementById('lastEmpty');
   const label = document.getElementById('lastRangeLabel');
   const currentYearWrap = document.getElementById('lastCurrentYearWrap');
   const windowInfo = LAST_WINDOWS.find(w => w.months === lastWindow) || LAST_WINDOWS[0];
-  label.textContent = 'last ' + windowInfo.label + ' · top 100 ' + lastType;
+  const limit = lastPageLimit();
+  label.textContent = 'last ' + windowInfo.label + ' · ' + lastLimitLabel(limit) + ' ' + lastType;
 
   if (currentYearWrap) currentYearWrap.style.display = 'none';
 
@@ -6650,19 +6705,23 @@ function renderLastList() {
 
   const entries = Object.values(counts)
     .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, 100);
+    .slice(0, limit);
 
   if (!entries.length) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
     empty.textContent = 'no listening data found for this period';
+    syncLastPager(0);
     scheduleScrollControlUpdate();
     return;
   }
 
   empty.style.display = 'none';
+  syncLastPager(entries.length);
+  const pageStart = (lastPage - 1) * LAST_PAGE_SIZE;
+  const pageEntries = entries.slice(pageStart, pageStart + LAST_PAGE_SIZE);
   const maxVal = entries[0].count;
-  tbody.innerHTML = entries.map((entry, i) => {
+  tbody.innerHTML = pageEntries.map((entry, i) => {
     const barW = maxVal > 0 ? (entry.count / maxVal * 100) : 0;
     let nameCell;
     if (lastType === 'artists') {
@@ -6707,7 +6766,7 @@ function renderLastList() {
         : '<div class="r-name">' + esc(entry.name) + '</div>';
     }
     return '<tr>' +
-      '<td class="r-rank">' + (i+1) + '</td>' +
+      '<td class="r-rank">' + (pageStart+i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
       '<td class="r-count">' + entry.count.toLocaleString() + '</td>' +
@@ -6731,8 +6790,7 @@ function renderLastCurrentYear() {
       ? cyData.newAlbums
       : cyData.newTracks;
   const entries = Object.entries(source)
-    .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 100);
+    .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
   label.textContent = 'current year · first-heard ' + currentYearType + ' in ' + CY;
   if (currentYearWrap) currentYearWrap.style.display = '';
@@ -6743,13 +6801,17 @@ function renderLastCurrentYear() {
     tbody.innerHTML = '';
     empty.style.display = 'block';
     empty.textContent = 'no current-year first-heard ' + currentYearType + ' found';
+    syncLastPager(0);
     scheduleScrollControlUpdate();
     return;
   }
 
   empty.style.display = 'none';
+  syncLastPager(entries.length);
+  const pageStart = (lastPage - 1) * LAST_PAGE_SIZE;
+  const pageEntries = entries.slice(pageStart, pageStart + LAST_PAGE_SIZE);
   const maxVal = entries[0][1] || 1;
-  tbody.innerHTML = entries.map(([key, count], index) => {
+  tbody.innerHTML = pageEntries.map(([key, count], index) => {
     const parts = key.split('|||');
     const artist = parts[0] || '';
     const name = currentYearType === 'artists' ? key : (parts[1] || key);
@@ -6758,7 +6820,7 @@ function renderLastCurrentYear() {
       ? '<div class="r-name">' + esc(name) + '</div>'
       : '<div class="r-name">' + esc(name) + '</div><div class="r-artist">' + esc(artist) + '</div>';
     return '<tr>' +
-      '<td class="r-rank">' + (index + 1) + '</td>' +
+      '<td class="r-rank">' + (pageStart + index + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
       '<td class="r-count">' + count.toLocaleString() + '</td>' +
