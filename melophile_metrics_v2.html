@@ -1463,6 +1463,14 @@
     padding-left: 10px;
   }
 
+  .r-score-sub {
+    display: block;
+    margin-top: 4px;
+    font-family: 'Afacad', sans-serif;
+    font-size: 13px;
+    color: rgba(204,204,204,0.32);
+  }
+
   .ghost-count {
     display: inline-flex;
     align-items: center;
@@ -3936,11 +3944,17 @@
         </div>
       </div>
 
+      <div class="pill-row" id="metallurgyWeightPills">
+        <button class="pill active" data-weight="legacy" onclick="setMetallurgyWeight('legacy')">legacy weight</button>
+        <button class="pill"        data-weight="velocity" onclick="setMetallurgyWeight('velocity')">velocity weight</button>
+      </div>
+
       <div class="pill-row" id="metallurgyScopePills"></div>
 
       <div class="pill-row" id="metallurgyTypePills">
         <button class="pill active" data-type="tracks" onclick="setMetallurgyType('tracks')">tracks</button>
         <button class="pill"        data-type="artists" onclick="setMetallurgyType('artists')">artists</button>
+        <button class="pill"        data-type="albums"  onclick="setMetallurgyType('albums')">albums</button>
       </div>
 
       <div class="pill-row" id="metallurgyGemPills">
@@ -5649,8 +5663,32 @@ const ARTIST_ALL_TIME_GEM_RANGES = [
   { name:'diamond',    lo:1000, hi:Infinity, label:'1,000+ all-time plays' },
 ];
 
+const ALBUM_ALL_TIME_GEM_RANGES = [
+  { name:'amethyst',   lo:10,  hi:19,       label:'10 – 19 all-time plays' },
+  { name:'topaz',      lo:20,  hi:34,       label:'20 – 34 all-time plays' },
+  { name:'aquamarine', lo:35,  hi:49,       label:'35 – 49 all-time plays' },
+  { name:'opal',       lo:50,  hi:74,       label:'50 – 74 all-time plays' },
+  { name:'emerald',    lo:75,  hi:99,       label:'75 – 99 all-time plays' },
+  { name:'sapphire',   lo:100, hi:149,      label:'100 – 149 all-time plays' },
+  { name:'ruby',       lo:150, hi:249,      label:'150 – 249 all-time plays' },
+  { name:'diamond',    lo:250, hi:Infinity, label:'250+ all-time plays' },
+];
+
+const VELOCITY_GEM_RANGES = [
+  { name:'amethyst',   lo:0.32, hi:0.50, label:'top 32–50% velocity' },
+  { name:'topaz',      lo:0.22, hi:0.32, label:'top 22–32% velocity' },
+  { name:'aquamarine', lo:0.15, hi:0.22, label:'top 15–22% velocity' },
+  { name:'opal',       lo:0.10, hi:0.15, label:'top 10–15% velocity' },
+  { name:'emerald',    lo:0.06, hi:0.10, label:'top 6–10% velocity' },
+  { name:'sapphire',   lo:0.03, hi:0.06, label:'top 3–6% velocity' },
+  { name:'ruby',       lo:0.01, hi:0.03, label:'top 1–3% velocity' },
+  { name:'diamond',    lo:0,    hi:0.01, label:'top 1% velocity' },
+];
+
 function metallurgyRangesFor(type) {
-  return type === 'artists' ? ARTIST_ALL_TIME_GEM_RANGES : ALL_TIME_GEM_RANGES;
+  if (type === 'artists') return ARTIST_ALL_TIME_GEM_RANGES;
+  if (type === 'albums') return ALBUM_ALL_TIME_GEM_RANGES;
+  return ALL_TIME_GEM_RANGES;
 }
 
 function gemForCount(n) {
@@ -7838,6 +7876,7 @@ function renderLastAverages(cutoff, anchor) {
 let metallurgyScope = 'allTime';
 let metallurgyType = 'tracks';
 let metallurgyGems = new Set(['amethyst']);
+let metallurgyWeight = 'legacy';
 let gemSongScatterChart = null;
 
 function metallurgyYears() {
@@ -7845,6 +7884,7 @@ function metallurgyYears() {
 }
 
 function metallurgyRangesForScope() {
+  if (metallurgyWeight === 'velocity') return VELOCITY_GEM_RANGES;
   return metallurgyScope === 'allTime' ? metallurgyRangesFor(metallurgyType) : GEM_RANGES;
 }
 
@@ -7855,7 +7895,13 @@ function setMetallurgyScope(scope) {
 }
 
 function setMetallurgyType(type) {
-  metallurgyType = type;
+  metallurgyType = ['tracks', 'artists', 'albums'].includes(type) ? type : 'tracks';
+  syncMetallurgyControls();
+  renderMetallurgyLab();
+}
+
+function setMetallurgyWeight(weight) {
+  metallurgyWeight = weight === 'velocity' ? 'velocity' : 'legacy';
   syncMetallurgyControls();
   renderMetallurgyLab();
 }
@@ -7886,6 +7932,9 @@ function syncMetallurgyControls() {
   }
   document.querySelectorAll('#metallurgyTypePills .pill').forEach(p => {
     p.classList.toggle('active', p.dataset.type === metallurgyType);
+  });
+  document.querySelectorAll('#metallurgyWeightPills .pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.weight === metallurgyWeight);
   });
   document.querySelectorAll('#metallurgyGemPills .pill').forEach(p => {
     p.classList.toggle('active', metallurgyGems.has(p.dataset.gem));
@@ -7994,6 +8043,77 @@ function renderGemSongScatter() {
   });
 }
 
+function metallurgyAgeMonths(entry) {
+  const endMs = latestScrobbleMs || Date.now();
+  const startMs = entry.firstUts ? entry.firstUts * 1000 : endMs;
+  return Math.max(1, (endMs - startMs) / (1000 * 60 * 60 * 24 * 30.4375));
+}
+
+function metallurgyScore(entry) {
+  if (metallurgyWeight === 'velocity') return entry.count / metallurgyAgeMonths(entry);
+  return entry.count;
+}
+
+function formatMetallurgyScore(entry) {
+  if (metallurgyWeight !== 'velocity') return entry.count.toLocaleString();
+  const score = entry.score || 0;
+  if (score >= 10) return score.toFixed(1) + '/mo';
+  if (score >= 1) return score.toFixed(2) + '/mo';
+  return score.toFixed(3) + '/mo';
+}
+
+function metallurgyCountSubcopy(entry) {
+  if (metallurgyWeight !== 'velocity') return '';
+  const months = Math.max(1, Math.round(metallurgyAgeMonths(entry)));
+  return '<span class="r-score-sub">' + entry.count.toLocaleString() + ' plays · ' + months.toLocaleString() + ' mo</span>';
+}
+
+function buildMetallurgyEntries() {
+  const counts = {};
+  allScrobbles.forEach(scrobble => {
+    if (metallurgyScope !== 'allTime' && scrobble.playedAt.getFullYear() !== metallurgyScope) return;
+    let key, name, artist;
+    if (metallurgyType === 'artists') {
+      key = scrobble.artist.toLowerCase();
+      name = scrobble.artist;
+      artist = '';
+    } else if (metallurgyType === 'albums') {
+      if (!scrobble.album) return;
+      key = scrobble.aKey;
+      name = scrobble.album;
+      artist = scrobble.artist;
+    } else {
+      if (!scrobble.track) return;
+      key = scrobble.tKey;
+      name = scrobble.track;
+      artist = scrobble.artist;
+    }
+    if (!counts[key]) counts[key] = { name, artist, count: 0, firstUts: scrobble.uts, lastUts: scrobble.uts };
+    counts[key].count++;
+    counts[key].firstUts = Math.min(counts[key].firstUts, scrobble.uts);
+    counts[key].lastUts = Math.max(counts[key].lastUts, scrobble.uts);
+  });
+  return Object.values(counts)
+    .map(entry => ({ ...entry, score: metallurgyScore(entry) }))
+    .sort((a,b) => b.score - a.score || b.count - a.count || a.name.localeCompare(b.name));
+}
+
+function applyVelocityGemTiers(entries, activeRanges) {
+  const eligible = entries.filter(entry => entry.score > 0);
+  const total = eligible.length || 1;
+  return eligible.map((entry, index) => {
+    const rankFraction = index / total;
+    const range = activeRanges.find(r => rankFraction >= r.lo && rankFraction < r.hi);
+    if (!range) return null;
+    return {
+      ...entry,
+      gem: range.name,
+      color: GEM_COLORS[range.name] || '#A00000',
+      target: eligible[Math.max(0, Math.floor(total * range.lo))]?.score || entry.score
+    };
+  }).filter(Boolean);
+}
+
 function renderMetallurgyLab() {
   renderGemSongScatter();
   const tbody = document.getElementById('metallurgyBody');
@@ -8010,38 +8130,23 @@ function renderMetallurgyLab() {
     return;
   }
   const scopeLabel = metallurgyScope === 'allTime' ? 'all-time' : String(metallurgyScope);
-  label.textContent = scopeLabel + ' · ' + metallurgyType + ' · ' + activeRanges.map(r => {
+  const weightLabel = metallurgyWeight === 'velocity' ? 'velocity weight' : 'legacy weight';
+  label.textContent = scopeLabel + ' · ' + metallurgyType + ' · ' + weightLabel + ' · ' + activeRanges.map(r => {
     const cleaned = r.label.replace(' plays this year','').replace(' all-time plays','').replace(' all-time','');
     return r.name + ' (' + cleaned + ')';
   }).join(' · ');
 
-  const counts = {};
-  allScrobbles.forEach(scrobble => {
-    if (metallurgyScope !== 'allTime' && scrobble.playedAt.getFullYear() !== metallurgyScope) return;
-    let key, name, artist;
-    if (metallurgyType === 'artists') {
-      key = scrobble.artist.toLowerCase();
-      name = scrobble.artist;
-      artist = '';
-    } else {
-      if (!scrobble.track) return;
-      key = scrobble.tKey;
-      name = scrobble.track;
-      artist = scrobble.artist;
-    }
-    if (!counts[key]) counts[key] = { name, artist, count: 0 };
-    counts[key].count++;
-  });
-
-  const entries = Object.values(counts)
-    .map(entry => {
+  const allEntries = buildMetallurgyEntries();
+  const entries = metallurgyWeight === 'velocity'
+    ? applyVelocityGemTiers(allEntries, activeRanges)
+    : allEntries.map(entry => {
       const range = activeRanges.find(r => entry.count >= r.lo && entry.count <= r.hi);
       if (!range) return null;
       const next = ranges[ranges.findIndex(g => g.name === range.name) + 1];
       return { ...entry, gem: range.name, color: GEM_COLORS[range.name] || '#A00000', target: next ? next.lo : range.hi };
     })
     .filter(Boolean)
-    .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+    .sort((a,b) => b.score - a.score || b.count - a.count || a.name.localeCompare(b.name));
 
   const entriesToShow = metallurgyGems.has('diamond')
     ? entries
@@ -8057,7 +8162,8 @@ function renderMetallurgyLab() {
 
   empty.style.display = 'none';
   tbody.innerHTML = entriesToShow.map((entry, i) => {
-    const barW = entry.target > 0 && Number.isFinite(entry.target) ? Math.min(entry.count / entry.target * 100, 100) : 100;
+    const value = metallurgyWeight === 'velocity' ? entry.score : entry.count;
+    const barW = entry.target > 0 && Number.isFinite(entry.target) ? Math.min(value / entry.target * 100, 100) : 100;
     const nameCell = entry.artist
       ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
       : '<div class="r-name">' + esc(entry.name) + '</div>';
@@ -8066,7 +8172,7 @@ function renderMetallurgyLab() {
       '<td class="r-rank">' + (i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%;background:linear-gradient(90deg,' + entry.color + ',rgba(10,10,10,0.2))"></div></div></td>' +
-      '<td class="r-count">' + gemDot + entry.count.toLocaleString() + '</td>' +
+      '<td class="r-count">' + gemDot + formatMetallurgyScore(entry) + metallurgyCountSubcopy(entry) + '</td>' +
     '</tr>';
   }).join('');
   scheduleScrollControlUpdate();
