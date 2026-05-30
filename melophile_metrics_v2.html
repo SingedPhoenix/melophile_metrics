@@ -4456,6 +4456,13 @@
         </table>
         <div class="rankings-empty" id="momentousEmpty" style="display:none">no listening data found for this year</div>
       </div>
+      <div class="year-review-pager" id="momentousPager">
+        <button class="pager-btn" type="button" id="momentousPrev" onclick="changeMomentousPage(-1)">prev</button>
+        <span class="pager-label" id="momentousPageLabel">page 1 of 1</span>
+        <input class="pager-input" id="momentousPageInput" type="number" min="1" value="1" aria-label="momentous rankings page number" onkeydown="if(event.key==='Enter') jumpMomentousPage()">
+        <button class="pager-btn" type="button" onclick="jumpMomentousPage()">jump</button>
+        <button class="pager-btn" type="button" id="momentousNext" onclick="changeMomentousPage(1)">next</button>
+      </div>
 
     </div>
     <div class="detail-nav">
@@ -4994,6 +5001,7 @@ function enterSection(key) {
       renderLastList();
     }
     if (s.screen === 'screenMomentous') {
+      momentousPage = 1;
       initMomentous();
     }
     if (s.screen === 'screenMetallurgy') {
@@ -6847,8 +6855,11 @@ function renderLastCurrentYear() {
 }
 
 // ── Momentous fixed-year reports ─────────────────────────────────────
+const MOMENTOUS_PAGE_SIZE = 50;
+const MOMENTOUS_MAX_ITEMS = 500;
 let momentousYear = null;
 let momentousType = 'tracks';
+let momentousPage = 1;
 
 function initMomentous() {
   const years = availableReviewYears();
@@ -6869,12 +6880,14 @@ function initMomentous() {
 
 function setMomentousYear(year) {
   momentousYear = Number(year);
+  momentousPage = 1;
   syncMomentousControls();
   renderMomentousList();
 }
 
 function setMomentousType(type) {
   momentousType = type;
+  momentousPage = 1;
   syncMomentousControls();
   renderMomentousList();
 }
@@ -6889,12 +6902,37 @@ function syncMomentousControls() {
   });
 }
 
+function changeMomentousPage(delta) {
+  momentousPage += delta;
+  renderMomentousList();
+}
+
+function jumpMomentousPage() {
+  const input = document.getElementById('momentousPageInput');
+  momentousPage = parseInt(input.value, 10) || 1;
+  renderMomentousList();
+}
+
+function syncMomentousPager(totalEntries) {
+  const pager = document.getElementById('momentousPager');
+  if (!pager) return;
+  const pageCount = Math.max(1, Math.ceil(totalEntries / MOMENTOUS_PAGE_SIZE));
+  momentousPage = Math.min(Math.max(momentousPage, 1), pageCount);
+  document.getElementById('momentousPageLabel').textContent = 'page ' + momentousPage.toLocaleString() + ' of ' + pageCount.toLocaleString();
+  const input = document.getElementById('momentousPageInput');
+  input.value = momentousPage;
+  input.max = pageCount;
+  document.getElementById('momentousPrev').disabled = momentousPage <= 1;
+  document.getElementById('momentousNext').disabled = momentousPage >= pageCount;
+  pager.classList.toggle('visible', totalEntries > MOMENTOUS_PAGE_SIZE);
+}
+
 function renderMomentousList() {
   const tbody = document.getElementById('momentousBody');
   const empty = document.getElementById('momentousEmpty');
   const label = document.getElementById('momentousRangeLabel');
   const yearLabel = momentousYear === CY ? 'current year' : String(momentousYear);
-  label.textContent = yearLabel + ' · top 100 ' + momentousType;
+  label.textContent = yearLabel + ' · top ' + MOMENTOUS_MAX_ITEMS.toLocaleString() + ' ' + momentousType;
 
   const counts = {};
   allScrobbles.forEach(scrobble => {
@@ -6921,25 +6959,29 @@ function renderMomentousList() {
 
   const entries = Object.values(counts)
     .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name))
-    .slice(0, 100);
+    .slice(0, MOMENTOUS_MAX_ITEMS);
 
   if (!entries.length) {
     tbody.innerHTML = '';
     empty.style.display = 'block';
     empty.textContent = 'no ' + momentousType + ' found for ' + yearLabel;
+    syncMomentousPager(0);
     scheduleScrollControlUpdate();
     return;
   }
 
   empty.style.display = 'none';
+  syncMomentousPager(entries.length);
+  const pageStart = (momentousPage - 1) * MOMENTOUS_PAGE_SIZE;
+  const pageEntries = entries.slice(pageStart, pageStart + MOMENTOUS_PAGE_SIZE);
   const maxVal = entries[0].count || 1;
-  tbody.innerHTML = entries.map((entry, i) => {
+  tbody.innerHTML = pageEntries.map((entry, i) => {
     const barW = entry.count / maxVal * 100;
     const nameCell = entry.artist
       ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
       : '<div class="r-name">' + esc(entry.name) + '</div>';
     return '<tr>' +
-      '<td class="r-rank">' + (i + 1) + '</td>' +
+      '<td class="r-rank">' + (pageStart + i + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
       '<td class="r-count">' + entry.count.toLocaleString() + '</td>' +
