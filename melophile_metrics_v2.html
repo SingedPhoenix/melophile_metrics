@@ -2142,19 +2142,6 @@
     border: 1px solid var(--border);
   }
 
-  .gem-scatter-panel {
-    width: 100%;
-    max-width: 1120px;
-    margin: 0 auto 30px;
-  }
-
-  .gem-scatter-wrap {
-    width: 100%;
-    max-width: 1120px;
-    height: min(46vh, 460px);
-    min-height: 320px;
-  }
-
   /* ── Heatmap ── */
   .heatmap-wrap {
     width: 100%;
@@ -3928,14 +3915,6 @@
     <div class="detail-title">gem mines</div>
     <div class="section-content">
 
-      <div class="gem-scatter-panel">
-        <div class="year-review-heading">all-time song scrobble distribution</div>
-        <div class="gem-range-label visible" id="gemSongScatterLabel">each point is one song · sorted by all-time scrobbles</div>
-        <div class="chart-wrap gem-scatter-wrap">
-          <canvas id="gemSongScatter" class="chart-canvas" height="360"></canvas>
-        </div>
-      </div>
-
       <div class="pill-row" id="metallurgyScopePills"></div>
 
       <div class="pill-row" id="metallurgyTypePills">
@@ -4786,7 +4765,7 @@ function refreshVisibleThemedCharts() {
   if (active.id === 'screenAnalytics') {
     renderAnalytics();
   } else if (active.id === 'screenMetallurgy') {
-    renderGemSongScatter();
+    renderMetallurgyLab();
   } else if (active.id === 'screenTimeframe') {
     renderTimeframeChart(currentTf);
   } else if (active.id === 'screenYearsReview') {
@@ -7863,7 +7842,6 @@ function renderLastAverages(cutoff, anchor) {
 let metallurgyScope = 'allTime';
 let metallurgyType = 'tracks';
 let metallurgyGems = new Set(['amethyst']);
-let gemSongScatterChart = null;
 
 function metallurgyYears() {
   return availableReviewYears();
@@ -7914,108 +7892,6 @@ function syncMetallurgyControls() {
   });
   document.querySelectorAll('#metallurgyGemPills .pill').forEach(p => {
     p.classList.toggle('active', metallurgyGems.has(p.dataset.gem));
-  });
-}
-
-function allTimeTrackDistribution() {
-  const counts = {};
-  allScrobbles.forEach(scrobble => {
-    if (!scrobble.track) return;
-    if (!counts[scrobble.tKey]) {
-      counts[scrobble.tKey] = {
-        name: scrobble.track,
-        artist: scrobble.artist,
-        count: 0
-      };
-    }
-    counts[scrobble.tKey].count++;
-  });
-  return Object.values(counts)
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-}
-
-function renderGemSongScatter() {
-  const canvas = document.getElementById('gemSongScatter');
-  const label = document.getElementById('gemSongScatterLabel');
-  if (!canvas || typeof Chart === 'undefined') return;
-
-  const entries = allTimeTrackDistribution();
-  if (!entries.length) {
-    if (gemSongScatterChart) {
-      gemSongScatterChart.destroy();
-      gemSongScatterChart = null;
-    }
-    if (label) label.textContent = 'no song scrobbles found yet';
-    return;
-  }
-
-  const counts = entries.map(entry => entry.count);
-  const high = counts[0] || 0;
-  const median = counts[Math.floor(counts.length / 2)] || 0;
-  if (label) {
-    label.textContent = entries.length.toLocaleString() + ' songs · peak ' + high.toLocaleString() + ' scrobbles · median ' + median.toLocaleString();
-  }
-
-  const theme = themeChartColors();
-  const points = entries.map((entry, index) => ({
-    x: index + 1,
-    y: entry.count,
-    name: entry.name,
-    artist: entry.artist
-  }));
-
-  if (gemSongScatterChart) gemSongScatterChart.destroy();
-  gemSongScatterChart = new Chart(canvas.getContext('2d'), {
-    type: 'scatter',
-    data: {
-      datasets: [{
-        label: 'songs',
-        data: points,
-        parsing: false,
-        pointRadius: 2,
-        pointHoverRadius: 5,
-        pointBorderWidth: 0,
-        pointBackgroundColor: rgbaFromHex(theme.primary, 0.34),
-        pointHoverBackgroundColor: theme.primary
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      scales: {
-        x: {
-          type: 'linear',
-          title: { display: true, text: 'song rank', color: theme.muted },
-          ticks: { color: theme.muted, maxTicksLimit: 9 },
-          grid: { color: theme.grid }
-        },
-        y: {
-          type: 'logarithmic',
-          title: { display: true, text: 'all-time scrobbles', color: theme.muted },
-          ticks: { color: theme.muted },
-          grid: { color: theme.grid }
-        }
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            title: items => {
-              const point = items[0] && items[0].raw;
-              return point ? point.name : '';
-            },
-            label: item => {
-              const point = item.raw || {};
-              return [
-                point.artist || 'unknown artist',
-                'rank #' + Math.round(point.x).toLocaleString() + ' · ' + Math.round(point.y).toLocaleString() + ' scrobbles'
-              ];
-            }
-          }
-        }
-      }
-    }
   });
 }
 
@@ -8095,7 +7971,6 @@ function applyPercentileGemTiers(entries, activeRanges, stats) {
 }
 
 function renderMetallurgyLab() {
-  renderGemSongScatter();
   const tbody = document.getElementById('metallurgyBody');
   const empty = document.getElementById('metallurgyEmpty');
   const label = document.getElementById('metallurgyRangeLabel');
