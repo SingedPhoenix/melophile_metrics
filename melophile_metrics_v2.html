@@ -3889,15 +3889,6 @@
 
       <div class="gem-range-label visible" id="lastRangeLabel">last 1 month · top 100 tracks</div>
 
-      <div class="fresh-cols" id="lastCurrentYearWrap" style="display:none">
-        <div class="fresh-col">
-          <div class="fresh-stat">
-            <div class="fresh-stat-num" id="lastCurrentYearCount">—</div>
-            <div class="fresh-stat-label" id="lastCurrentYearCountLabel">new tracks in 2026</div>
-          </div>
-        </div>
-      </div>
-
       <div class="rankings-wrap">
         <table class="rankings-table">
           <tbody id="lastBody"></tbody>
@@ -6657,12 +6648,9 @@ function renderLastList() {
   const tbody = document.getElementById('lastBody');
   const empty = document.getElementById('lastEmpty');
   const label = document.getElementById('lastRangeLabel');
-  const currentYearWrap = document.getElementById('lastCurrentYearWrap');
   const windowInfo = LAST_WINDOWS.find(w => w.months === lastWindow) || LAST_WINDOWS[0];
   const limit = lastPageLimit();
   label.textContent = 'last ' + windowInfo.label + ' · ' + lastLimitLabel(limit) + ' ' + lastType;
-
-  if (currentYearWrap) currentYearWrap.style.display = 'none';
 
   const anchor = latestScrobbleMs ? new Date(latestScrobbleMs) : new Date();
   const cutoff = new Date(anchor);
@@ -6779,9 +6767,6 @@ function renderLastCurrentYear() {
   const tbody = document.getElementById('lastBody');
   const empty = document.getElementById('lastEmpty');
   const label = document.getElementById('lastRangeLabel');
-  const currentYearWrap = document.getElementById('lastCurrentYearWrap');
-  const countNum = document.getElementById('lastCurrentYearCount');
-  const countLabel = document.getElementById('lastCurrentYearCountLabel');
 
   const currentYearType = lastType;
   const source = currentYearType === 'artists'
@@ -6793,9 +6778,6 @@ function renderLastCurrentYear() {
     .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 
   label.textContent = 'current year · first-heard ' + currentYearType + ' in ' + CY;
-  if (currentYearWrap) currentYearWrap.style.display = '';
-  if (countNum) countNum.textContent = Object.keys(source).length.toLocaleString();
-  if (countLabel) countLabel.textContent = 'new ' + currentYearType + ' in ' + CY;
 
   if (!entries.length) {
     tbody.innerHTML = '';
