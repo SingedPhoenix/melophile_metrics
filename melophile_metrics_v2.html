@@ -1251,6 +1251,26 @@
     padding: 8px 20px;
   }
 
+  #metallurgyGemPills {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(118px, 1fr));
+    width: min(760px, 100%);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  #metallurgyGemPills .pill-gem {
+    justify-content: center;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  @media (max-width: 760px) {
+    #metallurgyGemPills {
+      grid-template-columns: repeat(2, minmax(118px, 1fr));
+    }
+  }
+
   .gem-range-label {
     font-family: 'Afacad', sans-serif;
     font-weight: 400;
