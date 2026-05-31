@@ -3924,33 +3924,39 @@
       </div>
 
       <div class="pill-row" id="metallurgyGemPills">
-        <button class="pill pill-gem active" data-gem="amethyst" onclick="setMetallurgyGem('amethyst')">
-          <span class="gem-dot" style="--gem-color:#9B59B6"></span>amethyst
-        </button>
-        <button class="pill pill-gem" data-gem="topaz" onclick="setMetallurgyGem('topaz')">
-          <span class="gem-dot" style="--gem-color:#F39C12"></span>topaz
-        </button>
-        <button class="pill pill-gem" data-gem="aquamarine" onclick="setMetallurgyGem('aquamarine')">
-          <span class="gem-dot" style="--gem-color:#1ABC9C"></span>aquamarine
-        </button>
-        <button class="pill pill-gem" data-gem="opal" onclick="setMetallurgyGem('opal')">
-          <span class="gem-dot" style="--gem-color:#BDC3C7"></span>opal
-        </button>
-        <button class="pill pill-gem" data-gem="emerald" onclick="setMetallurgyGem('emerald')">
-          <span class="gem-dot" style="--gem-color:#27AE60"></span>emerald
-        </button>
-        <button class="pill pill-gem" data-gem="sapphire" onclick="setMetallurgyGem('sapphire')">
-          <span class="gem-dot" style="--gem-color:#2980B9"></span>sapphire
-        </button>
-        <button class="pill pill-gem" data-gem="ruby" onclick="setMetallurgyGem('ruby')">
-          <span class="gem-dot" style="--gem-color:#C0392B"></span>ruby
+        <button class="pill pill-gem" data-gem="blackOpal" onclick="setMetallurgyGem('blackOpal')">
+          <span class="gem-dot" style="--gem-color:#151820"></span>black opal
         </button>
         <button class="pill pill-gem" data-gem="diamond" onclick="setMetallurgyGem('diamond')">
           <span class="gem-dot" style="--gem-color:#A8D8EA"></span>diamond
         </button>
+        <button class="pill pill-gem" data-gem="ruby" onclick="setMetallurgyGem('ruby')">
+          <span class="gem-dot" style="--gem-color:#C0392B"></span>ruby
+        </button>
+        <button class="pill pill-gem" data-gem="sapphire" onclick="setMetallurgyGem('sapphire')">
+          <span class="gem-dot" style="--gem-color:#2980B9"></span>sapphire
+        </button>
+        <button class="pill pill-gem" data-gem="emerald" onclick="setMetallurgyGem('emerald')">
+          <span class="gem-dot" style="--gem-color:#27AE60"></span>emerald
+        </button>
+        <button class="pill pill-gem" data-gem="aquamarine" onclick="setMetallurgyGem('aquamarine')">
+          <span class="gem-dot" style="--gem-color:#1ABC9C"></span>aquamarine
+        </button>
+        <button class="pill pill-gem" data-gem="topaz" onclick="setMetallurgyGem('topaz')">
+          <span class="gem-dot" style="--gem-color:#F39C12"></span>topaz
+        </button>
+        <button class="pill pill-gem active" data-gem="amethyst" onclick="setMetallurgyGem('amethyst')">
+          <span class="gem-dot" style="--gem-color:#9B59B6"></span>amethyst
+        </button>
+        <button class="pill pill-gem" data-gem="citrine" onclick="setMetallurgyGem('citrine')">
+          <span class="gem-dot" style="--gem-color:#E4A72D"></span>citrine
+        </button>
+        <button class="pill pill-gem" data-gem="tigerEye" onclick="setMetallurgyGem('tigerEye')">
+          <span class="gem-dot" style="--gem-color:#B86B2B"></span>tiger’s eye
+        </button>
       </div>
 
-      <div class="gem-range-label visible" id="metallurgyRangeLabel">amethyst · 7 – 9 all-time plays · upgrade target: aquamarine</div>
+      <div class="gem-range-label visible" id="metallurgyRangeLabel">amethyst · rank-banded mine</div>
 
       <div class="rankings-wrap">
         <table class="rankings-table">
@@ -5140,13 +5146,21 @@ function countAllTimeGem(type, range) {
     let key;
     if (type === 'artists') {
       key = scrobble.artist.toLowerCase();
+    } else if (type === 'albums') {
+      if (!scrobble.album) return;
+      key = scrobble.aKey;
     } else {
       if (!scrobble.track) return;
       key = scrobble.tKey;
     }
     counts[key] = (counts[key] || 0) + 1;
   });
-  return countEntriesInRange(counts, range);
+  return Object.values(counts)
+    .sort((a, b) => b - a)
+    .filter((_, index) => {
+      const rank = index + 1;
+      return rank >= range.from && rank <= range.to;
+    }).length;
 }
 
 function countLastEntries(months, type) {
@@ -5320,11 +5334,11 @@ function buildSmartJumpoffPool() {
       suggestions.push({
         id: 'metallurgy-' + type + '-' + range.name,
         kicker: 'all-time mine',
-        action: 'explore the ' + range.name + ' mine for ' + type,
+        action: 'explore the ' + range.label + ' mine for ' + type,
         route: [
           { label: 'crate', kind: 'crate' },
           { label: 'gem mines', kind: 'gem' },
-          { label: range.name, kind: 'gem' },
+          { label: range.label, kind: 'gem' },
           { label: type, kind: 'type' }
         ],
         weight: 3 + Math.min(10, Math.ceil(count / 12)),
@@ -5602,59 +5616,93 @@ const GEM_RANGES = [
 ];
 
 const GEM_COLORS = {
+  blackOpal:'#151820', citrine:'#E4A72D', tigerEye:'#B86B2B',
   amethyst:'#9B59B6', aquamarine:'#1ABC9C', opal:'#BDC3C7',
   ruby:'#C0392B', emerald:'#27AE60', topaz:'#F39C12',
   sapphire:'#2980B9', diamond:'#A8D8EA'
 };
 
-const ALL_TIME_GEM_RANGES = [
-  { name:'amethyst',   lo:7,  hi:9,        label:'7 – 9 all-time plays' },
-  { name:'topaz',      lo:10, hi:19,       label:'10 – 19 all-time plays' },
-  { name:'aquamarine', lo:20, hi:29,       label:'20 – 29 all-time plays' },
-  { name:'opal',       lo:30, hi:39,       label:'30 – 39 all-time plays' },
-  { name:'emerald',    lo:40, hi:49,       label:'40 – 49 all-time plays' },
-  { name:'sapphire',   lo:50, hi:69,       label:'50 – 69 all-time plays' },
-  { name:'ruby',       lo:70, hi:99,       label:'70 – 99 all-time plays' },
-  { name:'diamond',    lo:100, hi:Infinity, label:'100+ all-time plays' },
-];
+const GEM_RANK_BANDS = {
+  allTime: {
+    tracks: [
+      { name:'blackOpal', label:'black opal', from:1, to:30 },
+      { name:'diamond', label:'diamond', from:26, to:90 },
+      { name:'ruby', label:'ruby', from:76, to:180 },
+      { name:'sapphire', label:'sapphire', from:176, to:330 },
+      { name:'emerald', label:'emerald', from:326, to:570 },
+      { name:'aquamarine', label:'aquamarine', from:551, to:900 },
+      { name:'topaz', label:'topaz', from:826, to:1290 },
+      { name:'amethyst', label:'amethyst', from:1151, to:1800 },
+      { name:'citrine', label:'citrine', from:1526, to:2370 },
+      { name:'tigerEye', label:'tiger’s eye', from:1951, to:3000 },
+    ],
+    artists: [
+      { name:'blackOpal', label:'black opal', from:1, to:13 },
+      { name:'diamond', label:'diamond', from:14, to:39 },
+      { name:'ruby', label:'ruby', from:41, to:78 },
+      { name:'sapphire', label:'sapphire', from:79, to:143 },
+      { name:'emerald', label:'emerald', from:144, to:247 },
+      { name:'aquamarine', label:'aquamarine', from:248, to:390 },
+      { name:'topaz', label:'topaz', from:391, to:559 },
+      { name:'amethyst', label:'amethyst', from:560, to:780 },
+      { name:'citrine', label:'citrine', from:781, to:1027 },
+      { name:'tigerEye', label:'tiger’s eye', from:1028, to:1300 },
+    ],
+    albums: [
+      { name:'blackOpal', label:'black opal', from:1, to:10 },
+      { name:'diamond', label:'diamond', from:11, to:30 },
+      { name:'ruby', label:'ruby', from:31, to:60 },
+      { name:'sapphire', label:'sapphire', from:61, to:110 },
+      { name:'emerald', label:'emerald', from:111, to:190 },
+      { name:'aquamarine', label:'aquamarine', from:191, to:300 },
+      { name:'topaz', label:'topaz', from:301, to:430 },
+      { name:'amethyst', label:'amethyst', from:431, to:600 },
+      { name:'citrine', label:'citrine', from:601, to:790 },
+      { name:'tigerEye', label:'tiger’s eye', from:791, to:1000 },
+    ],
+  },
+  yearly: {
+    tracks: [
+      { name:'blackOpal', label:'black opal', from:1, to:5 },
+      { name:'diamond', label:'diamond', from:6, to:15 },
+      { name:'ruby', label:'ruby', from:16, to:30 },
+      { name:'sapphire', label:'sapphire', from:31, to:55 },
+      { name:'emerald', label:'emerald', from:56, to:95 },
+      { name:'aquamarine', label:'aquamarine', from:96, to:150 },
+      { name:'topaz', label:'topaz', from:151, to:215 },
+      { name:'amethyst', label:'amethyst', from:216, to:300 },
+      { name:'citrine', label:'citrine', from:301, to:395 },
+      { name:'tigerEye', label:'tiger’s eye', from:396, to:500 },
+    ],
+    artists: [
+      { name:'blackOpal', label:'black opal', from:1, to:3 },
+      { name:'diamond', label:'diamond', from:4, to:8 },
+      { name:'ruby', label:'ruby', from:9, to:15 },
+      { name:'sapphire', label:'sapphire', from:16, to:28 },
+      { name:'emerald', label:'emerald', from:29, to:48 },
+      { name:'aquamarine', label:'aquamarine', from:49, to:75 },
+      { name:'topaz', label:'topaz', from:76, to:108 },
+      { name:'amethyst', label:'amethyst', from:109, to:150 },
+      { name:'citrine', label:'citrine', from:151, to:198 },
+      { name:'tigerEye', label:'tiger’s eye', from:199, to:250 },
+    ],
+    albums: [
+      { name:'blackOpal', label:'black opal', from:1, to:2 },
+      { name:'diamond', label:'diamond', from:3, to:6 },
+      { name:'ruby', label:'ruby', from:7, to:12 },
+      { name:'sapphire', label:'sapphire', from:13, to:22 },
+      { name:'emerald', label:'emerald', from:23, to:38 },
+      { name:'aquamarine', label:'aquamarine', from:39, to:60 },
+      { name:'topaz', label:'topaz', from:61, to:86 },
+      { name:'amethyst', label:'amethyst', from:87, to:120 },
+      { name:'citrine', label:'citrine', from:121, to:158 },
+      { name:'tigerEye', label:'tiger’s eye', from:159, to:200 },
+    ],
+  }
+};
 
-const ARTIST_ALL_TIME_GEM_RANGES = [
-  { name:'amethyst',   lo:0,   hi:99,       label:'0 – 99 all-time plays' },
-  { name:'topaz',      lo:100, hi:199,      label:'100 – 199 all-time plays' },
-  { name:'aquamarine', lo:200, hi:299,      label:'200 – 299 all-time plays' },
-  { name:'opal',       lo:300, hi:399,      label:'300 – 399 all-time plays' },
-  { name:'emerald',    lo:400, hi:499,      label:'400 – 499 all-time plays' },
-  { name:'sapphire',   lo:500, hi:699,      label:'500 – 699 all-time plays' },
-  { name:'ruby',       lo:700, hi:999,      label:'700 – 999 all-time plays' },
-  { name:'diamond',    lo:1000, hi:Infinity, label:'1,000+ all-time plays' },
-];
-
-const ALBUM_ALL_TIME_GEM_RANGES = [
-  { name:'amethyst',   lo:10,  hi:19,       label:'10 – 19 all-time plays' },
-  { name:'topaz',      lo:20,  hi:34,       label:'20 – 34 all-time plays' },
-  { name:'aquamarine', lo:35,  hi:49,       label:'35 – 49 all-time plays' },
-  { name:'opal',       lo:50,  hi:74,       label:'50 – 74 all-time plays' },
-  { name:'emerald',    lo:75,  hi:99,       label:'75 – 99 all-time plays' },
-  { name:'sapphire',   lo:100, hi:149,      label:'100 – 149 all-time plays' },
-  { name:'ruby',       lo:150, hi:249,      label:'150 – 249 all-time plays' },
-  { name:'diamond',    lo:250, hi:Infinity, label:'250+ all-time plays' },
-];
-
-const PERCENTILE_GEM_RANGES = [
-  { name:'diamond',    lo:0,    hi:0.01, label:'top 1%' },
-  { name:'ruby',       lo:0.01, hi:0.03, label:'top 1–3%' },
-  { name:'sapphire',   lo:0.03, hi:0.06, label:'top 3–6%' },
-  { name:'emerald',    lo:0.06, hi:0.10, label:'top 6–10%' },
-  { name:'opal',       lo:0.10, hi:0.15, label:'top 10–15%' },
-  { name:'aquamarine', lo:0.15, hi:0.22, label:'top 15–22%' },
-  { name:'topaz',      lo:0.22, hi:0.32, label:'top 22–32%' },
-  { name:'amethyst',   lo:0.32, hi:0.50, label:'top 32–50%' },
-];
-
-function metallurgyRangesFor(type) {
-  if (type === 'artists') return ARTIST_ALL_TIME_GEM_RANGES;
-  if (type === 'albums') return ALBUM_ALL_TIME_GEM_RANGES;
-  return ALL_TIME_GEM_RANGES;
+function metallurgyRangesFor(type, scopeType = 'allTime') {
+  return (GEM_RANK_BANDS[scopeType] && GEM_RANK_BANDS[scopeType][type]) || GEM_RANK_BANDS.allTime.tracks;
 }
 
 function gemForCount(n) {
@@ -7848,7 +7896,7 @@ function metallurgyYears() {
 }
 
 function metallurgyRangesForScope() {
-  return PERCENTILE_GEM_RANGES;
+  return metallurgyRangesFor(metallurgyType, metallurgyScope === 'allTime' ? 'allTime' : 'yearly');
 }
 
 function setMetallurgyScope(scope) {
@@ -7921,16 +7969,13 @@ function buildMetallurgyEntries() {
     counts[key].lastUts = Math.max(counts[key].lastUts, scrobble.uts);
   });
   return Object.values(counts)
-    .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+    .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name))
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
 }
 
-function buildPercentileGemStats(entries, ranges) {
-  const eligible = entries.filter(entry => entry.count > 0);
-  const total = eligible.length || 1;
+function buildRankGemStats(entries, ranges) {
   return ranges.reduce((stats, range) => {
-    const start = Math.min(total - 1, Math.floor(total * range.lo));
-    const end = Math.min(total, Math.max(start + 1, Math.ceil(total * range.hi)));
-    const slice = eligible.slice(start, end);
+    const slice = entries.filter(entry => entry.rank >= range.from && entry.rank <= range.to);
     const counts = slice.map(entry => entry.count);
     const ceiling = counts.reduce((max, count) => Math.max(max, count), 0);
     const floor = counts.reduce((min, count) => Math.min(min, count), counts[0] || 0);
@@ -7944,20 +7989,18 @@ function buildPercentileGemStats(entries, ranges) {
   }, {});
 }
 
-function formatPercentileGemLabel(stat, range) {
+function formatRankGemLabel(stat, range) {
+  const rankLabel = '#' + range.from.toLocaleString() + '–#' + range.to.toLocaleString();
   if (!stat || !stat.count) return range.label;
   const countLabel = stat.floor === stat.ceiling
     ? stat.floor.toLocaleString() + ' plays'
     : stat.floor.toLocaleString() + ' – ' + stat.ceiling.toLocaleString() + ' plays';
-  return countLabel + ' · ' + range.label;
+  return rankLabel + ' · ' + countLabel;
 }
 
-function applyPercentileGemTiers(entries, activeRanges, stats) {
-  const eligible = entries.filter(entry => entry.count > 0);
-  const total = eligible.length || 1;
-  return eligible.map((entry, index) => {
-    const rankFraction = index / total;
-    const range = activeRanges.find(r => rankFraction >= r.lo && rankFraction < r.hi);
+function applyRankGemTiers(entries, activeRanges, stats) {
+  return entries.map(entry => {
+    const range = activeRanges.find(r => entry.rank >= r.from && entry.rank <= r.to);
     if (!range) return null;
     const stat = stats[range.name] || {};
     return {
@@ -7965,7 +8008,7 @@ function applyPercentileGemTiers(entries, activeRanges, stats) {
       gem: range.name,
       color: GEM_COLORS[range.name] || '#A00000',
       target: stat.ceiling || entry.count,
-      percentileLabel: range.label
+      gemLabel: range.label
     };
   }).filter(Boolean);
 }
@@ -7985,19 +8028,19 @@ function renderMetallurgyLab() {
     return;
   }
   const allEntries = buildMetallurgyEntries();
-  const percentileStats = buildPercentileGemStats(allEntries, ranges);
+  const maxRank = ranges.reduce((max, range) => Math.max(max, range.to), 0);
+  const rankEntries = allEntries.slice(0, maxRank);
+  const rankStats = buildRankGemStats(rankEntries, ranges);
   const scopeLabel = metallurgyScope === 'allTime' ? 'all-time' : String(metallurgyScope);
-  label.textContent = scopeLabel + ' · ' + metallurgyType + ' · percentile tiers · ' + activeRanges.map(r =>
-    r.name + ' (' + formatPercentileGemLabel(percentileStats[r.name], r) + ')'
+  label.textContent = scopeLabel + ' · ' + metallurgyType + ' · rank-banded mines · ' + activeRanges.map(r =>
+    r.label + ' (' + formatRankGemLabel(rankStats[r.name], r) + ')'
   ).join(' · ');
 
-  const entries = applyPercentileGemTiers(allEntries, activeRanges, percentileStats)
+  const entries = applyRankGemTiers(rankEntries, activeRanges, rankStats)
     .filter(Boolean)
-    .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+    .sort((a,b) => a.rank - b.rank || a.name.localeCompare(b.name));
 
-  const entriesToShow = metallurgyGems.has('diamond')
-    ? entries
-    : entries.slice(0, 100);
+  const entriesToShow = entries;
 
   if (!entriesToShow.length) {
     tbody.innerHTML = '';
@@ -8015,7 +8058,7 @@ function renderMetallurgyLab() {
       : '<div class="r-name">' + esc(entry.name) + '</div>';
     const gemDot = '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;margin-right:8px;vertical-align:middle"><span style="width:10px;height:10px;border-radius:50%;background:' + entry.color + ';display:block;opacity:0.85"></span></span>';
     return '<tr>' +
-      '<td class="r-rank">' + (i+1) + '</td>' +
+      '<td class="r-rank">' + entry.rank.toLocaleString() + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%;background:linear-gradient(90deg,' + entry.color + ',rgba(10,10,10,0.2))"></div></div></td>' +
       '<td class="r-count">' + gemDot + entry.count.toLocaleString() + '</td>' +
