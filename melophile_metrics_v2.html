@@ -1378,6 +1378,13 @@
     min-width: 0;
   }
 
+  .r-name-action-buttons {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+
   .r-action-btn {
     width: 28px;
     height: 28px;
@@ -1429,6 +1436,14 @@
     color: color-mix(in srgb, var(--silver) 72%, var(--amethyst-mid));
   }
 
+  .r-action-spotify-open {
+    color: color-mix(in srgb, var(--silver) 70%, #1ed760);
+  }
+
+  .r-action-edit-link {
+    color: color-mix(in srgb, var(--silver) 70%, var(--topaz));
+  }
+
   .r-icon-sing {
     width: 17px;
     height: 17px;
@@ -1447,6 +1462,72 @@
   .r-icon-disc {
     width: 16px;
     height: 16px;
+  }
+
+  .r-icon-pencil {
+    width: 15px;
+    height: 15px;
+  }
+
+  .link-editor-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(8,8,10,0.46);
+    backdrop-filter: blur(10px);
+  }
+
+  .link-editor-panel {
+    width: min(620px, 100%);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--charcoal) 82%, transparent);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.36);
+    padding: 26px;
+  }
+
+  .link-editor-title {
+    font-family: 'Afacad', sans-serif;
+    font-size: 26px;
+    font-weight: 500;
+    color: var(--silver);
+    margin-bottom: 4px;
+  }
+
+  .link-editor-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--silver-dim);
+    line-height: 1.6;
+    margin-bottom: 18px;
+  }
+
+  .link-editor-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(8,8,10,0.36);
+    color: var(--silver);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    padding: 14px 16px;
+    outline: none;
+  }
+
+  .link-editor-input:focus {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 3px rgba(204,204,204,0.06);
+  }
+
+  .link-editor-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
   }
 
   .r-artist {
@@ -5476,6 +5557,14 @@ document.addEventListener('click', e => {
   if (action) {
     e.preventDefault();
     e.stopPropagation();
+    if (action.dataset.linkAction === 'open-spotify') {
+      openSpotifyEntity(action.dataset.entityType || '', action.dataset.name || '', action.dataset.artist || '');
+      return;
+    }
+    if (action.dataset.linkAction === 'edit-spotify') {
+      openSpotifyLinkEditor(action.dataset.entityType || '', action.dataset.name || '', action.dataset.artist || '');
+      return;
+    }
     if (action.dataset.copyKind === 'track-title-artist') {
       const track = action.dataset.track || '';
       const artist = action.dataset.artist || '';
@@ -6686,6 +6775,11 @@ const TRACK_COPY_ICON =
 const ALBUM_COPY_ICON =
   '<svg class="r-action-icon r-icon-disc" viewBox="0 0 122.88 122.88" aria-hidden="true">' +
     '<path fill-rule="evenodd" clip-rule="evenodd" d="M61.44,0c33.93,0,61.44,27.51,61.44,61.44c0,33.93-27.51,61.44-61.44,61.44C27.51,122.88,0,95.37,0,61.44 C0,27.51,27.51,0,61.44,0L61.44,0z M61.44,56.65c2.65,0,4.79,2.15,4.79,4.79c0,2.64-2.14,4.79-4.79,4.79 c-2.64,0-4.79-2.14-4.79-4.79C56.65,58.8,58.8,56.65,61.44,56.65L61.44,56.65z M61.44,41.99c10.74,0,19.45,8.71,19.45,19.45 c0,10.74-8.71,19.45-19.45,19.45C50.7,80.89,42,72.18,42,61.44C42,50.7,50.7,41.99,61.44,41.99L61.44,41.99L61.44,41.99z M13.59,49.95c3.21-8.59,8.3-16.25,14.77-22.48c6.46-6.22,14.3-11.03,23-13.91l1.56,4.72c-8,2.65-15.19,7.06-21.12,12.77 c-5.95,5.73-10.62,12.76-13.56,20.63L13.59,49.95L13.59,49.95z M29.12,53.58c2.01-5.39,5.21-10.21,9.27-14.12 c4.06-3.91,8.98-6.93,14.45-8.73l1.55,4.72c-4.76,1.58-9.03,4.2-12.56,7.59c-3.54,3.41-6.32,7.59-8.07,12.27L29.12,53.58 L29.12,53.58L29.12,53.58z M94.28,68.54c-2.01,5.39-5.21,10.21-9.27,14.12c-4.06,3.91-8.98,6.93-14.45,8.73l-1.55-4.72 c4.76-1.58,9.04-4.19,12.56-7.59c3.54-3.41,6.32-7.59,8.07-12.27L94.28,68.54L94.28,68.54L94.28,68.54z M109.81,72.17 c-3.21,8.58-8.3,16.24-14.77,22.48c-6.46,6.23-14.3,11.03-23,13.91l-1.56-4.72c8-2.65,15.19-7.06,21.12-12.77 c5.95-5.73,10.62-12.76,13.56-20.63L109.81,72.17L109.81,72.17z"/>' +
+  '</svg>';
+
+const PENCIL_EDIT_ICON =
+  '<svg class="r-action-icon r-icon-pencil" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M4.75 17.56l-.57 2.26 2.26-.57 10.72-10.72-1.69-1.69L4.75 17.56zm14.39-11.81l-.89-.89a2.08 2.08 0 0 0-2.94 0l-.72.72 3.83 3.83.72-.72a2.08 2.08 0 0 0 0-2.94z"/>' +
   '</svg>';
 
 function setLastWindow(months) {
@@ -8033,6 +8127,216 @@ function applyRankGemTiers(entries, activeRanges, stats) {
   }).filter(Boolean);
 }
 
+const SPOTIFY_LINK_OVERRIDE_KEY = 'melophile.spotify.linkOverrides';
+const SPOTIFY_LINK_CACHE_KEY = 'melophile.spotify.linkCache';
+let spotifyLinkEditorTarget = null;
+
+function spotifyEntityTypeFromListType(type) {
+  if (type === 'tracks') return 'track';
+  if (type === 'albums') return 'album';
+  if (type === 'artists') return 'artist';
+  return '';
+}
+
+function normalizeEntityText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/\([^)]*\)/g, ' ')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\b(remaster(?:ed)?|deluxe|edition|explicit|version|mono|stereo)\b/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function spotifyEntityKey(type, name, artist) {
+  return [type, normalizeEntityText(artist || ''), normalizeEntityText(name || '')].join('|||');
+}
+
+function readJsonMap(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || '{}') || {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function writeJsonMap(key, value) {
+  localStorage.setItem(key, JSON.stringify(value || {}));
+}
+
+function spotifyExternalUrlFromUri(uri) {
+  const match = String(uri || '').match(/^spotify:(track|album|artist):([A-Za-z0-9]+)$/);
+  return match ? 'https://open.spotify.com/' + match[1] + '/' + match[2] : '';
+}
+
+function normalizeSpotifyManualLink(value, expectedType) {
+  const link = String(value || '').trim();
+  if (!link) return '';
+  const uriMatch = link.match(/^spotify:(track|album|artist):[A-Za-z0-9]+$/);
+  if (uriMatch) return expectedType && uriMatch[1] !== expectedType ? '' : link;
+  try {
+    const url = new URL(link);
+    if (url.hostname !== 'open.spotify.com') return '';
+    const pathMatch = url.pathname.match(/^\/(track|album|artist)\/[A-Za-z0-9]+/);
+    if (!pathMatch || (expectedType && pathMatch[1] !== expectedType)) return '';
+    return url.origin + url.pathname;
+  } catch (err) {
+    return '';
+  }
+}
+
+function spotifyCandidateScore(type, item, name, artist) {
+  const wantedName = normalizeEntityText(name);
+  const itemName = normalizeEntityText(item && item.name);
+  if (!wantedName || !itemName) return 0;
+  let score = itemName === wantedName ? 8 : 0;
+  if (!score && (itemName.includes(wantedName) || wantedName.includes(itemName))) score += 4;
+  const wantedTokens = new Set(wantedName.split(' ').filter(Boolean));
+  const itemTokens = new Set(itemName.split(' ').filter(Boolean));
+  let overlap = 0;
+  wantedTokens.forEach(token => { if (itemTokens.has(token)) overlap += 1; });
+  score += wantedTokens.size ? Math.min(3, overlap / wantedTokens.size * 3) : 0;
+  if (type !== 'artist' && artist) {
+    const wantedArtist = normalizeEntityText(artist);
+    const candidateArtists = (item.artists || []).map(a => normalizeEntityText(a.name)).join(' ');
+    if (candidateArtists === wantedArtist) score += 5;
+    else if (candidateArtists.includes(wantedArtist) || wantedArtist.includes(candidateArtists)) score += 3;
+  }
+  return score;
+}
+
+async function resolveSpotifyEntityLink(type, name, artist) {
+  if (!type || !name) return '';
+  const key = spotifyEntityKey(type, name, artist);
+  const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
+  if (overrides[key]) return overrides[key];
+  const cache = readJsonMap(SPOTIFY_LINK_CACHE_KEY);
+  if (cache[key]) return cache[key].uri || cache[key].url || cache[key];
+
+  const params = new URLSearchParams();
+  const query = type === 'artist'
+    ? 'artist:' + name
+    : (type === 'album' ? 'album:' + name : 'track:' + name) + (artist ? ' artist:' + artist : '');
+  params.set('q', query);
+  params.set('type', type);
+  params.set('limit', '8');
+  const data = await spotifyFetch('/v1/search?' + params.toString());
+  const bucket = data[type + 's'];
+  const items = bucket && Array.isArray(bucket.items) ? bucket.items : [];
+  const winner = items
+    .map(item => ({ item, score: spotifyCandidateScore(type, item, name, artist) }))
+    .sort((a,b) => b.score - a.score)[0];
+  if (!winner || winner.score < (type === 'artist' ? 4 : 6)) return '';
+  const link = {
+    uri: winner.item.uri || '',
+    url: winner.item.external_urls && winner.item.external_urls.spotify ? winner.item.external_urls.spotify : ''
+  };
+  cache[key] = link;
+  writeJsonMap(SPOTIFY_LINK_CACHE_KEY, cache);
+  return link.uri || link.url;
+}
+
+function openSpotifyLink(link) {
+  const normalized = normalizeSpotifyManualLink(link) || link;
+  if (/^spotify:/.test(normalized)) {
+    window.location.href = normalized;
+    return;
+  }
+  window.open(normalized, '_blank', 'noopener');
+}
+
+async function openSpotifyEntity(type, name, artist) {
+  try {
+    const link = await resolveSpotifyEntityLink(type, name, artist);
+    if (!link) {
+      showCopyToast('spotify link not found · use pencil to correct');
+      return;
+    }
+    openSpotifyLink(link);
+  } catch (err) {
+    showCopyToast('spotify search unavailable · use pencil to correct');
+  }
+}
+
+function renderSpotifyEntityActions(listType, name, artist) {
+  const type = spotifyEntityTypeFromListType(listType);
+  if (!type || !name) return '';
+  const title = 'open ' + type + ' in spotify';
+  return '<span class="r-name-action-buttons">' +
+    '<button class="r-action-btn r-action-spotify-open" type="button" data-link-action="open-spotify" data-entity-type="' + esc(type) + '" data-name="' + esc(name) + '" data-artist="' + esc(artist || '') + '" aria-label="' + esc(title) + '" title="' + esc(title) + '">' +
+      SPOTIFY_PROMPT_ICON +
+    '</button>' +
+    '<button class="r-action-btn r-action-edit-link" type="button" data-link-action="edit-spotify" data-entity-type="' + esc(type) + '" data-name="' + esc(name) + '" data-artist="' + esc(artist || '') + '" aria-label="edit spotify link" title="edit spotify link">' +
+      PENCIL_EDIT_ICON +
+    '</button>' +
+  '</span>';
+}
+
+function openSpotifyLinkEditor(type, name, artist) {
+  if (!type || !name) return;
+  spotifyLinkEditorTarget = { type, name, artist: artist || '' };
+  const key = spotifyEntityKey(type, name, artist);
+  const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
+  const cache = readJsonMap(SPOTIFY_LINK_CACHE_KEY);
+  const cached = cache[key] && (cache[key].url || spotifyExternalUrlFromUri(cache[key].uri) || cache[key]);
+  const current = overrides[key] || cached || '';
+  closeSpotifyLinkEditor();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'link-editor-overlay';
+  overlay.id = 'spotifyLinkEditor';
+  overlay.innerHTML =
+    '<div class="link-editor-panel" role="dialog" aria-modal="true" aria-label="spotify link correction">' +
+      '<div class="link-editor-title">correct spotify link</div>' +
+      '<div class="link-editor-sub">' + esc(type) + ' · ' + esc(name) + (artist ? ' · ' + esc(artist) : '') + '</div>' +
+      '<input class="link-editor-input" id="spotifyLinkEditorInput" value="' + esc(current) + '" placeholder="paste open.spotify.com or spotify: link">' +
+      '<div class="link-editor-actions">' +
+        '<button class="pill" type="button" onclick="closeSpotifyLinkEditor()">cancel</button>' +
+        '<button class="pill" type="button" onclick="clearSpotifyLinkOverride()">clear correction</button>' +
+        '<button class="pill active" type="button" onclick="saveSpotifyLinkOverride()">apply link</button>' +
+      '</div>' +
+    '</div>';
+  overlay.addEventListener('click', event => {
+    if (event.target === overlay) closeSpotifyLinkEditor();
+  });
+  document.body.appendChild(overlay);
+  const input = document.getElementById('spotifyLinkEditorInput');
+  if (input) input.focus();
+}
+
+function closeSpotifyLinkEditor() {
+  const editor = document.getElementById('spotifyLinkEditor');
+  if (editor) editor.remove();
+}
+
+function saveSpotifyLinkOverride() {
+  if (!spotifyLinkEditorTarget) return;
+  const input = document.getElementById('spotifyLinkEditorInput');
+  const link = normalizeSpotifyManualLink(input ? input.value : '', spotifyLinkEditorTarget.type);
+  if (!link) {
+    showCopyToast('paste a valid spotify ' + spotifyLinkEditorTarget.type + ' link');
+    return;
+  }
+  const key = spotifyEntityKey(spotifyLinkEditorTarget.type, spotifyLinkEditorTarget.name, spotifyLinkEditorTarget.artist);
+  const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
+  overrides[key] = link;
+  writeJsonMap(SPOTIFY_LINK_OVERRIDE_KEY, overrides);
+  closeSpotifyLinkEditor();
+  showCopyToast('spotify link corrected');
+}
+
+function clearSpotifyLinkOverride() {
+  if (!spotifyLinkEditorTarget) return;
+  const key = spotifyEntityKey(spotifyLinkEditorTarget.type, spotifyLinkEditorTarget.name, spotifyLinkEditorTarget.artist);
+  const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
+  delete overrides[key];
+  writeJsonMap(SPOTIFY_LINK_OVERRIDE_KEY, overrides);
+  closeSpotifyLinkEditor();
+  showCopyToast('spotify correction cleared');
+}
+
 function renderMetallurgyLab() {
   const tbody = document.getElementById('metallurgyBody');
   const empty = document.getElementById('metallurgyEmpty');
@@ -8073,9 +8377,10 @@ function renderMetallurgyLab() {
   empty.style.display = 'none';
   tbody.innerHTML = entriesToShow.map((entry, i) => {
     const barW = entry.target > 0 && Number.isFinite(entry.target) ? Math.min(entry.count / entry.target * 100, 100) : 100;
-    const nameCell = entry.artist
-      ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
-      : '<div class="r-name">' + esc(entry.name) + '</div>';
+    const nameTitle = entry.artist
+      ? '<div><div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div></div>'
+      : '<div><div class="r-name">' + esc(entry.name) + '</div></div>';
+    const nameCell = '<div class="r-name-actions">' + renderSpotifyEntityActions(metallurgyType, entry.name, entry.artist || '') + nameTitle + '</div>';
     const gemDot = '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;margin-right:8px;vertical-align:middle"><span style="width:10px;height:10px;border-radius:50%;background:' + entry.color + ';display:block;opacity:0.85"></span></span>';
     return '<tr>' +
       '<td class="r-rank">' + entry.rank.toLocaleString() + '</td>' +
