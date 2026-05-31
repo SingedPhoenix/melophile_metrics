@@ -813,6 +813,75 @@
     flex-wrap: wrap;
   }
 
+  .spotify-link-tools {
+    grid-column: 1 / -1;
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 12px;
+    background: rgba(10,10,10,0.12);
+    padding: 18px;
+  }
+
+  .spotify-link-grid {
+    display: grid;
+    grid-template-columns: 140px minmax(160px, 1fr) minmax(160px, 1fr);
+    gap: 10px;
+    margin: 14px 0 10px;
+  }
+
+  .spotify-link-url {
+    margin-bottom: 10px;
+  }
+
+  .spotify-corrections-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .spotify-correction-row {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid rgba(204,204,204,0.06);
+    padding-top: 8px;
+  }
+
+  .spotify-correction-kind {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--silver-dim);
+  }
+
+  .spotify-correction-name {
+    min-width: 0;
+  }
+
+  .spotify-correction-title {
+    font-family: 'Afacad', sans-serif;
+    font-size: 16px;
+    color: var(--silver);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .spotify-correction-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--silver-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  @media (max-width: 760px) {
+    .spotify-link-grid,
+    .spotify-correction-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .spotify-playlists {
     grid-column: 1 / -1;
     display: grid;
@@ -3797,6 +3866,27 @@
         </div>
         <div class="spotify-meta" id="spotifyMeta">client id is stored in this browser only.</div>
       </div>
+      <div class="spotify-link-tools" id="spotifyLinkTools">
+        <div class="spotify-title">spotify link corrections</div>
+        <div class="spotify-sub">manual overrides for tracks, artists, and albums when fuzzy spotify search points at the wrong item. gem mines will use these corrected links first.</div>
+        <div class="spotify-link-grid">
+          <select class="spotify-input" id="spotifyCorrectionType">
+            <option value="track">track</option>
+            <option value="artist">artist</option>
+            <option value="album">album</option>
+          </select>
+          <input class="spotify-input" id="spotifyCorrectionName" type="text" autocomplete="off" spellcheck="false" placeholder="track, artist, or album name">
+          <input class="spotify-input" id="spotifyCorrectionArtist" type="text" autocomplete="off" spellcheck="false" placeholder="artist name if needed">
+        </div>
+        <input class="spotify-input spotify-link-url" id="spotifyCorrectionUrl" type="text" autocomplete="off" spellcheck="false" placeholder="correct open.spotify.com or spotify: url">
+        <div class="spotify-actions">
+          <button class="pill" type="button" onclick="saveSpotifyLinkCorrectionFromSettings()">apply correction</button>
+          <button class="pill" type="button" onclick="clearSpotifyLinkCorrectionFromSettings()">clear correction</button>
+          <button class="pill" type="button" onclick="renderSpotifyLinkCorrections()">refresh list</button>
+        </div>
+        <div class="spotify-meta" id="spotifyCorrectionStatus">no correction selected.</div>
+        <div class="spotify-corrections-list" id="spotifyCorrectionsList"></div>
+      </div>
       <div class="seed-scan-panel" id="seedScanPanel">
         <div>
           <div class="spotify-title">seed release scanner</div>
@@ -5140,6 +5230,9 @@ function enterSection(key) {
     }
     if (s.screen === 'screenFresh') {
       renderFreshHub();
+    }
+    if (s.screen === 'screenSettings') {
+      renderSpotifyLinkCorrections();
     }
     return;
   }
@@ -8154,6 +8247,10 @@ function spotifyEntityKey(type, name, artist) {
   return [type, normalizeEntityText(artist || ''), normalizeEntityText(name || '')].join('|||');
 }
 
+function spotifyOverrideLink(value) {
+  return value && typeof value === 'object' ? value.url : value;
+}
+
 function readJsonMap(key) {
   try {
     return JSON.parse(localStorage.getItem(key) || '{}') || {};
@@ -8211,7 +8308,7 @@ async function resolveSpotifyEntityLink(type, name, artist) {
   if (!type || !name) return '';
   const key = spotifyEntityKey(type, name, artist);
   const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
-  if (overrides[key]) return overrides[key];
+  if (overrides[key]) return spotifyOverrideLink(overrides[key]);
   const cache = readJsonMap(SPOTIFY_LINK_CACHE_KEY);
   if (cache[key]) return cache[key].uri || cache[key].url || cache[key];
 
@@ -8251,12 +8348,12 @@ async function openSpotifyEntity(type, name, artist) {
   try {
     const link = await resolveSpotifyEntityLink(type, name, artist);
     if (!link) {
-      showCopyToast('spotify link not found · use pencil to correct');
+      showCopyToast('spotify link not found · correct it in settings');
       return;
     }
     openSpotifyLink(link);
   } catch (err) {
-    showCopyToast('spotify search unavailable · use pencil to correct');
+    showCopyToast('spotify search unavailable · correct it in settings');
   }
 }
 
@@ -8268,9 +8365,6 @@ function renderSpotifyEntityActions(listType, name, artist) {
     '<button class="r-action-btn r-action-spotify-open" type="button" data-link-action="open-spotify" data-entity-type="' + esc(type) + '" data-name="' + esc(name) + '" data-artist="' + esc(artist || '') + '" aria-label="' + esc(title) + '" title="' + esc(title) + '">' +
       SPOTIFY_PROMPT_ICON +
     '</button>' +
-    '<button class="r-action-btn r-action-edit-link" type="button" data-link-action="edit-spotify" data-entity-type="' + esc(type) + '" data-name="' + esc(name) + '" data-artist="' + esc(artist || '') + '" aria-label="edit spotify link" title="edit spotify link">' +
-      PENCIL_EDIT_ICON +
-    '</button>' +
   '</span>';
 }
 
@@ -8281,7 +8375,7 @@ function openSpotifyLinkEditor(type, name, artist) {
   const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
   const cache = readJsonMap(SPOTIFY_LINK_CACHE_KEY);
   const cached = cache[key] && (cache[key].url || spotifyExternalUrlFromUri(cache[key].uri) || cache[key]);
-  const current = overrides[key] || cached || '';
+  const current = spotifyOverrideLink(overrides[key]) || cached || '';
   closeSpotifyLinkEditor();
 
   const overlay = document.createElement('div');
@@ -8321,10 +8415,17 @@ function saveSpotifyLinkOverride() {
   }
   const key = spotifyEntityKey(spotifyLinkEditorTarget.type, spotifyLinkEditorTarget.name, spotifyLinkEditorTarget.artist);
   const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
-  overrides[key] = link;
+  overrides[key] = {
+    type: spotifyLinkEditorTarget.type,
+    name: spotifyLinkEditorTarget.name,
+    artist: spotifyLinkEditorTarget.artist,
+    url: link,
+    updatedAt: Date.now()
+  };
   writeJsonMap(SPOTIFY_LINK_OVERRIDE_KEY, overrides);
   closeSpotifyLinkEditor();
   showCopyToast('spotify link corrected');
+  renderSpotifyLinkCorrections();
 }
 
 function clearSpotifyLinkOverride() {
@@ -8335,6 +8436,110 @@ function clearSpotifyLinkOverride() {
   writeJsonMap(SPOTIFY_LINK_OVERRIDE_KEY, overrides);
   closeSpotifyLinkEditor();
   showCopyToast('spotify correction cleared');
+  renderSpotifyLinkCorrections();
+}
+
+function setSpotifyCorrectionStatus(message) {
+  const status = document.getElementById('spotifyCorrectionStatus');
+  if (status) status.textContent = message;
+}
+
+function currentSettingsCorrectionTarget() {
+  const type = (document.getElementById('spotifyCorrectionType') || {}).value || 'track';
+  const name = ((document.getElementById('spotifyCorrectionName') || {}).value || '').trim();
+  const artist = ((document.getElementById('spotifyCorrectionArtist') || {}).value || '').trim();
+  return { type, name, artist };
+}
+
+function saveSpotifyLinkCorrectionFromSettings() {
+  const target = currentSettingsCorrectionTarget();
+  const urlInput = document.getElementById('spotifyCorrectionUrl');
+  const link = normalizeSpotifyManualLink(urlInput ? urlInput.value : '', target.type);
+  if (!target.name) {
+    setSpotifyCorrectionStatus('enter the name exactly as it appears in the list.');
+    return;
+  }
+  if (target.type !== 'artist' && !target.artist) {
+    setSpotifyCorrectionStatus('enter the artist name for track and album corrections.');
+    return;
+  }
+  if (!link) {
+    setSpotifyCorrectionStatus('paste a valid spotify ' + target.type + ' link.');
+    return;
+  }
+  const key = spotifyEntityKey(target.type, target.name, target.artist);
+  const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
+  overrides[key] = {
+    type: target.type,
+    name: target.name,
+    artist: target.artist,
+    url: link,
+    updatedAt: Date.now()
+  };
+  writeJsonMap(SPOTIFY_LINK_OVERRIDE_KEY, overrides);
+  setSpotifyCorrectionStatus('correction saved for ' + target.name + '.');
+  renderSpotifyLinkCorrections();
+}
+
+function clearSpotifyLinkCorrectionFromSettings() {
+  const target = currentSettingsCorrectionTarget();
+  if (!target.name) {
+    setSpotifyCorrectionStatus('enter the corrected item name to clear it.');
+    return;
+  }
+  const key = spotifyEntityKey(target.type, target.name, target.artist);
+  const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
+  delete overrides[key];
+  writeJsonMap(SPOTIFY_LINK_OVERRIDE_KEY, overrides);
+  setSpotifyCorrectionStatus('correction cleared for ' + target.name + '.');
+  renderSpotifyLinkCorrections();
+}
+
+function fillSpotifyCorrectionForm(key) {
+  const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
+  const item = overrides[key];
+  if (!item) return;
+  const type = item.type || key.split('|||')[0] || 'track';
+  const typeInput = document.getElementById('spotifyCorrectionType');
+  const nameInput = document.getElementById('spotifyCorrectionName');
+  const artistInput = document.getElementById('spotifyCorrectionArtist');
+  const urlInput = document.getElementById('spotifyCorrectionUrl');
+  if (typeInput) typeInput.value = type;
+  if (nameInput) nameInput.value = item.name || '';
+  if (artistInput) artistInput.value = item.artist || '';
+  if (urlInput) urlInput.value = spotifyOverrideLink(item) || '';
+  setSpotifyCorrectionStatus('editing correction for ' + (item.name || 'spotify item') + '.');
+}
+
+function renderSpotifyLinkCorrections() {
+  const list = document.getElementById('spotifyCorrectionsList');
+  if (!list) return;
+  const overrides = readJsonMap(SPOTIFY_LINK_OVERRIDE_KEY);
+  const entries = Object.entries(overrides).sort((a,b) => {
+    const aTime = (a[1] && a[1].updatedAt) || 0;
+    const bTime = (b[1] && b[1].updatedAt) || 0;
+    return bTime - aTime;
+  });
+  if (!entries.length) {
+    list.innerHTML = '<div class="spotify-empty">no manual spotify corrections saved yet.</div>';
+    return;
+  }
+  list.innerHTML = entries.slice(0, 20).map(([key, item]) => {
+    const type = item.type || key.split('|||')[0] || 'item';
+    const name = item.name || key.split('|||')[2] || 'corrected item';
+    const artist = item.artist || '';
+    const link = spotifyOverrideLink(item) || '';
+    return '<div class="spotify-correction-row">' +
+      '<div class="spotify-correction-kind">' + esc(type) + '</div>' +
+      '<div class="spotify-correction-name">' +
+        '<div class="spotify-correction-title">' + esc(name) + '</div>' +
+        '<div class="spotify-correction-sub">' + esc(artist || link) + '</div>' +
+      '</div>' +
+      '<div class="spotify-actions">' +
+        '<button class="pill" type="button" onclick="fillSpotifyCorrectionForm(\'' + esc(key) + '\')">edit</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function renderMetallurgyLab() {
