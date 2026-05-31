@@ -3364,6 +3364,164 @@
     margin: 0 auto;
   }
 
+  .past-tense-family {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto 34px;
+  }
+
+  .past-tense-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(120px, 1fr));
+    gap: 14px;
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+  }
+
+  .past-tense-card {
+    appearance: none;
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--cherry-bright) 10%, transparent), color-mix(in srgb, var(--charcoal-light) 8%, transparent)),
+      rgba(204,204,204,0.024);
+    padding: 12px;
+    min-width: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.22s, border-color 0.22s, background 0.22s;
+  }
+
+  .past-tense-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-hover);
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--cherry-bright) 18%, transparent), color-mix(in srgb, var(--charcoal-light) 12%, transparent)),
+      rgba(204,204,204,0.035);
+  }
+
+  .past-tense-cover {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    object-fit: cover;
+    background:
+      radial-gradient(circle at 28% 22%, color-mix(in srgb, var(--silver) 18%, transparent), transparent 34%),
+      linear-gradient(135deg, color-mix(in srgb, var(--cherry-bright) 18%, transparent), color-mix(in srgb, var(--amethyst-mid) 14%, transparent));
+    border: 1px solid rgba(204,204,204,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 26px rgba(0,0,0,0.24);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+    color: rgba(238,238,238,0.9);
+    font-family: 'Quicksand', sans-serif;
+    font-size: 23px;
+    font-weight: 600;
+  }
+
+  .past-tense-name {
+    font-family: 'Afacad', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.08;
+    color: rgba(238,238,238,0.92);
+  }
+
+  .past-tense-meta {
+    margin-top: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-xs);
+    line-height: 1.45;
+    color: rgba(204,204,204,0.34);
+  }
+
+  .past-tense-detail-wrap {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .past-tense-detail-hero {
+    display: grid;
+    grid-template-columns: minmax(180px, 260px) 1fr;
+    gap: 22px;
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+    margin-bottom: 18px;
+  }
+
+  .past-tense-detail-cover {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    object-fit: cover;
+    background:
+      radial-gradient(circle at 25% 20%, color-mix(in srgb, var(--silver) 20%, transparent), transparent 34%),
+      linear-gradient(135deg, color-mix(in srgb, var(--cherry-bright) 20%, transparent), color-mix(in srgb, var(--amethyst-mid) 14%, transparent));
+    border: 1px solid rgba(204,204,204,0.08);
+  }
+
+  .past-tense-detail-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 38px;
+    font-weight: 500;
+    color: var(--silver);
+    line-height: 1;
+  }
+
+  .past-tense-detail-meta {
+    margin-top: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-sm);
+    line-height: 1.65;
+    color: rgba(204,204,204,0.42);
+  }
+
+  .past-tense-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .past-tense-stat {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 14px;
+    background: rgba(204,204,204,0.028);
+    padding: 14px;
+  }
+
+  .past-tense-stat-value {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 26px;
+    color: var(--silver);
+  }
+
+  .past-tense-stat-label {
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-xs);
+    color: rgba(204,204,204,0.36);
+  }
+
+  @media (max-width: 980px) {
+    .past-tense-grid {
+      grid-template-columns: repeat(3, minmax(120px, 1fr));
+    }
+
+    .past-tense-detail-hero {
+      grid-template-columns: 1fr;
+    }
+  }
+
   .year-review-pager {
     display: none;
     align-items: center;
@@ -4286,9 +4444,22 @@
     </div>
   </div>
 
-  <!-- ── Screen 12: Years In Review ── -->
+  <!-- ── Screen 12: Past Tense ── -->
   <div class="screen" id="screenYearsReview">
-    <div class="detail-title">years in review</div>
+    <div class="detail-title">past tense</div>
+    <div class="section-subtitle">release-date playlist family</div>
+
+    <div class="past-tense-family">
+      <div class="seed-section-head">
+        <div>
+          <div class="seed-section-title">release-year volumes</div>
+          <div class="seed-section-sub" id="pastTensePlaylistStatus">connect spotify in settings to load covers and contents</div>
+        </div>
+      </div>
+      <div class="past-tense-grid" id="pastTensePlaylistGrid" aria-label="past tense release-year playlists"></div>
+    </div>
+
+    <div class="year-review-heading">listening-year review</div>
     <div class="section-subtitle" id="yearReviewSubtitle">select a year</div>
 
     <div class="year-review-years" id="yearReviewPills"></div>
@@ -4334,6 +4505,18 @@
     </div>
 
     <div class="rankings-empty" id="yearReviewEmpty" style="display:none">no listening data found for this year</div>
+
+    <div class="detail-nav">
+      <button class="back-btn" onclick="goBack()">back</button>
+      <button class="home-btn" onclick="goHome()">home</button>
+    </div>
+  </div>
+
+  <div class="screen" id="screenPastTenseYear">
+    <div class="detail-title" id="pastTenseDetailTitle">vol.</div>
+    <div class="section-subtitle" id="pastTenseDetailSubtitle">release-year playlist</div>
+
+    <div class="past-tense-detail-wrap" id="pastTenseDetail"></div>
 
     <div class="detail-nav">
       <button class="back-btn" onclick="goBack()">back</button>
@@ -4966,7 +5149,12 @@ function refreshVisibleThemedCharts() {
   } else if (active.id === 'screenTimeframe') {
     renderTimeframeChart(currentTf);
   } else if (active.id === 'screenYearsReview') {
+    renderPastTensePlaylists();
     renderYearReview();
+  } else if (active.id === 'screenPastTenseYear' && selectedPastTensePlaylistId) {
+    const entry = PAST_TENSE_PLAYLISTS.find(item => item.id === selectedPastTensePlaylistId);
+    const playlist = pastTensePlaylistCache[selectedPastTensePlaylistId] || (entry ? pastTensePlaylistFromDirectory(entry) : null);
+    if (playlist) renderPastTensePlaylistDetail(playlist, { tracks: pastTenseTrackCache[selectedPastTensePlaylistId] || [] });
   }
 }
 
@@ -6027,6 +6215,69 @@ let yearReviewYear = null;
 let yearReviewMode = 'logging';
 let yearReviewPage = 1;
 const YEAR_REVIEW_PAGE_SIZE = 100;
+const PAST_TENSE_PLAYLISTS = [
+  { year: 1970, name: 'vol. 1970', id: '6h8yLdFD25fBxgXuiIxqzm', url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm' },
+  { year: 1971, name: 'vol. 1971', id: '3jHRYkH2s0sRFtlj0sZzrX', url: 'https://open.spotify.com/playlist/3jHRYkH2s0sRFtlj0sZzrX' },
+  { year: 1972, name: 'vol. 1972', id: '0NwJtHOrIk3hbxUSa0e5JD', url: 'https://open.spotify.com/playlist/0NwJtHOrIk3hbxUSa0e5JD' },
+  { year: 1973, name: 'vol. 1973', id: '0y9IjTnejZzsLoCwT0n2SR', url: 'https://open.spotify.com/playlist/0y9IjTnejZzsLoCwT0n2SR' },
+  { year: 1974, name: 'vol. 1974', id: '2Wmgd7tcdBREX2vD4jMgXb', url: 'https://open.spotify.com/playlist/2Wmgd7tcdBREX2vD4jMgXb' },
+  { year: 1975, name: 'vol. 1975', id: '41tdIfuW52R4nAkMkx0ip0', url: 'https://open.spotify.com/playlist/41tdIfuW52R4nAkMkx0ip0' },
+  { year: 1976, name: 'vol. 1976', id: '1KmYU4cmPgmzlRDYd6tCAt', url: 'https://open.spotify.com/playlist/1KmYU4cmPgmzlRDYd6tCAt' },
+  { year: 1977, name: 'vol. 1977', id: '0apYkZXIJgs8g72DFG6BnS', url: 'https://open.spotify.com/playlist/0apYkZXIJgs8g72DFG6BnS' },
+  { year: 1978, name: 'vol. 1978', id: '6RAQhgbYtFg6Sd068NIYPV', url: 'https://open.spotify.com/playlist/6RAQhgbYtFg6Sd068NIYPV' },
+  { year: 1979, name: 'vol. 1979', id: '3ciroxrtnlVEFbDXUGq5l2', url: 'https://open.spotify.com/playlist/3ciroxrtnlVEFbDXUGq5l2' },
+  { year: 1980, name: 'vol. 1980', id: '3j1N7xoiLDubqSXOVsc3PZ', url: 'https://open.spotify.com/playlist/3j1N7xoiLDubqSXOVsc3PZ' },
+  { year: 1981, name: 'vol. 1981', id: '0qSdb58zbUFRIQuKtt0Uoj', url: 'https://open.spotify.com/playlist/0qSdb58zbUFRIQuKtt0Uoj' },
+  { year: 1982, name: 'vol. 1982', id: '7DAdFV1DMC7erJYpJYv5dk', url: 'https://open.spotify.com/playlist/7DAdFV1DMC7erJYpJYv5dk' },
+  { year: 1983, name: 'vol. 1983', id: '6Esyf4CgnJLUtxmlNgKnAz', url: 'https://open.spotify.com/playlist/6Esyf4CgnJLUtxmlNgKnAz' },
+  { year: 1984, name: 'vol. 1984', id: '4rlxf7LBOxW3zpZjiCSewG', url: 'https://open.spotify.com/playlist/4rlxf7LBOxW3zpZjiCSewG' },
+  { year: 1985, name: 'vol. 1985', id: '13KiKdyqXoXZ565a8dAmKM', url: 'https://open.spotify.com/playlist/13KiKdyqXoXZ565a8dAmKM' },
+  { year: 1986, name: 'vol. 1986', id: '1JAR2nSOUDDSTUmg6hMMgY', url: 'https://open.spotify.com/playlist/1JAR2nSOUDDSTUmg6hMMgY' },
+  { year: 1987, name: 'vol. 1987', id: '6DLuX8CiJ3Ex6zTS27cRIF', url: 'https://open.spotify.com/playlist/6DLuX8CiJ3Ex6zTS27cRIF' },
+  { year: 1988, name: 'vol. 1988', id: '2cXPKaEG1pNqkNHBchwVeQ', url: 'https://open.spotify.com/playlist/2cXPKaEG1pNqkNHBchwVeQ' },
+  { year: 1989, name: 'vol. 1989', id: '1xvwsJEx3HdzqyOD4iPKC0', url: 'https://open.spotify.com/playlist/1xvwsJEx3HdzqyOD4iPKC0' },
+  { year: 1990, name: 'vol. 1990', id: '0Un0VoQtPsR3wjAeb76fgG', url: 'https://open.spotify.com/playlist/0Un0VoQtPsR3wjAeb76fgG' },
+  { year: 1991, name: 'vol. 1991', id: '3J7y49n9TPkwHXF5Epenth', url: 'https://open.spotify.com/playlist/3J7y49n9TPkwHXF5Epenth' },
+  { year: 1992, name: 'vol. 1992', id: '6R2zLZie2HJxm52FecY75s', url: 'https://open.spotify.com/playlist/6R2zLZie2HJxm52FecY75s' },
+  { year: 1993, name: 'vol. 1993', id: '3O9lQvDHMJdozDta8DaXyk', url: 'https://open.spotify.com/playlist/3O9lQvDHMJdozDta8DaXyk' },
+  { year: 1994, name: 'vol. 1994', id: '3uVdIFDGDqKQXMKqIYU2dK', url: 'https://open.spotify.com/playlist/3uVdIFDGDqKQXMKqIYU2dK' },
+  { year: 1995, name: 'vol. 1995', id: '1WAcrHq9tVcpvwBLAqpzH6', url: 'https://open.spotify.com/playlist/1WAcrHq9tVcpvwBLAqpzH6' },
+  { year: 1996, name: 'vol. 1996', id: '3ogRv6pszAg2e70f9y6B0T', url: 'https://open.spotify.com/playlist/3ogRv6pszAg2e70f9y6B0T' },
+  { year: 1997, name: 'vol. 1997', id: '2rLkaOq4JscpvGgN9qcst2', url: 'https://open.spotify.com/playlist/2rLkaOq4JscpvGgN9qcst2' },
+  { year: 1998, name: 'vol. 1998', id: '2qzD9dp0lLjtrri6pp9eb0', url: 'https://open.spotify.com/playlist/2qzD9dp0lLjtrri6pp9eb0' },
+  { year: 1999, name: 'vol. 1999', id: '4gUMCMZ5gJWhP0Hafwf9yg', url: 'https://open.spotify.com/playlist/4gUMCMZ5gJWhP0Hafwf9yg' },
+  { year: 2000, name: 'vol. 2000', id: '0RhSaAKJ8mP9W0YCjEb1Gb', url: 'https://open.spotify.com/playlist/0RhSaAKJ8mP9W0YCjEb1Gb' },
+  { year: 2001, name: 'vol. 2001', id: '2QbX7vaoHwp1CVG8IvSczq', url: 'https://open.spotify.com/playlist/2QbX7vaoHwp1CVG8IvSczq' },
+  { year: 2002, name: 'vol. 2002', id: '76rOOjm9CDYX8SLZHxJjU6', url: 'https://open.spotify.com/playlist/76rOOjm9CDYX8SLZHxJjU6' },
+  { year: 2003, name: 'vol. 2003', id: '260AQhgN4HAYfzwLPFBVZh', url: 'https://open.spotify.com/playlist/260AQhgN4HAYfzwLPFBVZh' },
+  { year: 2004, name: 'vol. 2004', id: '4UQJGbtarQwX5oVyNkIiM8', url: 'https://open.spotify.com/playlist/4UQJGbtarQwX5oVyNkIiM8' },
+  { year: 2005, name: 'vol. 2005', id: '2HwAjZZVlQVXirv42qkhPa', url: 'https://open.spotify.com/playlist/2HwAjZZVlQVXirv42qkhPa' },
+  { year: 2006, name: 'vol. 2006', id: '4jK9zfoOPHnR3R0IU5FoCA', url: 'https://open.spotify.com/playlist/4jK9zfoOPHnR3R0IU5FoCA' },
+  { year: 2007, name: 'vol. 2007', id: '5Q7LlUtRzKWsgHb2aV8WYb', url: 'https://open.spotify.com/playlist/5Q7LlUtRzKWsgHb2aV8WYb' },
+  { year: 2008, name: 'vol. 2008', id: '3o6VTpnV30sj3ZtR3lcYWY', url: 'https://open.spotify.com/playlist/3o6VTpnV30sj3ZtR3lcYWY' },
+  { year: 2009, name: 'vol. 2009', id: '501xBY0q39MdJd93XXMaIt', url: 'https://open.spotify.com/playlist/501xBY0q39MdJd93XXMaIt' },
+  { year: 2010, name: 'vol. 2010', id: '7dQIaOniGFi9MDhlglMJj4', url: 'https://open.spotify.com/playlist/7dQIaOniGFi9MDhlglMJj4' },
+  { year: 2011, name: 'vol. 2011', id: '0DtnVPpoCD0lyOR6sNUfFx', url: 'https://open.spotify.com/playlist/0DtnVPpoCD0lyOR6sNUfFx' },
+  { year: 2012, name: 'vol. 2012', id: '0FWau467Xv0g4tbTaKPljb', url: 'https://open.spotify.com/playlist/0FWau467Xv0g4tbTaKPljb' },
+  { year: 2013, name: 'vol. 2013', id: '2iFSU6jnylRXmpZKD0rHrx', url: 'https://open.spotify.com/playlist/2iFSU6jnylRXmpZKD0rHrx' },
+  { year: 2014, name: 'vol. 2014', id: '6vX7NbqqppXHOfbKsPiDaM', url: 'https://open.spotify.com/playlist/6vX7NbqqppXHOfbKsPiDaM' },
+  { year: 2015, name: 'vol. 2015', id: '0MXaJhVL3D82VAFdPek3Hp', url: 'https://open.spotify.com/playlist/0MXaJhVL3D82VAFdPek3Hp' },
+  { year: 2016, name: 'vol. 2016', id: '64O6xuAZ7UvQHRscmjakSi', url: 'https://open.spotify.com/playlist/64O6xuAZ7UvQHRscmjakSi' },
+  { year: 2017, name: 'vol. 2017', id: '10cv5iLXLWylbG40b4ZzxG', url: 'https://open.spotify.com/playlist/10cv5iLXLWylbG40b4ZzxG' },
+  { year: 2018, name: 'vol. 2018', id: '4pIitRjOjFswfnnFNAKiGj', url: 'https://open.spotify.com/playlist/4pIitRjOjFswfnnFNAKiGj' },
+  { year: 2019, name: 'vol. 2019', id: '6bXZMI7YnJ7kDb9XUz1eoJ', url: 'https://open.spotify.com/playlist/6bXZMI7YnJ7kDb9XUz1eoJ' },
+  { year: 2020, name: 'vol. 2020', id: '2BYXhcG9ZWcAM71cjuWD3y', url: 'https://open.spotify.com/playlist/2BYXhcG9ZWcAM71cjuWD3y' },
+  { year: 2021, name: 'vol. 2021', id: '7JpbzmnWSHefjbLUkiWnoF', url: 'https://open.spotify.com/playlist/7JpbzmnWSHefjbLUkiWnoF' },
+  { year: 2022, name: 'vol. 2022', id: '2Ox7cDZYsQNvLJ1kiIVJWy', url: 'https://open.spotify.com/playlist/2Ox7cDZYsQNvLJ1kiIVJWy' },
+  { year: 2023, name: 'vol. 2023', id: '6YwSNYfYLX6G5pFFwdqftA', url: 'https://open.spotify.com/playlist/6YwSNYfYLX6G5pFFwdqftA' },
+  { year: 2024, name: 'vol. 2024', id: '6pxFiuryaPlFjmq3L7Oqm4', url: 'https://open.spotify.com/playlist/6pxFiuryaPlFjmq3L7Oqm4' },
+  { year: 2025, name: 'vol. 2025', id: '54HlfU8RqEtA7L0SEsY0jf', url: 'https://open.spotify.com/playlist/54HlfU8RqEtA7L0SEsY0jf' },
+  { year: 2026, name: 'vol. 2026', id: '5w9rdDEstP5LjmyOOpnXja', url: 'https://open.spotify.com/playlist/5w9rdDEstP5LjmyOOpnXja' }
+];
+const pastTensePlaylistCache = {};
+const pastTenseTrackCache = {};
+let pastTenseHydrating = false;
+let selectedPastTensePlaylistId = null;
 
 function availableReviewYears() {
   return [...new Set(allScrobbles.map(scrobble => scrobble.playedAt.getFullYear()))]
@@ -6046,7 +6297,183 @@ function renderPillRows(items, renderItem) {
   ).join('');
 }
 
+function pastTensePlaylistFromDirectory(entry) {
+  return pastTensePlaylistCache[entry.id] || {
+    ...entry,
+    tracks: { total: 0 },
+    images: [],
+    uri: spotifyPlaylistUri(entry.id),
+    external_urls: { spotify: spotifyPlaylistUrl(entry.id) }
+  };
+}
+
+function renderPastTensePlaylists() {
+  const target = document.getElementById('pastTensePlaylistGrid');
+  const status = document.getElementById('pastTensePlaylistStatus');
+  if (!target) return;
+
+  const spotifyReady = readSpotifyToken() || hasRefreshableSpotifyToken();
+  const hydrated = Object.keys(pastTensePlaylistCache).length;
+  if (status) {
+    status.textContent = hydrated
+      ? hydrated.toLocaleString() + ' of ' + PAST_TENSE_PLAYLISTS.length.toLocaleString() + ' release-year playlists loaded from spotify'
+      : (spotifyReady ? 'loading release-year playlist covers from spotify...' : 'connect spotify in settings to load covers and contents');
+  }
+
+  target.innerHTML = PAST_TENSE_PLAYLISTS.map(entry => {
+    const playlist = pastTensePlaylistFromDirectory(entry);
+    const image = playlist.images && playlist.images[0] ? playlist.images[0].url : '';
+    const total = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+    return '<button class="past-tense-card" type="button" onclick="openPastTensePlaylist(\'' + esc(entry.id) + '\')">' +
+      (image ? '<img class="past-tense-cover" src="' + esc(image) + '" alt="">' : '<div class="past-tense-cover">' + entry.year + '</div>') +
+      '<div class="past-tense-name">' + esc(playlist.name || entry.name) + '</div>' +
+      '<div class="past-tense-meta">' + entry.year + (total ? ' · ' + total.toLocaleString() + ' tracks' : ' · spotify details pending') + '</div>' +
+      '</button>';
+  }).join('');
+
+  hydratePastTensePlaylists();
+}
+
+async function hydratePastTensePlaylists() {
+  if (pastTenseHydrating || !(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
+  const missing = PAST_TENSE_PLAYLISTS.filter(entry => !pastTensePlaylistCache[entry.id]);
+  if (!missing.length) return;
+
+  pastTenseHydrating = true;
+  try {
+    for (let i = 0; i < missing.length; i++) {
+      const entry = missing[i];
+      const data = await loadSeedPlaylist(entry.id);
+      pastTensePlaylistCache[entry.id] = {
+        ...entry,
+        ...data,
+        url: spotifyPlaylistUrl(entry.id),
+        uri: spotifyPlaylistUri(entry.id)
+      };
+      if ((i + 1) % 8 === 0) renderPastTensePlaylists();
+    }
+    renderPastTensePlaylists();
+  } catch {
+    const status = document.getElementById('pastTensePlaylistStatus');
+    if (status) status.textContent = 'spotify release-year playlist details could not be loaded. reconnect spotify and try again.';
+  } finally {
+    pastTenseHydrating = false;
+  }
+}
+
+function pastTenseTrackScrobbleCount(track) {
+  if (!track || !allScrobbles.length) return 0;
+  const trackName = normalizeHarvestTrackText(track.name);
+  const artistNames = (track.artists || []).map(artist => normalizeHarvestTrackText(artist.name)).filter(Boolean);
+  return allScrobbles.filter(scrobble =>
+    normalizeHarvestTrackText(scrobble.track) === trackName &&
+    artistNames.includes(normalizeHarvestTrackText(scrobble.artist))
+  ).length;
+}
+
+function openPastTensePlaylist(playlistId) {
+  selectedPastTensePlaylistId = playlistId;
+  const entry = PAST_TENSE_PLAYLISTS.find(item => item.id === playlistId);
+  const playlist = pastTensePlaylistCache[playlistId] || (entry ? pastTensePlaylistFromDirectory(entry) : null);
+  if (!playlist) return;
+
+  navStack.push('screenPastTenseYear');
+  showScreen('screenPastTenseYear');
+  renderPastTensePlaylistDetail(playlist, { loading: true });
+  showCopyToast('loading ' + (playlist.name || 'playlist'));
+
+  loadPastTensePlaylistTracks(playlistId, playlist);
+}
+
+async function loadPastTensePlaylistTracks(playlistId, playlist) {
+  try {
+    const tracks = pastTenseTrackCache[playlistId] || await loadSpotifyPlaylistTracks(playlistId);
+    pastTenseTrackCache[playlistId] = tracks;
+    renderPastTensePlaylistDetail(playlist, { tracks });
+    showCopyToast((playlist.name || 'playlist') + ' opened');
+  } catch {
+    renderPastTensePlaylistDetail(playlist, { error: true });
+    showCopyToast('could not load release-year playlist');
+  }
+}
+
+function summarizePastTenseTracks(tracks) {
+  const artists = {};
+  let durationMs = 0;
+  tracks.forEach(track => {
+    durationMs += Number(track.duration_ms) || 0;
+    (track.artists || []).forEach(artist => {
+      if (artist && artist.name) artists[artist.name] = (artists[artist.name] || 0) + 1;
+    });
+  });
+  const topArtists = Object.entries(artists)
+    .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 5)
+    .map(([name, count]) => name + ' (' + count + ')')
+    .join(' · ');
+  return { durationMs, topArtists, artistCount: Object.keys(artists).length };
+}
+
+function renderPastTensePlaylistDetail(playlist, state = {}) {
+  const target = document.getElementById('pastTenseDetail');
+  if (!target) return;
+
+  const title = document.getElementById('pastTenseDetailTitle');
+  const subtitle = document.getElementById('pastTenseDetailSubtitle');
+  if (title) title.textContent = playlist.name || ('vol. ' + playlist.year);
+  if (subtitle) subtitle.textContent = (playlist.year ? playlist.year + ' release-year playlist' : 'release-year playlist');
+
+  const image = playlist.images && playlist.images[0] ? playlist.images[0].url : '';
+  const declaredCount = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+  const spotifyHref = playlist.uri || spotifyPlaylistUri(playlist.id);
+  const cover = image
+    ? '<img class="past-tense-detail-cover" src="' + esc(image) + '" alt="">'
+    : '<div class="past-tense-detail-cover past-tense-cover">' + esc(String(playlist.year || 'vol.')) + '</div>';
+
+  if (state.loading) {
+    target.innerHTML = '<div class="past-tense-detail-hero">' + cover +
+      '<div><div class="past-tense-detail-title">' + esc(playlist.name || '') + '</div>' +
+      '<div class="past-tense-detail-meta">loading playlist tracks from spotify...</div>' +
+      '<div class="seed-detail-actions" style="margin-top:18px"><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div></div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  if (state.error) {
+    target.innerHTML = '<div class="past-tense-detail-hero">' + cover +
+      '<div><div class="past-tense-detail-title">' + esc(playlist.name || '') + '</div>' +
+      '<div class="past-tense-detail-meta">tracks could not be loaded. reconnect spotify in settings and try again.</div>' +
+      '<div class="seed-detail-actions" style="margin-top:18px"><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div></div>';
+    scheduleScrollControlUpdate();
+    return;
+  }
+
+  const tracks = state.tracks || [];
+  const summary = summarizePastTenseTracks(tracks);
+  target.innerHTML = '<div class="past-tense-detail-hero">' + cover +
+    '<div><div class="past-tense-detail-title">' + esc(playlist.name || '') + '</div>' +
+    '<div class="past-tense-detail-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + (summary.topArtists ? '<br>top artists: ' + esc(summary.topArtists) : '') + '</div>' +
+    '<div class="past-tense-stats">' +
+      '<div class="past-tense-stat"><div class="past-tense-stat-value">' + tracks.length.toLocaleString() + '</div><div class="past-tense-stat-label">tracks</div></div>' +
+      '<div class="past-tense-stat"><div class="past-tense-stat-value">' + summary.artistCount.toLocaleString() + '</div><div class="past-tense-stat-label">artists</div></div>' +
+      '<div class="past-tense-stat"><div class="past-tense-stat-value">' + formatSpotifyDuration(summary.durationMs) + '</div><div class="past-tense-stat-label">duration</div></div>' +
+    '</div><div class="seed-detail-actions" style="margin-top:18px"><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div></div>' +
+    '<div class="seed-detail-panel"><div class="seed-track-list">' + tracks.map((track, index) => {
+      const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
+      const album = track.album && track.album.name ? track.album.name : '';
+      const scrobbles = pastTenseTrackScrobbleCount(track);
+      return '<div class="seed-track-row">' +
+        '<div class="seed-track-rank">' + (index + 1) + '</div>' +
+        '<div><div class="seed-track-name">' + esc(track.name) + '</div>' +
+        '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' · ' + esc(album) : '') + (allScrobbles.length ? ' · ' + scrobbles.toLocaleString() + ' scrobbles' : '') + '</div></div>' +
+        '<div class="seed-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
+        '</div>';
+    }).join('') + '</div></div>';
+  scheduleScrollControlUpdate();
+}
+
 function initYearsReview() {
+  renderPastTensePlaylists();
   const years = availableReviewYears();
   if (!years.length) {
     document.getElementById('yearReviewPills').innerHTML = '';
