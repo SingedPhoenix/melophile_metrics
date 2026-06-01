@@ -4459,53 +4459,6 @@
       <div class="past-tense-grid" id="pastTensePlaylistGrid" aria-label="past tense release-year playlists"></div>
     </div>
 
-    <div class="year-review-heading">listening-year review</div>
-    <div class="section-subtitle" id="yearReviewSubtitle">select a year</div>
-
-    <div class="year-review-years" id="yearReviewPills"></div>
-
-    <div class="pill-row" id="yearReviewModePills">
-      <button class="pill active" data-mode="logging" onclick="setYearReviewMode('logging')">listen log</button>
-      <button class="pill" data-mode="tracks" onclick="setYearReviewMode('tracks')">tracks</button>
-      <button class="pill" data-mode="artists" onclick="setYearReviewMode('artists')">artists</button>
-      <button class="pill" data-mode="albums" onclick="setYearReviewMode('albums')">albums</button>
-    </div>
-
-    <div class="stat-row">
-      <div class="stat-box">
-        <div class="stat-box-num" id="yrScrobbles">—</div>
-        <div class="stat-box-label">listens</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box-num" id="yrTracks">—</div>
-        <div class="stat-box-label">unique tracks</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box-num" id="yrArtists">—</div>
-        <div class="stat-box-label">unique artists</div>
-      </div>
-      <div class="stat-box">
-        <div class="stat-box-num" id="yrAlbums">—</div>
-        <div class="stat-box-label">unique albums</div>
-      </div>
-    </div>
-
-    <div class="year-review-table-wrap">
-      <div class="year-review-heading" id="yearReviewTableHeading">listen log</div>
-      <table class="rankings-table">
-        <tbody id="yearReviewBody"></tbody>
-      </table>
-      <div class="year-review-pager" id="yearReviewPager">
-        <button class="pager-btn" type="button" id="yearReviewPrev" onclick="changeYearReviewPage(-1)">prev</button>
-        <span class="pager-label" id="yearReviewPageLabel">page 1 of 1</span>
-        <input class="pager-input" id="yearReviewPageInput" type="number" min="1" value="1" aria-label="page number" onkeydown="if(event.key==='Enter') jumpYearReviewPage()">
-        <button class="pager-btn" type="button" onclick="jumpYearReviewPage()">jump</button>
-        <button class="pager-btn" type="button" id="yearReviewNext" onclick="changeYearReviewPage(1)">next</button>
-      </div>
-    </div>
-
-    <div class="rankings-empty" id="yearReviewEmpty" style="display:none">no listening data found for this year</div>
-
     <div class="detail-nav">
       <button class="back-btn" onclick="goBack()">back</button>
       <button class="home-btn" onclick="goHome()">home</button>
@@ -5150,7 +5103,6 @@ function refreshVisibleThemedCharts() {
     renderTimeframeChart(currentTf);
   } else if (active.id === 'screenYearsReview') {
     renderPastTensePlaylists();
-    renderYearReview();
   } else if (active.id === 'screenPastTenseYear' && selectedPastTensePlaylistId) {
     const entry = PAST_TENSE_PLAYLISTS.find(item => item.id === selectedPastTensePlaylistId);
     const playlist = pastTensePlaylistCache[selectedPastTensePlaylistId] || (entry ? pastTensePlaylistFromDirectory(entry) : null);
@@ -6494,18 +6446,7 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
 
 function initYearsReview() {
   renderPastTensePlaylists();
-  const years = availableReviewYears();
-  if (!years.length) {
-    document.getElementById('yearReviewPills').innerHTML = '';
-    document.getElementById('yearReviewEmpty').style.display = 'block';
-    scheduleScrollControlUpdate();
-    return;
-  }
-  if (!yearReviewYear || !years.includes(yearReviewYear)) {
-    yearReviewYear = years.includes(CY) ? CY : years[0];
-  }
-  renderYearReviewPills(years);
-  renderYearReview();
+  scheduleScrollControlUpdate();
 }
 
 function renderYearReviewPills(years) {
