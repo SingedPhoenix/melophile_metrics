@@ -3477,8 +3477,24 @@
     line-height: 1;
   }
 
+  .past-tense-detail-main {
+    min-width: 0;
+  }
+
+  .past-tense-detail-headline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .past-tense-detail-rule {
+    height: 1px;
+    margin: 18px 0 16px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cherry-bright) 58%, transparent), color-mix(in srgb, var(--silver) 34%, transparent), transparent);
+  }
+
   .past-tense-detail-meta {
-    margin-top: 12px;
     font-family: 'DM Mono', monospace;
     font-size: var(--font-floor-sm);
     line-height: 1.65;
@@ -6517,6 +6533,17 @@ function summarizePastTenseTracks(tracks) {
   return { durationMs, topArtists, artistCount: Object.keys(artists).length };
 }
 
+function pastTenseDetailHeader(playlist, spotifyHref, bodyHtml) {
+  return '<div class="past-tense-detail-main">' +
+    '<div class="past-tense-detail-headline">' +
+      '<div class="past-tense-detail-title">' + esc(playlist.name || '') + '</div>' +
+      '<a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a>' +
+    '</div>' +
+    '<div class="past-tense-detail-rule"></div>' +
+    bodyHtml +
+  '</div>';
+}
+
 function renderPastTensePlaylistDetail(playlist, state = {}) {
   const target = document.getElementById('pastTenseDetail');
   if (!target) return;
@@ -6535,18 +6562,16 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
 
   if (state.loading) {
     target.innerHTML = '<div class="past-tense-detail-hero">' + cover +
-      '<div><div class="past-tense-detail-title">' + esc(playlist.name || '') + '</div>' +
-      '<div class="past-tense-detail-meta">loading playlist tracks from spotify...</div>' +
-      '<div class="seed-detail-actions" style="margin-top:18px"><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div></div>';
+      pastTenseDetailHeader(playlist, spotifyHref, '<div class="past-tense-detail-meta">loading playlist tracks from spotify...</div>') +
+      '</div>';
     scheduleScrollControlUpdate();
     return;
   }
 
   if (state.error) {
     target.innerHTML = '<div class="past-tense-detail-hero">' + cover +
-      '<div><div class="past-tense-detail-title">' + esc(playlist.name || '') + '</div>' +
-      '<div class="past-tense-detail-meta">tracks could not be loaded. reconnect spotify in settings and try again.</div>' +
-      '<div class="seed-detail-actions" style="margin-top:18px"><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div></div>';
+      pastTenseDetailHeader(playlist, spotifyHref, '<div class="past-tense-detail-meta">tracks could not be loaded. reconnect spotify in settings and try again.</div>') +
+      '</div>';
     scheduleScrollControlUpdate();
     return;
   }
@@ -6554,13 +6579,13 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
   const tracks = state.tracks || [];
   const summary = summarizePastTenseTracks(tracks);
   target.innerHTML = '<div class="past-tense-detail-hero">' + cover +
-    '<div><div class="past-tense-detail-title">' + esc(playlist.name || '') + '</div>' +
-    '<div class="past-tense-detail-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + (summary.topArtists ? '<br>top artists: ' + esc(summary.topArtists) : '') + '</div>' +
-    '<div class="past-tense-stats">' +
+    pastTenseDetailHeader(playlist, spotifyHref,
+      '<div class="past-tense-detail-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + (summary.topArtists ? '<br>top artists: ' + esc(summary.topArtists) : '') + '</div>' +
+      '<div class="past-tense-stats">' +
       '<div class="past-tense-stat"><div class="past-tense-stat-value">' + tracks.length.toLocaleString() + '</div><div class="past-tense-stat-label">tracks</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-value">' + summary.artistCount.toLocaleString() + '</div><div class="past-tense-stat-label">artists</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-value">' + formatSpotifyDuration(summary.durationMs) + '</div><div class="past-tense-stat-label">duration</div></div>' +
-    '</div><div class="seed-detail-actions" style="margin-top:18px"><a class="seed-open-link" href="' + esc(spotifyHref) + '">open in spotify</a></div></div></div>' +
+      '</div>') + '</div>' +
     '<div class="seed-detail-panel"><div class="seed-track-list">' + tracks.map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
