@@ -3579,6 +3579,35 @@
     contain: layout paint style;
   }
 
+  .past-tense-artist-headline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+  }
+
+  .past-tense-artist-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: var(--font-floor-xl);
+    font-weight: 700;
+    color: var(--silver);
+    line-height: 1.1;
+  }
+
+  .past-tense-artist-pills {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .past-tense-artist-rule {
+    height: 1px;
+    margin-bottom: 16px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cherry-bright) 58%, transparent), color-mix(in srgb, var(--silver) 34%, transparent), transparent);
+  }
+
   .past-tense-artist-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -3638,6 +3667,15 @@
 
     .past-tense-artist-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .past-tense-artist-headline {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .past-tense-artist-pills {
+      justify-content: flex-start;
     }
   }
 
@@ -6371,6 +6409,7 @@ let pastTenseHydrating = false;
 let pastTenseTracksRefreshing = false;
 let pastTenseGenresHydrating = false;
 let selectedPastTensePlaylistId = null;
+let pastTenseArtistMetric = 'songs';
 
 function availableReviewYears() {
   return [...new Set(allScrobbles.map(scrobble => scrobble.playedAt.getFullYear()))]
@@ -6714,22 +6753,25 @@ function topPastTenseGenre(tracks) {
   return top ? top[0] : 'pending';
 }
 
-function topPastTenseArtists(tracks, limit = 5) {
+function topPastTenseArtists(tracks, metric = 'songs', limit = 5) {
   const artists = {};
   tracks.forEach(track => {
     const seen = new Set();
+    const scrobbles = pastTenseTrackScrobbleCount(track);
     (track.artists || []).forEach(artist => {
       const name = artist && artist.name ? artist.name.trim() : '';
       if (!name) return;
       const key = artist.id || normalizeHarvestTrackText(name);
       if (!key || seen.has(key)) return;
       seen.add(key);
-      if (!artists[key]) artists[key] = { id: artist.id || '', name, count: 0 };
-      artists[key].count += 1;
+      if (!artists[key]) artists[key] = { id: artist.id || '', name, songs: 0, scrobbles: 0 };
+      artists[key].songs += 1;
+      artists[key].scrobbles += scrobbles;
     });
   });
+  const metricKey = metric === 'scrobbles' ? 'scrobbles' : 'songs';
   return Object.values(artists)
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .sort((a, b) => b[metricKey] - a[metricKey] || b.songs - a.songs || a.name.localeCompare(b.name))
     .slice(0, limit)
     .map(artist => {
       const cached = artist.id ? pastTenseArtistGenreCache[artist.id] : null;
@@ -6740,21 +6782,45 @@ function topPastTenseArtists(tracks, limit = 5) {
     });
 }
 
-function renderPastTenseTopArtists(tracks) {
-  const artists = topPastTenseArtists(tracks, 5);
+function renderPastTenseTopArtists(tracks, playlist) {
+  const artists = topPastTenseArtists(tracks, pastTenseArtistMetric, 5);
   if (!artists.length) return '';
+  const metric = pastTenseArtistMetric === 'scrobbles' ? 'scrobbles' : 'songs';
+  const year = playlist && playlist.year ? playlist.year : '';
+  const title = 'top artists of ' + (year || 'this playlist') + '...';
   return '<div class="past-tense-artist-panel">' +
+    '<div class="past-tense-artist-headline">' +
+      '<div class="past-tense-artist-title">' + esc(title) + '</div>' +
+      '<div class="past-tense-artist-pills">' +
+        '<button class="pill ' + (metric === 'songs' ? 'active' : '') + '" type="button" onclick="setPastTenseArtistMetric(&quot;songs&quot;)">songs</button>' +
+        '<button class="pill ' + (metric === 'scrobbles' ? 'active' : '') + '" type="button" onclick="setPastTenseArtistMetric(&quot;scrobbles&quot;)">scrobbles</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="past-tense-artist-rule"></div>' +
     '<div class="past-tense-artist-grid">' + artists.map(artist => {
+      const value = metric === 'scrobbles' ? artist.scrobbles : artist.songs;
+      const label = metric === 'scrobbles'
+        ? (value === 1 ? 'scrobble' : 'scrobbles')
+        : (value === 1 ? 'song' : 'songs');
       const image = artist.image
         ? '<img class="past-tense-artist-image" src="' + esc(artist.image) + '" alt="">'
         : '<div class="past-tense-artist-placeholder"></div>';
       return '<div class="past-tense-artist-card">' +
         image +
         '<div class="past-tense-artist-name">' + esc(artist.name) + '</div>' +
-        '<div class="past-tense-artist-count">' + artist.count.toLocaleString() + ' ' + (artist.count === 1 ? 'song' : 'songs') + '</div>' +
+        '<div class="past-tense-artist-count">' + value.toLocaleString() + ' ' + label + '</div>' +
       '</div>';
     }).join('') + '</div>' +
   '</div>';
+}
+
+function setPastTenseArtistMetric(metric) {
+  pastTenseArtistMetric = metric === 'scrobbles' ? 'scrobbles' : 'songs';
+  if (!selectedPastTensePlaylistId) return;
+  const playlist = pastTensePlaylistCache[selectedPastTensePlaylistId] ||
+    pastTensePlaylistFromDirectory(PAST_TENSE_PLAYLISTS.find(entry => entry.id === selectedPastTensePlaylistId) || {});
+  const tracks = pastTenseTrackCache[selectedPastTensePlaylistId] || cachedPastTensePlaylistTracks(selectedPastTensePlaylistId) || [];
+  if (playlist && tracks.length) renderPastTensePlaylistDetail(playlist, { tracks });
 }
 
 async function hydratePastTenseArtistGenres(tracks, playlist) {
@@ -6846,7 +6912,7 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
       '<div class="past-tense-stat"><div class="past-tense-stat-label">duration...</div><div class="past-tense-stat-value is-text">' + esc(formatLongSpotifyDuration(summary.durationMs)) + '</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-label">top genre...</div><div class="past-tense-stat-value is-text">' + esc(topGenre) + '</div></div>' +
       '</div>') + '</div>' +
-    renderPastTenseTopArtists(tracks) +
+    renderPastTenseTopArtists(tracks, playlist) +
     '<div class="seed-detail-panel"><div class="seed-track-list">' + tracks.map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
