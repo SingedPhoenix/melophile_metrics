@@ -6364,6 +6364,7 @@ const PAST_TENSE_TRACK_CACHE_VERSION = 2;
 const PAST_TENSE_TRACK_CACHE_TTL_MS = 7 * 86400000;
 const PAST_TENSE_ARTIST_GENRE_CACHE_KEY = 'melophile.pastTense.artistGenres.v1';
 const PAST_TENSE_ARTIST_GENRE_TTL_MS = 30 * 86400000;
+const SPOTIFY_FETCH_TIMEOUT_MS = 15000;
 const PAST_TENSE_PLAYLISTS = [
   { year: 1970, name: 'vol. 1970', id: '6h8yLdFD25fBxgXuiIxqzm', url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da849e272b8a1075272732091e76' },
   { year: 1971, name: 'vol. 1971', id: '3jHRYkH2s0sRFtlj0sZzrX', url: 'https://open.spotify.com/playlist/3jHRYkH2s0sRFtlj0sZzrX', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8408ad8d82a865fc680c296f0f' },
@@ -6655,7 +6656,8 @@ async function loadPastTensePlaylistTracks(playlistId, playlist) {
     cachePastTensePlaylistTracks(playlistId, tracks);
     renderPastTensePlaylistDetail(playlist, { tracks });
     showCopyToast((playlist.name || 'playlist') + ' opened');
-  } catch {
+  } catch (err) {
+    console.warn('Past Tense playlist load failed', err);
     renderPastTensePlaylistDetail(playlist, { error: true });
     showCopyToast('could not load release-year playlist');
   }
@@ -6914,7 +6916,7 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
 
   if (state.error) {
     target.innerHTML = '<div class="past-tense-detail-hero">' + cover +
-      pastTenseDetailHeader(playlist, spotifyHref, '<div class="past-tense-detail-meta">tracks could not be loaded. reconnect spotify in settings and try again.</div>') +
+      pastTenseDetailHeader(playlist, spotifyHref, '<div class="past-tense-detail-meta">tracks could not be loaded. reconnect spotify in settings or refresh the past tense cache and try again.</div>') +
       '</div>';
     scheduleScrollControlUpdate();
     return;
@@ -11699,9 +11701,20 @@ async function spotifyFetch(pathOrUrl, attempt = 0) {
   const token = await getValidSpotifyToken();
   if (!token) throw new Error('spotify token missing');
   const url = pathOrUrl.startsWith('http') ? pathOrUrl : 'https://api.spotify.com' + pathOrUrl;
-  const response = await fetch(url, {
-    headers: { Authorization: 'Bearer ' + token.access_token }
-  });
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), SPOTIFY_FETCH_TIMEOUT_MS) : null;
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: { Authorization: 'Bearer ' + token.access_token },
+      signal: controller ? controller.signal : undefined
+    });
+  } catch (err) {
+    if (err && err.name === 'AbortError') throw new Error('spotify request timed out');
+    throw err;
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
   if (response.status === 429 && attempt < 2) {
     const retryAfter = Number(response.headers.get('Retry-After') || '2');
     await sleep(Math.max(1, retryAfter) * 1000);
