@@ -4498,9 +4498,6 @@
   </div>
 
   <div class="screen" id="screenPastTenseYear">
-    <div class="detail-title" id="pastTenseDetailTitle">vol.</div>
-    <div class="section-subtitle" id="pastTenseDetailSubtitle">release-year playlist</div>
-
     <div class="past-tense-detail-wrap" id="pastTenseDetail"></div>
 
     <div class="detail-nav">
@@ -6665,11 +6662,6 @@ function pastTenseDetailHeader(playlist, spotifyHref, bodyHtml) {
 function renderPastTensePlaylistDetail(playlist, state = {}) {
   const target = document.getElementById('pastTenseDetail');
   if (!target) return;
-
-  const title = document.getElementById('pastTenseDetailTitle');
-  const subtitle = document.getElementById('pastTenseDetailSubtitle');
-  if (title) title.textContent = playlist.name || ('vol. ' + playlist.year);
-  if (subtitle) subtitle.textContent = (playlist.year ? playlist.year + ' release-year playlist' : 'release-year playlist');
 
   const image = playlist.images && playlist.images[0] ? playlist.images[0].url : '';
   const declaredCount = playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
