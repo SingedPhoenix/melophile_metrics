@@ -3647,6 +3647,28 @@
     color: rgba(204,204,204,0.38);
   }
 
+  .past-tense-track-panel {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+    contain: layout paint style;
+  }
+
+  .past-tense-track-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: var(--font-floor-xl);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--silver);
+  }
+
+  .past-tense-track-rule {
+    height: 1px;
+    margin: 14px 0 16px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cherry-bright) 58%, transparent), color-mix(in srgb, var(--silver) 34%, transparent), transparent);
+  }
+
   @media (max-width: 980px) {
     .past-tense-grid {
       grid-template-columns: repeat(2, minmax(120px, 1fr));
@@ -6913,7 +6935,10 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
       '<div class="past-tense-stat"><div class="past-tense-stat-label">top genre...</div><div class="past-tense-stat-value is-text">' + esc(topGenre) + '</div></div>' +
       '</div>') + '</div>' +
     renderPastTenseTopArtists(tracks, playlist) +
-    '<div class="seed-detail-panel"><div class="seed-track-list">' + tracks.map((track, index) => {
+    '<div class="past-tense-track-panel">' +
+      '<div class="past-tense-track-title">favorite songs of ' + esc(playlist.year || 'this year') + '...</div>' +
+      '<div class="past-tense-track-rule"></div>' +
+      '<div class="seed-track-list">' + tracks.map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
       const scrobbles = pastTenseTrackScrobbleCount(track);
