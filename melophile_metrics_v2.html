@@ -2650,7 +2650,8 @@
     text-align: left;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.22s, border-color 0.22s, background 0.22s;
+    contain: layout paint style;
+    transition: transform 0.18s;
   }
 
   .seed-playlist-card:hover,
@@ -2672,6 +2673,7 @@
       linear-gradient(135deg, color-mix(in srgb, var(--amethyst-mid) 18%, transparent), color-mix(in srgb, var(--cherry-bright) 14%, transparent));
     border: 1px solid rgba(204,204,204,0.08);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 26px rgba(0,0,0,0.24);
+    contain: paint;
     display: block;
     margin-bottom: 10px;
   }
@@ -3394,7 +3396,8 @@
     text-align: left;
     cursor: pointer;
     overflow: hidden;
-    transition: transform 0.22s, border-color 0.22s, background 0.22s;
+    contain: layout paint style;
+    transition: transform 0.18s;
   }
 
   .past-tense-card:hover {
@@ -3415,6 +3418,7 @@
       linear-gradient(135deg, color-mix(in srgb, var(--cherry-bright) 18%, transparent), color-mix(in srgb, var(--amethyst-mid) 14%, transparent));
     border: 1px solid rgba(204,204,204,0.08);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 12px 26px rgba(0,0,0,0.24);
+    contain: paint;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3456,6 +3460,7 @@
     background: rgba(204,204,204,0.022);
     padding: 22px;
     margin-bottom: 18px;
+    contain: layout paint style;
   }
 
   .past-tense-detail-cover {
@@ -5130,12 +5135,6 @@ function refreshVisibleThemedCharts() {
     renderMetallurgyLab();
   } else if (active.id === 'screenTimeframe') {
     renderTimeframeChart(currentTf);
-  } else if (active.id === 'screenYearsReview') {
-    renderPastTensePlaylists();
-  } else if (active.id === 'screenPastTenseYear' && selectedPastTensePlaylistId) {
-    const entry = PAST_TENSE_PLAYLISTS.find(item => item.id === selectedPastTensePlaylistId);
-    const playlist = pastTensePlaylistCache[selectedPastTensePlaylistId] || (entry ? pastTensePlaylistFromDirectory(entry) : null);
-    if (playlist) renderPastTensePlaylistDetail(playlist, { tracks: pastTenseTrackCache[selectedPastTensePlaylistId] || [] });
   }
 }
 
