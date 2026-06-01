@@ -3558,7 +3558,7 @@
   }
 
   .past-tense-stat-label {
-    margin-top: 4px;
+    margin-bottom: 8px;
     font-family: 'DM Mono', monospace;
     font-size: var(--font-floor-xs);
     color: rgba(204,204,204,0.36);
@@ -6842,7 +6842,7 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
       '<div class="past-tense-stat"><div class="past-tense-stat-label">tracks...</div><div class="past-tense-stat-value">' + tracks.length.toLocaleString() + '</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-label">artists...</div><div class="past-tense-stat-value">' + summary.artistCount.toLocaleString() + '</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-label">albums...</div><div class="past-tense-stat-value">' + summary.albumCount.toLocaleString() + '</div></div>' +
-      '<div class="past-tense-stat"><div class="past-tense-stat-label">out of all years...this year is ranked...</div><div class="past-tense-stat-value is-text">' + esc(playlistRank) + '</div></div>' +
+      '<div class="past-tense-stat"><div class="past-tense-stat-label">this year is ranked...</div><div class="past-tense-stat-value is-text">' + esc(playlistRank) + '</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-label">duration...</div><div class="past-tense-stat-value is-text">' + esc(formatLongSpotifyDuration(summary.durationMs)) + '</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-label">top genre...</div><div class="past-tense-stat-value is-text">' + esc(topGenre) + '</div></div>' +
       '</div>') + '</div>' +
