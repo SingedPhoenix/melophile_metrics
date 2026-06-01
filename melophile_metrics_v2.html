@@ -3570,6 +3570,54 @@
     overflow-wrap: anywhere;
   }
 
+  .past-tense-artist-panel {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+    margin-bottom: 18px;
+    contain: layout paint style;
+  }
+
+  .past-tense-artist-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .past-tense-artist-card {
+    min-width: 0;
+  }
+
+  .past-tense-artist-image,
+  .past-tense-artist-placeholder {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 14px;
+    border: 1px solid rgba(204,204,204,0.08);
+    object-fit: cover;
+    background:
+      radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--silver) 20%, transparent), transparent 36%),
+      linear-gradient(135deg, color-mix(in srgb, var(--cherry-bright) 24%, transparent), color-mix(in srgb, var(--amethyst-mid) 18%, transparent));
+    box-shadow: 0 14px 38px rgba(0,0,0,0.18);
+  }
+
+  .past-tense-artist-name {
+    margin-top: 10px;
+    font-family: 'Quicksand', sans-serif;
+    font-size: var(--font-floor-lg);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--silver);
+  }
+
+  .past-tense-artist-count {
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-xs);
+    color: rgba(204,204,204,0.38);
+  }
+
   @media (max-width: 980px) {
     .past-tense-grid {
       grid-template-columns: repeat(2, minmax(120px, 1fr));
@@ -3586,6 +3634,10 @@
     .past-tense-detail-cover {
       height: auto;
       aspect-ratio: 1;
+    }
+
+    .past-tense-artist-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
@@ -6662,6 +6714,49 @@ function topPastTenseGenre(tracks) {
   return top ? top[0] : 'pending';
 }
 
+function topPastTenseArtists(tracks, limit = 5) {
+  const artists = {};
+  tracks.forEach(track => {
+    const seen = new Set();
+    (track.artists || []).forEach(artist => {
+      const name = artist && artist.name ? artist.name.trim() : '';
+      if (!name) return;
+      const key = artist.id || normalizeHarvestTrackText(name);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      if (!artists[key]) artists[key] = { id: artist.id || '', name, count: 0 };
+      artists[key].count += 1;
+    });
+  });
+  return Object.values(artists)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, limit)
+    .map(artist => {
+      const cached = artist.id ? pastTenseArtistGenreCache[artist.id] : null;
+      return {
+        ...artist,
+        image: cached && cached.image ? cached.image : ''
+      };
+    });
+}
+
+function renderPastTenseTopArtists(tracks) {
+  const artists = topPastTenseArtists(tracks, 5);
+  if (!artists.length) return '';
+  return '<div class="past-tense-artist-panel">' +
+    '<div class="past-tense-artist-grid">' + artists.map(artist => {
+      const image = artist.image
+        ? '<img class="past-tense-artist-image" src="' + esc(artist.image) + '" alt="">'
+        : '<div class="past-tense-artist-placeholder"></div>';
+      return '<div class="past-tense-artist-card">' +
+        image +
+        '<div class="past-tense-artist-name">' + esc(artist.name) + '</div>' +
+        '<div class="past-tense-artist-count">' + artist.count.toLocaleString() + ' ' + (artist.count === 1 ? 'song' : 'songs') + '</div>' +
+      '</div>';
+    }).join('') + '</div>' +
+  '</div>';
+}
+
 async function hydratePastTenseArtistGenres(tracks, playlist) {
   if (pastTenseGenresHydrating || !(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
   const ids = Array.from(new Set((tracks || []).flatMap(track =>
@@ -6669,7 +6764,7 @@ async function hydratePastTenseArtistGenres(tracks, playlist) {
   )));
   const missing = ids.filter(id => {
     const cached = pastTenseArtistGenreCache[id];
-    return !cached || Date.now() - (cached.updatedAtMs || 0) > PAST_TENSE_ARTIST_GENRE_TTL_MS;
+    return !cached || !Object.prototype.hasOwnProperty.call(cached, 'image') || Date.now() - (cached.updatedAtMs || 0) > PAST_TENSE_ARTIST_GENRE_TTL_MS;
   });
   if (!missing.length) return;
 
@@ -6683,6 +6778,7 @@ async function hydratePastTenseArtistGenres(tracks, playlist) {
         pastTenseArtistGenreCache[artist.id] = {
           name: artist.name || '',
           genres: artist.genres || [],
+          image: artist.images && artist.images[0] ? artist.images[0].url : '',
           updatedAtMs: Date.now()
         };
       });
@@ -6750,6 +6846,7 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
       '<div class="past-tense-stat"><div class="past-tense-stat-value is-text">' + esc(formatLongSpotifyDuration(summary.durationMs)) + '</div><div class="past-tense-stat-label">duration</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-value is-text">' + esc(topGenre) + '</div><div class="past-tense-stat-label">top genre</div></div>' +
       '</div>') + '</div>' +
+    renderPastTenseTopArtists(tracks) +
     '<div class="seed-detail-panel"><div class="seed-track-list">' + tracks.map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
