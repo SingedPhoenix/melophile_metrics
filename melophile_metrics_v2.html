@@ -4455,6 +4455,9 @@
           <div class="seed-section-title">release-year volumes</div>
           <div class="seed-section-sub" id="pastTensePlaylistStatus">connect spotify in settings to load covers and contents</div>
         </div>
+        <div class="seed-section-actions">
+          <button class="seed-open-link" type="button" onclick="refreshPastTensePlaylistCovers()">refresh covers</button>
+        </div>
       </div>
       <div class="past-tense-grid" id="pastTensePlaylistGrid" aria-label="past tense release-year playlists"></div>
     </div>
@@ -6215,66 +6218,67 @@ let yearReviewYear = null;
 let yearReviewMode = 'logging';
 let yearReviewPage = 1;
 const YEAR_REVIEW_PAGE_SIZE = 100;
+const PAST_TENSE_PLAYLIST_CACHE_KEY = 'melophile.pastTense.playlists.v2';
 const PAST_TENSE_PLAYLISTS = [
-  { year: 1970, name: 'vol. 1970', id: '6h8yLdFD25fBxgXuiIxqzm', url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm' },
-  { year: 1971, name: 'vol. 1971', id: '3jHRYkH2s0sRFtlj0sZzrX', url: 'https://open.spotify.com/playlist/3jHRYkH2s0sRFtlj0sZzrX' },
-  { year: 1972, name: 'vol. 1972', id: '0NwJtHOrIk3hbxUSa0e5JD', url: 'https://open.spotify.com/playlist/0NwJtHOrIk3hbxUSa0e5JD' },
-  { year: 1973, name: 'vol. 1973', id: '0y9IjTnejZzsLoCwT0n2SR', url: 'https://open.spotify.com/playlist/0y9IjTnejZzsLoCwT0n2SR' },
-  { year: 1974, name: 'vol. 1974', id: '2Wmgd7tcdBREX2vD4jMgXb', url: 'https://open.spotify.com/playlist/2Wmgd7tcdBREX2vD4jMgXb' },
-  { year: 1975, name: 'vol. 1975', id: '41tdIfuW52R4nAkMkx0ip0', url: 'https://open.spotify.com/playlist/41tdIfuW52R4nAkMkx0ip0' },
-  { year: 1976, name: 'vol. 1976', id: '1KmYU4cmPgmzlRDYd6tCAt', url: 'https://open.spotify.com/playlist/1KmYU4cmPgmzlRDYd6tCAt' },
-  { year: 1977, name: 'vol. 1977', id: '0apYkZXIJgs8g72DFG6BnS', url: 'https://open.spotify.com/playlist/0apYkZXIJgs8g72DFG6BnS' },
-  { year: 1978, name: 'vol. 1978', id: '6RAQhgbYtFg6Sd068NIYPV', url: 'https://open.spotify.com/playlist/6RAQhgbYtFg6Sd068NIYPV' },
-  { year: 1979, name: 'vol. 1979', id: '3ciroxrtnlVEFbDXUGq5l2', url: 'https://open.spotify.com/playlist/3ciroxrtnlVEFbDXUGq5l2' },
-  { year: 1980, name: 'vol. 1980', id: '3j1N7xoiLDubqSXOVsc3PZ', url: 'https://open.spotify.com/playlist/3j1N7xoiLDubqSXOVsc3PZ' },
-  { year: 1981, name: 'vol. 1981', id: '0qSdb58zbUFRIQuKtt0Uoj', url: 'https://open.spotify.com/playlist/0qSdb58zbUFRIQuKtt0Uoj' },
-  { year: 1982, name: 'vol. 1982', id: '7DAdFV1DMC7erJYpJYv5dk', url: 'https://open.spotify.com/playlist/7DAdFV1DMC7erJYpJYv5dk' },
-  { year: 1983, name: 'vol. 1983', id: '6Esyf4CgnJLUtxmlNgKnAz', url: 'https://open.spotify.com/playlist/6Esyf4CgnJLUtxmlNgKnAz' },
-  { year: 1984, name: 'vol. 1984', id: '4rlxf7LBOxW3zpZjiCSewG', url: 'https://open.spotify.com/playlist/4rlxf7LBOxW3zpZjiCSewG' },
-  { year: 1985, name: 'vol. 1985', id: '13KiKdyqXoXZ565a8dAmKM', url: 'https://open.spotify.com/playlist/13KiKdyqXoXZ565a8dAmKM' },
-  { year: 1986, name: 'vol. 1986', id: '1JAR2nSOUDDSTUmg6hMMgY', url: 'https://open.spotify.com/playlist/1JAR2nSOUDDSTUmg6hMMgY' },
-  { year: 1987, name: 'vol. 1987', id: '6DLuX8CiJ3Ex6zTS27cRIF', url: 'https://open.spotify.com/playlist/6DLuX8CiJ3Ex6zTS27cRIF' },
-  { year: 1988, name: 'vol. 1988', id: '2cXPKaEG1pNqkNHBchwVeQ', url: 'https://open.spotify.com/playlist/2cXPKaEG1pNqkNHBchwVeQ' },
-  { year: 1989, name: 'vol. 1989', id: '1xvwsJEx3HdzqyOD4iPKC0', url: 'https://open.spotify.com/playlist/1xvwsJEx3HdzqyOD4iPKC0' },
-  { year: 1990, name: 'vol. 1990', id: '0Un0VoQtPsR3wjAeb76fgG', url: 'https://open.spotify.com/playlist/0Un0VoQtPsR3wjAeb76fgG' },
-  { year: 1991, name: 'vol. 1991', id: '3J7y49n9TPkwHXF5Epenth', url: 'https://open.spotify.com/playlist/3J7y49n9TPkwHXF5Epenth' },
-  { year: 1992, name: 'vol. 1992', id: '6R2zLZie2HJxm52FecY75s', url: 'https://open.spotify.com/playlist/6R2zLZie2HJxm52FecY75s' },
-  { year: 1993, name: 'vol. 1993', id: '3O9lQvDHMJdozDta8DaXyk', url: 'https://open.spotify.com/playlist/3O9lQvDHMJdozDta8DaXyk' },
-  { year: 1994, name: 'vol. 1994', id: '3uVdIFDGDqKQXMKqIYU2dK', url: 'https://open.spotify.com/playlist/3uVdIFDGDqKQXMKqIYU2dK' },
-  { year: 1995, name: 'vol. 1995', id: '1WAcrHq9tVcpvwBLAqpzH6', url: 'https://open.spotify.com/playlist/1WAcrHq9tVcpvwBLAqpzH6' },
-  { year: 1996, name: 'vol. 1996', id: '3ogRv6pszAg2e70f9y6B0T', url: 'https://open.spotify.com/playlist/3ogRv6pszAg2e70f9y6B0T' },
-  { year: 1997, name: 'vol. 1997', id: '2rLkaOq4JscpvGgN9qcst2', url: 'https://open.spotify.com/playlist/2rLkaOq4JscpvGgN9qcst2' },
-  { year: 1998, name: 'vol. 1998', id: '2qzD9dp0lLjtrri6pp9eb0', url: 'https://open.spotify.com/playlist/2qzD9dp0lLjtrri6pp9eb0' },
-  { year: 1999, name: 'vol. 1999', id: '4gUMCMZ5gJWhP0Hafwf9yg', url: 'https://open.spotify.com/playlist/4gUMCMZ5gJWhP0Hafwf9yg' },
-  { year: 2000, name: 'vol. 2000', id: '0RhSaAKJ8mP9W0YCjEb1Gb', url: 'https://open.spotify.com/playlist/0RhSaAKJ8mP9W0YCjEb1Gb' },
-  { year: 2001, name: 'vol. 2001', id: '2QbX7vaoHwp1CVG8IvSczq', url: 'https://open.spotify.com/playlist/2QbX7vaoHwp1CVG8IvSczq' },
-  { year: 2002, name: 'vol. 2002', id: '76rOOjm9CDYX8SLZHxJjU6', url: 'https://open.spotify.com/playlist/76rOOjm9CDYX8SLZHxJjU6' },
-  { year: 2003, name: 'vol. 2003', id: '260AQhgN4HAYfzwLPFBVZh', url: 'https://open.spotify.com/playlist/260AQhgN4HAYfzwLPFBVZh' },
-  { year: 2004, name: 'vol. 2004', id: '4UQJGbtarQwX5oVyNkIiM8', url: 'https://open.spotify.com/playlist/4UQJGbtarQwX5oVyNkIiM8' },
-  { year: 2005, name: 'vol. 2005', id: '2HwAjZZVlQVXirv42qkhPa', url: 'https://open.spotify.com/playlist/2HwAjZZVlQVXirv42qkhPa' },
-  { year: 2006, name: 'vol. 2006', id: '4jK9zfoOPHnR3R0IU5FoCA', url: 'https://open.spotify.com/playlist/4jK9zfoOPHnR3R0IU5FoCA' },
-  { year: 2007, name: 'vol. 2007', id: '5Q7LlUtRzKWsgHb2aV8WYb', url: 'https://open.spotify.com/playlist/5Q7LlUtRzKWsgHb2aV8WYb' },
-  { year: 2008, name: 'vol. 2008', id: '3o6VTpnV30sj3ZtR3lcYWY', url: 'https://open.spotify.com/playlist/3o6VTpnV30sj3ZtR3lcYWY' },
-  { year: 2009, name: 'vol. 2009', id: '501xBY0q39MdJd93XXMaIt', url: 'https://open.spotify.com/playlist/501xBY0q39MdJd93XXMaIt' },
-  { year: 2010, name: 'vol. 2010', id: '7dQIaOniGFi9MDhlglMJj4', url: 'https://open.spotify.com/playlist/7dQIaOniGFi9MDhlglMJj4' },
-  { year: 2011, name: 'vol. 2011', id: '0DtnVPpoCD0lyOR6sNUfFx', url: 'https://open.spotify.com/playlist/0DtnVPpoCD0lyOR6sNUfFx' },
-  { year: 2012, name: 'vol. 2012', id: '0FWau467Xv0g4tbTaKPljb', url: 'https://open.spotify.com/playlist/0FWau467Xv0g4tbTaKPljb' },
-  { year: 2013, name: 'vol. 2013', id: '2iFSU6jnylRXmpZKD0rHrx', url: 'https://open.spotify.com/playlist/2iFSU6jnylRXmpZKD0rHrx' },
-  { year: 2014, name: 'vol. 2014', id: '6vX7NbqqppXHOfbKsPiDaM', url: 'https://open.spotify.com/playlist/6vX7NbqqppXHOfbKsPiDaM' },
-  { year: 2015, name: 'vol. 2015', id: '0MXaJhVL3D82VAFdPek3Hp', url: 'https://open.spotify.com/playlist/0MXaJhVL3D82VAFdPek3Hp' },
-  { year: 2016, name: 'vol. 2016', id: '64O6xuAZ7UvQHRscmjakSi', url: 'https://open.spotify.com/playlist/64O6xuAZ7UvQHRscmjakSi' },
-  { year: 2017, name: 'vol. 2017', id: '10cv5iLXLWylbG40b4ZzxG', url: 'https://open.spotify.com/playlist/10cv5iLXLWylbG40b4ZzxG' },
-  { year: 2018, name: 'vol. 2018', id: '4pIitRjOjFswfnnFNAKiGj', url: 'https://open.spotify.com/playlist/4pIitRjOjFswfnnFNAKiGj' },
-  { year: 2019, name: 'vol. 2019', id: '6bXZMI7YnJ7kDb9XUz1eoJ', url: 'https://open.spotify.com/playlist/6bXZMI7YnJ7kDb9XUz1eoJ' },
-  { year: 2020, name: 'vol. 2020', id: '2BYXhcG9ZWcAM71cjuWD3y', url: 'https://open.spotify.com/playlist/2BYXhcG9ZWcAM71cjuWD3y' },
-  { year: 2021, name: 'vol. 2021', id: '7JpbzmnWSHefjbLUkiWnoF', url: 'https://open.spotify.com/playlist/7JpbzmnWSHefjbLUkiWnoF' },
-  { year: 2022, name: 'vol. 2022', id: '2Ox7cDZYsQNvLJ1kiIVJWy', url: 'https://open.spotify.com/playlist/2Ox7cDZYsQNvLJ1kiIVJWy' },
-  { year: 2023, name: 'vol. 2023', id: '6YwSNYfYLX6G5pFFwdqftA', url: 'https://open.spotify.com/playlist/6YwSNYfYLX6G5pFFwdqftA' },
-  { year: 2024, name: 'vol. 2024', id: '6pxFiuryaPlFjmq3L7Oqm4', url: 'https://open.spotify.com/playlist/6pxFiuryaPlFjmq3L7Oqm4' },
-  { year: 2025, name: 'vol. 2025', id: '54HlfU8RqEtA7L0SEsY0jf', url: 'https://open.spotify.com/playlist/54HlfU8RqEtA7L0SEsY0jf' },
-  { year: 2026, name: 'vol. 2026', id: '5w9rdDEstP5LjmyOOpnXja', url: 'https://open.spotify.com/playlist/5w9rdDEstP5LjmyOOpnXja' }
+  { year: 1970, name: 'vol. 1970', id: '6h8yLdFD25fBxgXuiIxqzm', url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da849e272b8a1075272732091e76' },
+  { year: 1971, name: 'vol. 1971', id: '3jHRYkH2s0sRFtlj0sZzrX', url: 'https://open.spotify.com/playlist/3jHRYkH2s0sRFtlj0sZzrX', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8408ad8d82a865fc680c296f0f' },
+  { year: 1972, name: 'vol. 1972', id: '0NwJtHOrIk3hbxUSa0e5JD', url: 'https://open.spotify.com/playlist/0NwJtHOrIk3hbxUSa0e5JD', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da84d57ed9ab35242b22f7cbfc87' },
+  { year: 1973, name: 'vol. 1973', id: '0y9IjTnejZzsLoCwT0n2SR', url: 'https://open.spotify.com/playlist/0y9IjTnejZzsLoCwT0n2SR', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da84ef407b20e0cd1f66ef58184e' },
+  { year: 1974, name: 'vol. 1974', id: '2Wmgd7tcdBREX2vD4jMgXb', url: 'https://open.spotify.com/playlist/2Wmgd7tcdBREX2vD4jMgXb', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84cc38aac88c4f3b1b123de5e0' },
+  { year: 1975, name: 'vol. 1975', id: '41tdIfuW52R4nAkMkx0ip0', url: 'https://open.spotify.com/playlist/41tdIfuW52R4nAkMkx0ip0', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84398ba8b110d7b63ea6593748' },
+  { year: 1976, name: 'vol. 1976', id: '1KmYU4cmPgmzlRDYd6tCAt', url: 'https://open.spotify.com/playlist/1KmYU4cmPgmzlRDYd6tCAt', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da848446eea1ab87ffaaa31b14a0' },
+  { year: 1977, name: 'vol. 1977', id: '0apYkZXIJgs8g72DFG6BnS', url: 'https://open.spotify.com/playlist/0apYkZXIJgs8g72DFG6BnS', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84b96e43161a996fc88de2cf0e' },
+  { year: 1978, name: 'vol. 1978', id: '6RAQhgbYtFg6Sd068NIYPV', url: 'https://open.spotify.com/playlist/6RAQhgbYtFg6Sd068NIYPV', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84ed6efd347c974ee2acceb4b0' },
+  { year: 1979, name: 'vol. 1979', id: '3ciroxrtnlVEFbDXUGq5l2', url: 'https://open.spotify.com/playlist/3ciroxrtnlVEFbDXUGq5l2', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84686751453765d85fb69a34e7' },
+  { year: 1980, name: 'vol. 1980', id: '3j1N7xoiLDubqSXOVsc3PZ', url: 'https://open.spotify.com/playlist/3j1N7xoiLDubqSXOVsc3PZ', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8403434d316f39f78cee51b0c6' },
+  { year: 1981, name: 'vol. 1981', id: '0qSdb58zbUFRIQuKtt0Uoj', url: 'https://open.spotify.com/playlist/0qSdb58zbUFRIQuKtt0Uoj', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da843ef9a46c52253b12cc15bc92' },
+  { year: 1982, name: 'vol. 1982', id: '7DAdFV1DMC7erJYpJYv5dk', url: 'https://open.spotify.com/playlist/7DAdFV1DMC7erJYpJYv5dk', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da841f91fd50d6faa152cbcfec7a' },
+  { year: 1983, name: 'vol. 1983', id: '6Esyf4CgnJLUtxmlNgKnAz', url: 'https://open.spotify.com/playlist/6Esyf4CgnJLUtxmlNgKnAz', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84b4973429719a0b0618cd7b2e' },
+  { year: 1984, name: 'vol. 1984', id: '4rlxf7LBOxW3zpZjiCSewG', url: 'https://open.spotify.com/playlist/4rlxf7LBOxW3zpZjiCSewG', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da84e30b469dbd3d840899b303fa' },
+  { year: 1985, name: 'vol. 1985', id: '13KiKdyqXoXZ565a8dAmKM', url: 'https://open.spotify.com/playlist/13KiKdyqXoXZ565a8dAmKM', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da843210113da74f7cfb70d24208' },
+  { year: 1986, name: 'vol. 1986', id: '1JAR2nSOUDDSTUmg6hMMgY', url: 'https://open.spotify.com/playlist/1JAR2nSOUDDSTUmg6hMMgY', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84a1ae11bab3d70006654cb1f6' },
+  { year: 1987, name: 'vol. 1987', id: '6DLuX8CiJ3Ex6zTS27cRIF', url: 'https://open.spotify.com/playlist/6DLuX8CiJ3Ex6zTS27cRIF', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84c433259773850322e3bb6d9a' },
+  { year: 1988, name: 'vol. 1988', id: '2cXPKaEG1pNqkNHBchwVeQ', url: 'https://open.spotify.com/playlist/2cXPKaEG1pNqkNHBchwVeQ', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da841be667c2ab90673fcb340bad' },
+  { year: 1989, name: 'vol. 1989', id: '1xvwsJEx3HdzqyOD4iPKC0', url: 'https://open.spotify.com/playlist/1xvwsJEx3HdzqyOD4iPKC0', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84641ae1467b0dcb99702fd086' },
+  { year: 1990, name: 'vol. 1990', id: '0Un0VoQtPsR3wjAeb76fgG', url: 'https://open.spotify.com/playlist/0Un0VoQtPsR3wjAeb76fgG', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8491a17cd01c780379d673e89c' },
+  { year: 1991, name: 'vol. 1991', id: '3J7y49n9TPkwHXF5Epenth', url: 'https://open.spotify.com/playlist/3J7y49n9TPkwHXF5Epenth', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8481e5247fefe0e6397b7236c7' },
+  { year: 1992, name: 'vol. 1992', id: '6R2zLZie2HJxm52FecY75s', url: 'https://open.spotify.com/playlist/6R2zLZie2HJxm52FecY75s', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84782117b013b0c35ddc483525' },
+  { year: 1993, name: 'vol. 1993', id: '3O9lQvDHMJdozDta8DaXyk', url: 'https://open.spotify.com/playlist/3O9lQvDHMJdozDta8DaXyk', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da8427f3fecc2b50c6b006246336' },
+  { year: 1994, name: 'vol. 1994', id: '3uVdIFDGDqKQXMKqIYU2dK', url: 'https://open.spotify.com/playlist/3uVdIFDGDqKQXMKqIYU2dK', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8450affdf53fc1184751c6de73' },
+  { year: 1995, name: 'vol. 1995', id: '1WAcrHq9tVcpvwBLAqpzH6', url: 'https://open.spotify.com/playlist/1WAcrHq9tVcpvwBLAqpzH6', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84e841f804d66f462b35d57e1b' },
+  { year: 1996, name: 'vol. 1996', id: '3ogRv6pszAg2e70f9y6B0T', url: 'https://open.spotify.com/playlist/3ogRv6pszAg2e70f9y6B0T', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84408ed5379ab78efe094b4167' },
+  { year: 1997, name: 'vol. 1997', id: '2rLkaOq4JscpvGgN9qcst2', url: 'https://open.spotify.com/playlist/2rLkaOq4JscpvGgN9qcst2', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da84d40ae45b5d4a58e12d7ed351' },
+  { year: 1998, name: 'vol. 1998', id: '2qzD9dp0lLjtrri6pp9eb0', url: 'https://open.spotify.com/playlist/2qzD9dp0lLjtrri6pp9eb0', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da843b1cd992fa180e7ff8b108b3' },
+  { year: 1999, name: 'vol. 1999', id: '4gUMCMZ5gJWhP0Hafwf9yg', url: 'https://open.spotify.com/playlist/4gUMCMZ5gJWhP0Hafwf9yg', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84fb15c8c94771b31d24367707' },
+  { year: 2000, name: 'vol. 2000', id: '0RhSaAKJ8mP9W0YCjEb1Gb', url: 'https://open.spotify.com/playlist/0RhSaAKJ8mP9W0YCjEb1Gb', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da845b5259b7aa6535ccc7280f57' },
+  { year: 2001, name: 'vol. 2001', id: '2QbX7vaoHwp1CVG8IvSczq', url: 'https://open.spotify.com/playlist/2QbX7vaoHwp1CVG8IvSczq', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da840830b0cb31386e7ed41005ed' },
+  { year: 2002, name: 'vol. 2002', id: '76rOOjm9CDYX8SLZHxJjU6', url: 'https://open.spotify.com/playlist/76rOOjm9CDYX8SLZHxJjU6', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da842d62ddb2d8b1f29030e0b47e' },
+  { year: 2003, name: 'vol. 2003', id: '260AQhgN4HAYfzwLPFBVZh', url: 'https://open.spotify.com/playlist/260AQhgN4HAYfzwLPFBVZh', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da847ad9b48a0c3096059b48dbfb' },
+  { year: 2004, name: 'vol. 2004', id: '4UQJGbtarQwX5oVyNkIiM8', url: 'https://open.spotify.com/playlist/4UQJGbtarQwX5oVyNkIiM8', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84df5d129f47a69482b1dc5147' },
+  { year: 2005, name: 'vol. 2005', id: '2HwAjZZVlQVXirv42qkhPa', url: 'https://open.spotify.com/playlist/2HwAjZZVlQVXirv42qkhPa', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da844d55ca10c930792c007ed8a4' },
+  { year: 2006, name: 'vol. 2006', id: '4jK9zfoOPHnR3R0IU5FoCA', url: 'https://open.spotify.com/playlist/4jK9zfoOPHnR3R0IU5FoCA', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8429f3f7fe3d537edebe77f3bc' },
+  { year: 2007, name: 'vol. 2007', id: '5Q7LlUtRzKWsgHb2aV8WYb', url: 'https://open.spotify.com/playlist/5Q7LlUtRzKWsgHb2aV8WYb', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8478171242f434ec5a25594d8b' },
+  { year: 2008, name: 'vol. 2008', id: '3o6VTpnV30sj3ZtR3lcYWY', url: 'https://open.spotify.com/playlist/3o6VTpnV30sj3ZtR3lcYWY', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da8433ef9843b9910f240c863d99' },
+  { year: 2009, name: 'vol. 2009', id: '501xBY0q39MdJd93XXMaIt', url: 'https://open.spotify.com/playlist/501xBY0q39MdJd93XXMaIt', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da842603b29b763e53922cb25035' },
+  { year: 2010, name: 'vol. 2010', id: '7dQIaOniGFi9MDhlglMJj4', url: 'https://open.spotify.com/playlist/7dQIaOniGFi9MDhlglMJj4', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da8462e8b9361b035e6187421d4c' },
+  { year: 2011, name: 'vol. 2011', id: '0DtnVPpoCD0lyOR6sNUfFx', url: 'https://open.spotify.com/playlist/0DtnVPpoCD0lyOR6sNUfFx', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8408c8353fd263133f17b6786e' },
+  { year: 2012, name: 'vol. 2012', id: '0FWau467Xv0g4tbTaKPljb', url: 'https://open.spotify.com/playlist/0FWau467Xv0g4tbTaKPljb', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da848b3489626ee07a9add4ab398' },
+  { year: 2013, name: 'vol. 2013', id: '2iFSU6jnylRXmpZKD0rHrx', url: 'https://open.spotify.com/playlist/2iFSU6jnylRXmpZKD0rHrx', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da848fb57f9b0a82e1f25203204f' },
+  { year: 2014, name: 'vol. 2014', id: '6vX7NbqqppXHOfbKsPiDaM', url: 'https://open.spotify.com/playlist/6vX7NbqqppXHOfbKsPiDaM', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da848b913be5b909f5b53b7f1adb' },
+  { year: 2015, name: 'vol. 2015', id: '0MXaJhVL3D82VAFdPek3Hp', url: 'https://open.spotify.com/playlist/0MXaJhVL3D82VAFdPek3Hp', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84b27404fdf1d1822f955ed541' },
+  { year: 2016, name: 'vol. 2016', id: '64O6xuAZ7UvQHRscmjakSi', url: 'https://open.spotify.com/playlist/64O6xuAZ7UvQHRscmjakSi', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da84c983a68fbd41b3b9f34b3805' },
+  { year: 2017, name: 'vol. 2017', id: '10cv5iLXLWylbG40b4ZzxG', url: 'https://open.spotify.com/playlist/10cv5iLXLWylbG40b4ZzxG', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8494d90617667e057870ce3479' },
+  { year: 2018, name: 'vol. 2018', id: '4pIitRjOjFswfnnFNAKiGj', url: 'https://open.spotify.com/playlist/4pIitRjOjFswfnnFNAKiGj', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da847a6ea617662998013dfa12c9' },
+  { year: 2019, name: 'vol. 2019', id: '6bXZMI7YnJ7kDb9XUz1eoJ', url: 'https://open.spotify.com/playlist/6bXZMI7YnJ7kDb9XUz1eoJ', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84562f943ca5689b69a985c401' },
+  { year: 2020, name: 'vol. 2020', id: '2BYXhcG9ZWcAM71cjuWD3y', url: 'https://open.spotify.com/playlist/2BYXhcG9ZWcAM71cjuWD3y', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da8435d9b522f5f361623b12678a' },
+  { year: 2021, name: 'vol. 2021', id: '7JpbzmnWSHefjbLUkiWnoF', url: 'https://open.spotify.com/playlist/7JpbzmnWSHefjbLUkiWnoF', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84db32f7b164287b8f484ac233' },
+  { year: 2022, name: 'vol. 2022', id: '2Ox7cDZYsQNvLJ1kiIVJWy', url: 'https://open.spotify.com/playlist/2Ox7cDZYsQNvLJ1kiIVJWy', image: 'https://image-cdn-fa.spotifycdn.com/image/ab67706c0000da848c9296cbced9062848658c2e' },
+  { year: 2023, name: 'vol. 2023', id: '6YwSNYfYLX6G5pFFwdqftA', url: 'https://open.spotify.com/playlist/6YwSNYfYLX6G5pFFwdqftA', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8438e5347ea46724e448368967' },
+  { year: 2024, name: 'vol. 2024', id: '6pxFiuryaPlFjmq3L7Oqm4', url: 'https://open.spotify.com/playlist/6pxFiuryaPlFjmq3L7Oqm4', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da847baa3140a43751ebcab866ab' },
+  { year: 2025, name: 'vol. 2025', id: '54HlfU8RqEtA7L0SEsY0jf', url: 'https://open.spotify.com/playlist/54HlfU8RqEtA7L0SEsY0jf', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da84f05b5a1da7233a403bb7e17a' },
+  { year: 2026, name: 'vol. 2026', id: '5w9rdDEstP5LjmyOOpnXja', url: 'https://open.spotify.com/playlist/5w9rdDEstP5LjmyOOpnXja', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da849d3a4ce3a95d8b95525bf67e' }
 ];
-const pastTensePlaylistCache = {};
+const pastTensePlaylistCache = readPastTensePlaylistCache();
 const pastTenseTrackCache = {};
 let pastTenseHydrating = false;
 let selectedPastTensePlaylistId = null;
@@ -6297,11 +6301,25 @@ function renderPillRows(items, renderItem) {
   ).join('');
 }
 
+function readPastTensePlaylistCache() {
+  try {
+    return JSON.parse(localStorage.getItem(PAST_TENSE_PLAYLIST_CACHE_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+function writePastTensePlaylistCache() {
+  try {
+    localStorage.setItem(PAST_TENSE_PLAYLIST_CACHE_KEY, JSON.stringify(pastTensePlaylistCache));
+  } catch {}
+}
+
 function pastTensePlaylistFromDirectory(entry) {
   return pastTensePlaylistCache[entry.id] || {
     ...entry,
     tracks: { total: 0 },
-    images: [],
+    images: entry.image ? [{ url: entry.image }] : [],
     uri: spotifyPlaylistUri(entry.id),
     external_urls: { spotify: spotifyPlaylistUrl(entry.id) }
   };
@@ -6334,9 +6352,10 @@ function renderPastTensePlaylists() {
   hydratePastTensePlaylists();
 }
 
-async function hydratePastTensePlaylists() {
+async function hydratePastTensePlaylists(options = {}) {
   if (pastTenseHydrating || !(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
-  const missing = PAST_TENSE_PLAYLISTS.filter(entry => !pastTensePlaylistCache[entry.id]);
+  const force = options.force === true;
+  const missing = PAST_TENSE_PLAYLISTS.filter(entry => force || !pastTensePlaylistCache[entry.id]);
   if (!missing.length) return;
 
   pastTenseHydrating = true;
@@ -6347,18 +6366,31 @@ async function hydratePastTensePlaylists() {
       pastTensePlaylistCache[entry.id] = {
         ...entry,
         ...data,
+        images: (data.images && data.images.length) ? data.images : (entry.image ? [{ url: entry.image }] : []),
         url: spotifyPlaylistUrl(entry.id),
         uri: spotifyPlaylistUri(entry.id)
       };
+      writePastTensePlaylistCache();
       if ((i + 1) % 8 === 0) renderPastTensePlaylists();
     }
+    writePastTensePlaylistCache();
     renderPastTensePlaylists();
+    if (force) showCopyToast('past tense covers refreshed');
   } catch {
     const status = document.getElementById('pastTensePlaylistStatus');
     if (status) status.textContent = 'spotify release-year playlist details could not be loaded. reconnect spotify and try again.';
   } finally {
     pastTenseHydrating = false;
   }
+}
+
+function refreshPastTensePlaylistCovers() {
+  if (!(readSpotifyToken() || hasRefreshableSpotifyToken())) {
+    showCopyToast('connect spotify first');
+    return;
+  }
+  showCopyToast('refreshing past tense covers');
+  hydratePastTensePlaylists({ force: true });
 }
 
 function pastTenseTrackScrobbleCount(track) {
