@@ -4047,8 +4047,8 @@
       </div>
       <div class="seed-scan-panel" id="seedScanPanel">
         <div>
-          <div class="spotify-title">seed release scanner</div>
-          <div class="spotify-sub">automatically audits Last.fm artist pools and scans spotify for new releases at 9:01 p.m. every tuesday, thursday, and sunday while the app is open, or on the next open after a missed scan.</div>
+          <div class="spotify-title">spotify maintenance</div>
+          <div class="spotify-sub">automatically audits Last.fm artist pools, scans spotify for new releases, and refreshes past tense playlist contents at 9:01 p.m. every tuesday, thursday, and sunday while the app is open, or on the next open after a missed scan.</div>
         </div>
         <div class="seed-scan-grid">
           <div class="seed-scan-stat">
@@ -4063,10 +4063,15 @@
             <div class="seed-scan-value" id="seedScanReleaseCount">—</div>
             <div class="seed-scan-label">seed releases stored</div>
           </div>
+          <div class="seed-scan-stat">
+            <div class="seed-scan-value" id="pastTenseCacheCount">—</div>
+            <div class="seed-scan-label">past tense playlists cached</div>
+          </div>
         </div>
         <div class="spotify-actions">
           <button class="pill" type="button" onclick="runSeedReleaseScanNow()">run scan now</button>
           <button class="pill" type="button" onclick="refreshSeedArtistAudit()">refresh artist audit</button>
+          <button class="pill" type="button" onclick="refreshPastTensePlaylistContents({ force: true })">refresh past tense cache</button>
         </div>
         <div class="spotify-meta" id="seedScanStatus">scheduled scans wait for Last.fm data and a valid Spotify connection.</div>
       </div>
@@ -6168,6 +6173,9 @@ let yearReviewMode = 'logging';
 let yearReviewPage = 1;
 const YEAR_REVIEW_PAGE_SIZE = 100;
 const PAST_TENSE_PLAYLIST_CACHE_KEY = 'melophile.pastTense.playlists.v2';
+const PAST_TENSE_TRACK_CACHE_KEY = 'melophile.pastTense.tracks.v1';
+const PAST_TENSE_TRACK_CACHE_VERSION = 1;
+const PAST_TENSE_TRACK_CACHE_TTL_MS = 7 * 86400000;
 const PAST_TENSE_PLAYLISTS = [
   { year: 1970, name: 'vol. 1970', id: '6h8yLdFD25fBxgXuiIxqzm', url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da849e272b8a1075272732091e76' },
   { year: 1971, name: 'vol. 1971', id: '3jHRYkH2s0sRFtlj0sZzrX', url: 'https://open.spotify.com/playlist/3jHRYkH2s0sRFtlj0sZzrX', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8408ad8d82a865fc680c296f0f' },
@@ -6229,7 +6237,9 @@ const PAST_TENSE_PLAYLISTS = [
 ];
 const pastTensePlaylistCache = readPastTensePlaylistCache();
 const pastTenseTrackCache = {};
+let pastTenseTrackStore = readPastTenseTrackCache();
 let pastTenseHydrating = false;
+let pastTenseTracksRefreshing = false;
 let selectedPastTensePlaylistId = null;
 
 function availableReviewYears() {
@@ -6262,6 +6272,72 @@ function writePastTensePlaylistCache() {
   try {
     localStorage.setItem(PAST_TENSE_PLAYLIST_CACHE_KEY, JSON.stringify(pastTensePlaylistCache));
   } catch {}
+}
+
+function emptyPastTenseTrackCache() {
+  return {
+    version: PAST_TENSE_TRACK_CACHE_VERSION,
+    updatedAtMs: 0,
+    playlists: {}
+  };
+}
+
+function readPastTenseTrackCache() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PAST_TENSE_TRACK_CACHE_KEY) || 'null');
+    if (stored && stored.version === PAST_TENSE_TRACK_CACHE_VERSION && stored.playlists) return stored;
+  } catch {}
+  return emptyPastTenseTrackCache();
+}
+
+function writePastTenseTrackCache() {
+  try {
+    pastTenseTrackStore.version = PAST_TENSE_TRACK_CACHE_VERSION;
+    pastTenseTrackStore.updatedAtMs = Date.now();
+    localStorage.setItem(PAST_TENSE_TRACK_CACHE_KEY, JSON.stringify(pastTenseTrackStore));
+  } catch {}
+}
+
+function compactSpotifyTrackForCache(track) {
+  return {
+    name: track && track.name ? track.name : '',
+    duration_ms: Number(track && track.duration_ms) || 0,
+    artists: (track && track.artists || []).map(artist => ({ name: artist && artist.name ? artist.name : '' })).filter(artist => artist.name),
+    album: track && track.album && track.album.name ? { name: track.album.name } : { name: '' }
+  };
+}
+
+function cachePastTensePlaylistTracks(playlistId, tracks) {
+  pastTenseTrackStore.playlists[playlistId] = {
+    updatedAtMs: Date.now(),
+    total: tracks.length,
+    tracks: tracks.map(compactSpotifyTrackForCache)
+  };
+  pastTenseTrackCache[playlistId] = pastTenseTrackStore.playlists[playlistId].tracks;
+  writePastTenseTrackCache();
+}
+
+function cachedPastTensePlaylistTracks(playlistId) {
+  const cached = pastTenseTrackStore.playlists && pastTenseTrackStore.playlists[playlistId];
+  if (!cached || !Array.isArray(cached.tracks)) return null;
+  return cached.tracks;
+}
+
+function pastTenseTrackCacheStats() {
+  const playlists = pastTenseTrackStore.playlists || {};
+  const cachedIds = PAST_TENSE_PLAYLISTS.filter(entry => playlists[entry.id] && Array.isArray(playlists[entry.id].tracks));
+  const trackCount = cachedIds.reduce((sum, entry) => sum + (playlists[entry.id].tracks || []).length, 0);
+  return {
+    playlistCount: cachedIds.length,
+    trackCount,
+    updatedAtMs: pastTenseTrackStore.updatedAtMs || 0
+  };
+}
+
+function pastTenseTrackCacheNeedsRefresh(maxAgeMs = PAST_TENSE_TRACK_CACHE_TTL_MS) {
+  const playlists = pastTenseTrackStore.playlists || {};
+  if (PAST_TENSE_PLAYLISTS.some(entry => !playlists[entry.id] || !Array.isArray(playlists[entry.id].tracks))) return true;
+  return Date.now() - (pastTenseTrackStore.updatedAtMs || 0) > maxAgeMs;
 }
 
 function pastTensePlaylistFromDirectory(entry) {
@@ -6358,14 +6434,69 @@ function openPastTensePlaylist(playlistId) {
 }
 
 async function loadPastTensePlaylistTracks(playlistId, playlist) {
+  const cachedTracks = pastTenseTrackCache[playlistId] || cachedPastTensePlaylistTracks(playlistId);
+  if (cachedTracks && cachedTracks.length) {
+    pastTenseTrackCache[playlistId] = cachedTracks;
+    renderPastTensePlaylistDetail(playlist, { tracks: cachedTracks });
+    showCopyToast((playlist.name || 'playlist') + ' opened from cache');
+    return;
+  }
+
   try {
-    const tracks = pastTenseTrackCache[playlistId] || await loadSpotifyPlaylistTracks(playlistId);
-    pastTenseTrackCache[playlistId] = tracks;
+    const tracks = await loadSpotifyPlaylistTracks(playlistId);
+    cachePastTensePlaylistTracks(playlistId, tracks);
     renderPastTensePlaylistDetail(playlist, { tracks });
     showCopyToast((playlist.name || 'playlist') + ' opened');
   } catch {
     renderPastTensePlaylistDetail(playlist, { error: true });
     showCopyToast('could not load release-year playlist');
+  }
+}
+
+async function refreshPastTensePlaylistContents(options = {}) {
+  if (pastTenseTracksRefreshing) return;
+  const force = options.force === true;
+  const quiet = options.quiet === true;
+  if (!force && !pastTenseTrackCacheNeedsRefresh(options.maxAgeMs)) return;
+
+  const token = await getValidSpotifyToken();
+  if (!token) {
+    if (!quiet) showCopyToast('spotify connection needed');
+    renderSeedScanSettings();
+    return;
+  }
+
+  pastTenseTracksRefreshing = true;
+  if (!quiet) showCopyToast('refreshing past tense cache');
+  const status = document.getElementById('seedScanStatus');
+
+  try {
+    await hydratePastTensePlaylists();
+    for (let i = 0; i < PAST_TENSE_PLAYLISTS.length; i++) {
+      const entry = PAST_TENSE_PLAYLISTS[i];
+      const cached = pastTenseTrackStore.playlists[entry.id];
+      const playlist = pastTensePlaylistCache[entry.id] || pastTensePlaylistFromDirectory(entry);
+      const declaredTotal = playlist && playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+      const stale = !cached || Date.now() - (cached.updatedAtMs || 0) > PAST_TENSE_TRACK_CACHE_TTL_MS;
+      const countChanged = declaredTotal && cached && cached.total !== declaredTotal;
+      if (!force && cached && !stale && !countChanged) continue;
+
+      if (status) status.textContent = 'refreshing past tense cache · ' + entry.name + ' · ' + (i + 1).toLocaleString() + ' of ' + PAST_TENSE_PLAYLISTS.length.toLocaleString();
+      const tracks = await loadSpotifyPlaylistTracks(entry.id);
+      cachePastTensePlaylistTracks(entry.id, tracks);
+      if (selectedPastTensePlaylistId === entry.id) {
+        renderPastTensePlaylistDetail(playlist, { tracks });
+      }
+    }
+    renderSeedScanSettings();
+    if (!quiet) showCopyToast('past tense cache refreshed');
+  } catch {
+    if (status) status.textContent = 'past tense playlist cache refresh paused. reconnect spotify and try again.';
+    if (!quiet) showCopyToast('past tense cache refresh stopped');
+  } finally {
+    pastTenseTracksRefreshing = false;
+    renderSeedScanSettings();
+    startSeedScanScheduler();
   }
 }
 
@@ -10438,6 +10569,7 @@ async function scanSeedNewReleases() {
     updateSeedScanScheduleAfterRun(seedReleaseResults.length);
     renderSeedNewReleaseGrid();
     renderSeedScanSettings();
+    await refreshPastTensePlaylistContents({ quiet: true, force: true });
     showCopyToast('seed releases scanned');
   } catch {
     if (status) status.textContent = 'spotify release scan paused. try again in a bit if rate limits kicked in.';
@@ -10478,13 +10610,19 @@ function renderSeedScanSettings() {
   const allTimeEl = document.getElementById('seedScanAllTimeCount');
   const recentEl = document.getElementById('seedScanRecentCount');
   const releaseEl = document.getElementById('seedScanReleaseCount');
+  const pastTenseEl = document.getElementById('pastTenseCacheCount');
   const statusEl = document.getElementById('seedScanStatus');
+  const pastTenseStats = pastTenseTrackCacheStats();
   if (allTimeEl) allTimeEl.textContent = audit && audit.allTime ? audit.allTime.length.toLocaleString() : '—';
   if (recentEl) recentEl.textContent = audit && audit.recent ? audit.recent.length.toLocaleString() : '—';
   if (releaseEl) releaseEl.textContent = releases.length ? releases.length.toLocaleString() : '—';
+  if (pastTenseEl) pastTenseEl.textContent = pastTenseStats.playlistCount ? pastTenseStats.playlistCount.toLocaleString() : '—';
   if (statusEl) {
     const next = schedule.nextScanMs ? 'next scan ' + formatSeedScanDate(schedule.nextScanMs) : 'next scan not scheduled';
-    statusEl.textContent = (schedule.lastStatus || 'scheduled scans are active') + ' · ' + next;
+    const pastTense = pastTenseStats.playlistCount
+      ? ' · past tense cache ' + pastTenseStats.playlistCount.toLocaleString() + '/' + PAST_TENSE_PLAYLISTS.length.toLocaleString() + ' playlists'
+      : ' · past tense cache pending';
+    statusEl.textContent = (schedule.lastStatus || 'scheduled scans are active') + ' · ' + next + pastTense;
   }
 }
 
@@ -10508,6 +10646,11 @@ function startSeedScanScheduler() {
   const shouldScheduledScan = Date.now() >= schedule.nextScanMs && seedScanReady();
   if ((shouldInitialScan || shouldScheduledScan) && !seedReleaseScanning) {
     seedScanTimer = setTimeout(() => scanSeedNewReleases(), 2500);
+    renderSeedScanSettings();
+    return;
+  }
+  if (pastTenseTrackCacheNeedsRefresh() && seedScanReady() && !pastTenseTracksRefreshing) {
+    seedScanTimer = setTimeout(() => refreshPastTensePlaylistContents({ quiet: true }), 2500);
     renderSeedScanSettings();
     return;
   }
