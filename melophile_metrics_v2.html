@@ -5990,6 +5990,7 @@ function activateDataRows(rows, sourceLabel) {
 // ── Current year data store ───────────────────────────────────────────
 const CY = 2026;
 let allScrobbles = [];
+let normalizedTrackScrobbleCounts = new Map();
 let latestScrobbleMs = 0;
 let cyData = {
   scrobbles: 0, tracks: new Set(), artists: new Set(), albums: new Set(),
@@ -6133,6 +6134,7 @@ function parseCSV(text) {
 function buildAllData(rows) {
   // Reset
   allScrobbles = [];
+  normalizedTrackScrobbleCounts = new Map();
   latestScrobbleMs = 0;
   cyData = {
     scrobbles:0, tracks:new Set(), artists:new Set(), albums:new Set(),
@@ -6157,6 +6159,10 @@ function buildAllData(rows) {
     if (!artist) return;
     latestScrobbleMs = Math.max(latestScrobbleMs, uts * 1000);
     allScrobbles.push({ uts, playedAt: dt, artist, track, album, tKey, aKey });
+    if (track) {
+      const normalizedKey = normalizeHarvestTrackText(artist) + '|||' + normalizeHarvestTrackText(track);
+      normalizedTrackScrobbleCounts.set(normalizedKey, (normalizedTrackScrobbleCounts.get(normalizedKey) || 0) + 1);
+    }
     if (!cyData.allTimeArtists[artist]) cyData.allTimeArtists[artist] = yr;
     else cyData.allTimeArtists[artist] = Math.min(cyData.allTimeArtists[artist], yr);
     if (track) {
@@ -6488,10 +6494,9 @@ function pastTenseTrackScrobbleCount(track) {
   if (!track || !allScrobbles.length) return 0;
   const trackName = normalizeHarvestTrackText(track.name);
   const artistNames = (track.artists || []).map(artist => normalizeHarvestTrackText(artist.name)).filter(Boolean);
-  return allScrobbles.filter(scrobble =>
-    normalizeHarvestTrackText(scrobble.track) === trackName &&
-    artistNames.includes(normalizeHarvestTrackText(scrobble.artist))
-  ).length;
+  if (!trackName || !artistNames.length) return 0;
+  return artistNames.reduce((count, artistName) =>
+    count + (normalizedTrackScrobbleCounts.get(artistName + '|||' + trackName) || 0), 0);
 }
 
 function openPastTensePlaylist(playlistId) {
@@ -6505,13 +6510,14 @@ function openPastTensePlaylist(playlistId) {
   renderPastTensePlaylistDetail(playlist, { loading: true });
   showCopyToast('loading ' + (playlist.name || 'playlist'));
 
-  loadPastTensePlaylistTracks(playlistId, playlist);
+  requestAnimationFrame(() => loadPastTensePlaylistTracks(playlistId, playlist));
 }
 
 async function loadPastTensePlaylistTracks(playlistId, playlist) {
   const cachedTracks = pastTenseTrackCache[playlistId] || cachedPastTensePlaylistTracks(playlistId);
   if (cachedTracks && cachedTracks.length) {
     pastTenseTrackCache[playlistId] = cachedTracks;
+    await nextFrame();
     renderPastTensePlaylistDetail(playlist, { tracks: cachedTracks });
     showCopyToast((playlist.name || 'playlist') + ' opened from cache');
     return;
@@ -10144,10 +10150,8 @@ function harvestTrackScrobbleCount(track) {
     .map(artist => normalizeHarvestTrackText(artist.name))
     .filter(Boolean);
   if (!title || !artistNames.length) return 0;
-  return allScrobbles.reduce((count, scrobble) => {
-    if (normalizeHarvestTrackText(scrobble.track) !== title) return count;
-    return artistNames.includes(normalizeHarvestTrackText(scrobble.artist)) ? count + 1 : count;
-  }, 0);
+  return artistNames.reduce((count, artistName) =>
+    count + (normalizedTrackScrobbleCounts.get(artistName + '|||' + title) || 0), 0);
 }
 
 function readHarvestTrackIndex() {
@@ -11483,6 +11487,10 @@ async function loadSpotifyPlaylists() {
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function nextFrame() {
+  return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 
 async function spotifyFetch(pathOrUrl, attempt = 0) {
