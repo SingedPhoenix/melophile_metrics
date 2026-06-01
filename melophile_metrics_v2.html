@@ -2256,6 +2256,10 @@
     left: 22px;
   }
 
+  body.is-home-screen .global-nav-button {
+    display: none;
+  }
+
   .layout-switch,
   .theme-switch {
     right: 22px;
@@ -5322,6 +5326,7 @@ let scrollControlTimer = null;
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+  document.body.classList.toggle('is-home-screen', id === 'screenSelect');
   if (id === 'screenSelect') {
     renderJumpoff();
   }
