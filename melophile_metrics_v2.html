@@ -6365,6 +6365,7 @@ const PAST_TENSE_TRACK_CACHE_TTL_MS = 7 * 86400000;
 const PAST_TENSE_ARTIST_GENRE_CACHE_KEY = 'melophile.pastTense.artistGenres.v1';
 const PAST_TENSE_ARTIST_GENRE_TTL_MS = 30 * 86400000;
 const SPOTIFY_FETCH_TIMEOUT_MS = 15000;
+const PAST_TENSE_PLAYLIST_LOAD_TIMEOUT_MS = 20000;
 const PAST_TENSE_PLAYLISTS = [
   { year: 1970, name: 'vol. 1970', id: '6h8yLdFD25fBxgXuiIxqzm', url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da849e272b8a1075272732091e76' },
   { year: 1971, name: 'vol. 1971', id: '3jHRYkH2s0sRFtlj0sZzrX', url: 'https://open.spotify.com/playlist/3jHRYkH2s0sRFtlj0sZzrX', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8408ad8d82a865fc680c296f0f' },
@@ -6646,18 +6647,31 @@ async function loadPastTensePlaylistTracks(playlistId, playlist) {
   if (cachedTracks && cachedTracks.length) {
     pastTenseTrackCache[playlistId] = cachedTracks;
     await nextFrame();
+    if (selectedPastTensePlaylistId !== playlistId) return;
     renderPastTensePlaylistDetail(playlist, { tracks: cachedTracks });
     showCopyToast((playlist.name || 'playlist') + ' opened from cache');
     return;
   }
 
+  if (!(readSpotifyToken() || hasRefreshableSpotifyToken())) {
+    renderPastTensePlaylistDetail(playlist, { error: true });
+    showCopyToast('spotify connection needed');
+    return;
+  }
+
   try {
-    const tracks = await loadSpotifyPlaylistTracks(playlistId);
+    const tracks = await withTimeout(
+      loadSpotifyPlaylistTracks(playlistId),
+      PAST_TENSE_PLAYLIST_LOAD_TIMEOUT_MS,
+      'past tense playlist load timed out'
+    );
     cachePastTensePlaylistTracks(playlistId, tracks);
+    if (selectedPastTensePlaylistId !== playlistId) return;
     renderPastTensePlaylistDetail(playlist, { tracks });
     showCopyToast((playlist.name || 'playlist') + ' opened');
   } catch (err) {
     console.warn('Past Tense playlist load failed', err);
+    if (selectedPastTensePlaylistId !== playlistId) return;
     renderPastTensePlaylistDetail(playlist, { error: true });
     showCopyToast('could not load release-year playlist');
   }
@@ -11514,7 +11528,7 @@ async function getValidSpotifyToken() {
     refresh_token: storedToken.refresh_token
   });
 
-  const response = await fetch('https://accounts.spotify.com/api/token', {
+  const response = await fetchWithTimeout('https://accounts.spotify.com/api/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body
@@ -11697,16 +11711,22 @@ function nextFrame() {
   return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 
-async function spotifyFetch(pathOrUrl, attempt = 0) {
-  const token = await getValidSpotifyToken();
-  if (!token) throw new Error('spotify token missing');
-  const url = pathOrUrl.startsWith('http') ? pathOrUrl : 'https://api.spotify.com' + pathOrUrl;
+function withTimeout(promise, ms, message = 'operation timed out') {
+  let timeoutId = null;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = SPOTIFY_FETCH_TIMEOUT_MS) {
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const timeoutId = controller ? setTimeout(() => controller.abort(), SPOTIFY_FETCH_TIMEOUT_MS) : null;
-  let response;
+  const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
   try {
-    response = await fetch(url, {
-      headers: { Authorization: 'Bearer ' + token.access_token },
+    return await fetch(url, {
+      ...options,
       signal: controller ? controller.signal : undefined
     });
   } catch (err) {
@@ -11715,6 +11735,15 @@ async function spotifyFetch(pathOrUrl, attempt = 0) {
   } finally {
     if (timeoutId) clearTimeout(timeoutId);
   }
+}
+
+async function spotifyFetch(pathOrUrl, attempt = 0) {
+  const token = await getValidSpotifyToken();
+  if (!token) throw new Error('spotify token missing');
+  const url = pathOrUrl.startsWith('http') ? pathOrUrl : 'https://api.spotify.com' + pathOrUrl;
+  const response = await fetchWithTimeout(url, {
+    headers: { Authorization: 'Bearer ' + token.access_token }
+  });
   if (response.status === 429 && attempt < 2) {
     const retryAfter = Number(response.headers.get('Retry-After') || '2');
     await sleep(Math.max(1, retryAfter) * 1000);
