@@ -3513,6 +3513,7 @@
     border-radius: 14px;
     background: rgba(204,204,204,0.028);
     padding: 14px;
+    min-height: 92px;
   }
 
   .past-tense-stat-value {
@@ -3528,9 +3529,19 @@
     color: rgba(204,204,204,0.36);
   }
 
+  .past-tense-stat-value.is-text {
+    font-size: 22px;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
   @media (max-width: 980px) {
     .past-tense-grid {
       grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
+
+    .past-tense-stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .past-tense-detail-hero {
@@ -6190,8 +6201,10 @@ let yearReviewPage = 1;
 const YEAR_REVIEW_PAGE_SIZE = 100;
 const PAST_TENSE_PLAYLIST_CACHE_KEY = 'melophile.pastTense.playlists.v2';
 const PAST_TENSE_TRACK_CACHE_KEY = 'melophile.pastTense.tracks.v1';
-const PAST_TENSE_TRACK_CACHE_VERSION = 1;
+const PAST_TENSE_TRACK_CACHE_VERSION = 2;
 const PAST_TENSE_TRACK_CACHE_TTL_MS = 7 * 86400000;
+const PAST_TENSE_ARTIST_GENRE_CACHE_KEY = 'melophile.pastTense.artistGenres.v1';
+const PAST_TENSE_ARTIST_GENRE_TTL_MS = 30 * 86400000;
 const PAST_TENSE_PLAYLISTS = [
   { year: 1970, name: 'vol. 1970', id: '6h8yLdFD25fBxgXuiIxqzm', url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da849e272b8a1075272732091e76' },
   { year: 1971, name: 'vol. 1971', id: '3jHRYkH2s0sRFtlj0sZzrX', url: 'https://open.spotify.com/playlist/3jHRYkH2s0sRFtlj0sZzrX', image: 'https://image-cdn-ak.spotifycdn.com/image/ab67706c0000da8408ad8d82a865fc680c296f0f' },
@@ -6254,8 +6267,10 @@ const PAST_TENSE_PLAYLISTS = [
 const pastTensePlaylistCache = readPastTensePlaylistCache();
 const pastTenseTrackCache = {};
 let pastTenseTrackStore = readPastTenseTrackCache();
+let pastTenseArtistGenreCache = readPastTenseArtistGenreCache();
 let pastTenseHydrating = false;
 let pastTenseTracksRefreshing = false;
+let pastTenseGenresHydrating = false;
 let selectedPastTensePlaylistId = null;
 
 function availableReviewYears() {
@@ -6314,11 +6329,28 @@ function writePastTenseTrackCache() {
   } catch {}
 }
 
+function readPastTenseArtistGenreCache() {
+  try {
+    return JSON.parse(localStorage.getItem(PAST_TENSE_ARTIST_GENRE_CACHE_KEY) || '{}') || {};
+  } catch {
+    return {};
+  }
+}
+
+function writePastTenseArtistGenreCache() {
+  try {
+    localStorage.setItem(PAST_TENSE_ARTIST_GENRE_CACHE_KEY, JSON.stringify(pastTenseArtistGenreCache));
+  } catch {}
+}
+
 function compactSpotifyTrackForCache(track) {
   return {
     name: track && track.name ? track.name : '',
     duration_ms: Number(track && track.duration_ms) || 0,
-    artists: (track && track.artists || []).map(artist => ({ name: artist && artist.name ? artist.name : '' })).filter(artist => artist.name),
+    artists: (track && track.artists || []).map(artist => ({
+      id: artist && artist.id ? artist.id : '',
+      name: artist && artist.name ? artist.name : ''
+    })).filter(artist => artist.name),
     album: track && track.album && track.album.name ? { name: track.album.name } : { name: '' }
   };
 }
@@ -6518,19 +6550,105 @@ async function refreshPastTensePlaylistContents(options = {}) {
 
 function summarizePastTenseTracks(tracks) {
   const artists = {};
+  const albums = {};
   let durationMs = 0;
   tracks.forEach(track => {
     durationMs += Number(track.duration_ms) || 0;
     (track.artists || []).forEach(artist => {
       if (artist && artist.name) artists[artist.name] = (artists[artist.name] || 0) + 1;
     });
+    const albumName = track.album && track.album.name ? track.album.name : '';
+    const primaryArtist = track.artists && track.artists[0] && track.artists[0].name ? track.artists[0].name : '';
+    if (albumName) albums[(primaryArtist + '|||' + albumName).toLowerCase()] = true;
   });
-  const topArtists = Object.entries(artists)
-    .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 5)
-    .map(([name, count]) => name + ' (' + count + ')')
-    .join(' · ');
-  return { durationMs, topArtists, artistCount: Object.keys(artists).length };
+  return { durationMs, artistCount: Object.keys(artists).length, albumCount: Object.keys(albums).length };
+}
+
+function formatLongSpotifyDuration(ms) {
+  let totalSeconds = Math.max(0, Math.round((ms || 0) / 1000));
+  const days = Math.floor(totalSeconds / 86400);
+  totalSeconds %= 86400;
+  const hours = Math.floor(totalSeconds / 3600);
+  totalSeconds %= 3600;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return days + 'd : ' + hours + 'h : ' + minutes + 'm : ' + seconds + 's';
+}
+
+function pastTensePlaylistTrackTotal(entry) {
+  const cached = cachedPastTensePlaylistTracks(entry.id);
+  if (cached && cached.length) return cached.length;
+  const playlist = pastTensePlaylistCache[entry.id] || pastTensePlaylistFromDirectory(entry);
+  return playlist && playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+}
+
+function pastTensePlaylistTrackRank(playlist) {
+  const currentId = playlist.id;
+  const totals = PAST_TENSE_PLAYLISTS.map(entry => ({
+    id: entry.id,
+    total: pastTensePlaylistTrackTotal(entry)
+  })).filter(entry => entry.total > 0);
+  if (!totals.length) return 'pending';
+  const current = totals.find(entry => entry.id === currentId);
+  if (!current) return 'pending';
+  const rank = 1 + totals.filter(entry => entry.total > current.total).length;
+  const tie = totals.filter(entry => entry.total === current.total).length > 1;
+  return '#' + rank.toLocaleString() + (tie ? ' (tie)' : '');
+}
+
+function topPastTenseGenre(tracks) {
+  const counts = {};
+  tracks.forEach(track => {
+    const seen = new Set();
+    (track.artists || []).forEach(artist => {
+      if (!artist || !artist.id) return;
+      const cached = pastTenseArtistGenreCache[artist.id];
+      (cached && cached.genres || []).slice(0, 3).forEach(genre => {
+        const key = String(genre || '').trim().toLowerCase();
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        counts[key] = (counts[key] || 0) + 1;
+      });
+    });
+  });
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+  return top ? top[0] : 'pending';
+}
+
+async function hydratePastTenseArtistGenres(tracks, playlist) {
+  if (pastTenseGenresHydrating || !(readSpotifyToken() || hasRefreshableSpotifyToken())) return;
+  const ids = Array.from(new Set((tracks || []).flatMap(track =>
+    (track.artists || []).map(artist => artist.id).filter(Boolean)
+  )));
+  const missing = ids.filter(id => {
+    const cached = pastTenseArtistGenreCache[id];
+    return !cached || Date.now() - (cached.updatedAtMs || 0) > PAST_TENSE_ARTIST_GENRE_TTL_MS;
+  });
+  if (!missing.length) return;
+
+  pastTenseGenresHydrating = true;
+  try {
+    for (let i = 0; i < missing.length; i += 50) {
+      const batch = missing.slice(i, i + 50);
+      const data = await spotifyFetch('/v1/artists?ids=' + encodeURIComponent(batch.join(',')));
+      (data.artists || []).forEach(artist => {
+        if (!artist || !artist.id) return;
+        pastTenseArtistGenreCache[artist.id] = {
+          name: artist.name || '',
+          genres: artist.genres || [],
+          updatedAtMs: Date.now()
+        };
+      });
+      writePastTenseArtistGenreCache();
+    }
+    if (selectedPastTensePlaylistId === playlist.id) {
+      renderPastTensePlaylistDetail(playlist, { tracks });
+    }
+  } catch {
+    writePastTenseArtistGenreCache();
+  } finally {
+    pastTenseGenresHydrating = false;
+  }
 }
 
 function pastTenseDetailHeader(playlist, spotifyHref, bodyHtml) {
@@ -6578,13 +6696,17 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
 
   const tracks = state.tracks || [];
   const summary = summarizePastTenseTracks(tracks);
+  const playlistRank = pastTensePlaylistTrackRank(playlist);
+  const topGenre = topPastTenseGenre(tracks);
   target.innerHTML = '<div class="past-tense-detail-hero">' + cover +
     pastTenseDetailHeader(playlist, spotifyHref,
-      '<div class="past-tense-detail-meta">' + tracks.length.toLocaleString() + ' tracks loaded' + (declaredCount ? ' · ' + declaredCount.toLocaleString() + ' listed by spotify' : '') + (summary.topArtists ? '<br>top artists: ' + esc(summary.topArtists) : '') + '</div>' +
       '<div class="past-tense-stats">' +
       '<div class="past-tense-stat"><div class="past-tense-stat-value">' + tracks.length.toLocaleString() + '</div><div class="past-tense-stat-label">tracks</div></div>' +
       '<div class="past-tense-stat"><div class="past-tense-stat-value">' + summary.artistCount.toLocaleString() + '</div><div class="past-tense-stat-label">artists</div></div>' +
-      '<div class="past-tense-stat"><div class="past-tense-stat-value">' + formatSpotifyDuration(summary.durationMs) + '</div><div class="past-tense-stat-label">duration</div></div>' +
+      '<div class="past-tense-stat"><div class="past-tense-stat-value">' + summary.albumCount.toLocaleString() + '</div><div class="past-tense-stat-label">albums</div></div>' +
+      '<div class="past-tense-stat"><div class="past-tense-stat-value is-text">' + esc(playlistRank) + '</div><div class="past-tense-stat-label">playlist rank</div></div>' +
+      '<div class="past-tense-stat"><div class="past-tense-stat-value is-text">' + esc(formatLongSpotifyDuration(summary.durationMs)) + '</div><div class="past-tense-stat-label">duration</div></div>' +
+      '<div class="past-tense-stat"><div class="past-tense-stat-value is-text">' + esc(topGenre) + '</div><div class="past-tense-stat-label">top genre</div></div>' +
       '</div>') + '</div>' +
     '<div class="seed-detail-panel"><div class="seed-track-list">' + tracks.map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
@@ -6597,6 +6719,7 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
         '<div class="seed-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
         '</div>';
     }).join('') + '</div></div>';
+  hydratePastTenseArtistGenres(tracks, playlist);
   scheduleScrollControlUpdate();
 }
 
@@ -11407,7 +11530,7 @@ async function selectSpotifyPlaylist(playlistId) {
 }
 
 async function loadSpotifyPlaylistTracks(playlistId) {
-  const fields = 'items(track(name,duration_ms,artists(name),album(name))),next,total';
+  const fields = 'items(track(name,duration_ms,artists(id,name),album(name))),next,total';
   let next = 'https://api.spotify.com/v1/playlists/' + encodeURIComponent(playlistId) + '/tracks?limit=100&fields=' + encodeURIComponent(fields);
   const tracks = [];
   while (next) {
