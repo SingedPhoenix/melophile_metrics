@@ -3608,6 +3608,15 @@
     background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cherry-bright) 58%, transparent), color-mix(in srgb, var(--silver) 34%, transparent), transparent);
   }
 
+  .past-tense-song-list-title {
+    margin-bottom: 16px;
+    font-family: 'Quicksand', sans-serif;
+    font-size: var(--font-floor-xl);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--silver);
+  }
+
   .past-tense-artist-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -6929,7 +6938,9 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
       '<div class="past-tense-stat"><div class="past-tense-stat-label">top genre...</div><div class="past-tense-stat-value is-text">' + esc(topGenre) + '</div></div>' +
       '</div>') + '</div>' +
     renderPastTenseTopArtists(tracks, playlist) +
-    '<div class="seed-detail-panel"><div class="seed-track-list">' + tracks.map((track, index) => {
+    '<div class="seed-detail-panel">' +
+      '<div class="past-tense-song-list-title">favorite songs of ' + esc(playlist.year || 'this year') + '...</div>' +
+      '<div class="seed-track-list">' + tracks.map((track, index) => {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
       const scrobbles = pastTenseTrackScrobbleCount(track);
