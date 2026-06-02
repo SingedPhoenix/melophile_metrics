@@ -6936,7 +6936,7 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
       return '<div class="seed-track-row">' +
         '<div class="seed-track-rank">' + (index + 1) + '</div>' +
         '<div><div class="seed-track-name">' + esc(track.name) + '</div>' +
-        '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' · ' + esc(album) : '') + (allScrobbles.length ? ' · ' + scrobbles.toLocaleString() + ' scrobbles' : '') + '</div></div>' +
+        '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' | ' + esc(album) : '') + (allScrobbles.length ? ' | ' + scrobbles.toLocaleString() + ' scrobbles' : '') + '</div></div>' +
         '<div class="seed-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
         '</div>';
     }).join('') + '</div></div>';
