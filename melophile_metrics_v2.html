@@ -2712,9 +2712,27 @@
   .seed-playlist-meta {
     margin-top: 6px;
     font-family: 'DM Mono', monospace;
-    font-size: var(--font-floor-xs);
-    line-height: 1.45;
+    font-size: max(var(--font-floor-xs), 15px);
+    line-height: 1.35;
     color: rgba(204,204,204,0.34);
+  }
+
+  .seed-playlist-gem {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    vertical-align: middle;
+    font-size: 1em;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--gem-color, currentColor) 62%, rgba(204,204,204,0.42));
+  }
+
+  .seed-playlist-gem .gem-dot {
+    width: 14px;
+    height: 14px;
+    opacity: 0.9;
+    transform: translateY(-1px);
   }
 
   .seed-detail-panel {
@@ -6095,6 +6113,7 @@ function activateDataRows(rows, sourceLabel) {
 const CY = 2026;
 let allScrobbles = [];
 let normalizedTrackScrobbleCounts = new Map();
+let allTimeTrackGemIndex = null;
 let latestScrobbleMs = 0;
 let cyData = {
   scrobbles: 0, tracks: new Set(), artists: new Set(), albums: new Set(),
@@ -6239,6 +6258,7 @@ function buildAllData(rows) {
   // Reset
   allScrobbles = [];
   normalizedTrackScrobbleCounts = new Map();
+  allTimeTrackGemIndex = null;
   latestScrobbleMs = 0;
   cyData = {
     scrobbles:0, tracks:new Set(), artists:new Set(), albums:new Set(),
@@ -6606,6 +6626,65 @@ function pastTenseTrackScrobbleCount(track) {
     count + (normalizedTrackScrobbleCounts.get(artistName + '|||' + trackName) || 0), 0);
 }
 
+function allTimeTrackGemLookup() {
+  if (allTimeTrackGemIndex) return allTimeTrackGemIndex;
+  const counts = {};
+  allScrobbles.forEach(scrobble => {
+    if (!scrobble.track) return;
+    if (!counts[scrobble.tKey]) {
+      counts[scrobble.tKey] = {
+        name: scrobble.track,
+        artist: scrobble.artist,
+        count: 0
+      };
+    }
+    counts[scrobble.tKey].count += 1;
+  });
+
+  const ranges = metallurgyRangesFor('tracks', 'allTime');
+  allTimeTrackGemIndex = {};
+  Object.values(counts)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .forEach((entry, index) => {
+      const rank = index + 1;
+      const range = ranges.find(item => rank >= item.from && rank <= item.to);
+      if (!range) return;
+      const key = normalizeHarvestTrackText(entry.artist) + '|||' + normalizeHarvestTrackText(entry.name);
+      const gem = {
+        name: range.name,
+        label: range.label,
+        color: GEM_COLORS[range.name] || '#A00000',
+        rank,
+        count: entry.count
+      };
+      if (!allTimeTrackGemIndex[key] || rank < allTimeTrackGemIndex[key].rank) {
+        allTimeTrackGemIndex[key] = gem;
+      }
+    });
+  return allTimeTrackGemIndex;
+}
+
+function pastTenseTrackGem(track) {
+  if (!track || !track.name || !allScrobbles.length) return null;
+  const title = normalizeHarvestTrackText(track.name);
+  if (!title) return null;
+  const lookup = allTimeTrackGemLookup();
+  const matches = (track.artists || [])
+    .map(artist => normalizeHarvestTrackText(artist.name) + '|||' + title)
+    .map(key => lookup[key])
+    .filter(Boolean)
+    .sort((a, b) => a.rank - b.rank);
+  return matches[0] || null;
+}
+
+function renderPastTenseTrackGemBadge(gem) {
+  if (!gem) return '';
+  return ' | <span class="seed-playlist-gem" style="--gem-color:' + esc(gem.color) + '">' +
+    '<span class="gem-dot" aria-hidden="true"></span>' +
+    '<span>' + esc(gem.label) + '</span>' +
+  '</span>';
+}
+
 function openPastTensePlaylist(playlistId) {
   selectedPastTensePlaylistId = playlistId;
   const entry = PAST_TENSE_PLAYLISTS.find(item => item.id === playlistId);
@@ -6933,10 +7012,11 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
       const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
       const album = track.album && track.album.name ? track.album.name : '';
       const scrobbles = pastTenseTrackScrobbleCount(track);
+      const gemBadge = renderPastTenseTrackGemBadge(pastTenseTrackGem(track));
       return '<div class="seed-track-row">' +
         '<div class="seed-track-rank">' + (index + 1) + '</div>' +
         '<div><div class="seed-track-name">' + esc(track.name) + '</div>' +
-        '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' | ' + esc(album) : '') + (allScrobbles.length ? ' | ' + scrobbles.toLocaleString() + ' scrobbles' : '') + '</div></div>' +
+        '<div class="seed-playlist-meta">' + esc(artists) + (album ? ' | ' + esc(album) : '') + (allScrobbles.length ? ' | ' + scrobbles.toLocaleString() + ' scrobbles' : '') + gemBadge + '</div></div>' +
         '<div class="seed-track-duration">' + formatSpotifyDuration(track.duration_ms) + '</div>' +
         '</div>';
     }).join('') + '</div></div>';
