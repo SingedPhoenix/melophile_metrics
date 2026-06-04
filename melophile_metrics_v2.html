@@ -4332,18 +4332,7 @@
           </svg>
         </div>
         <div class="sq-name">ghosted</div>
-        <div class="sq-desc">forgotten pulls from<br>songs, artists &amp; albums</div>
-      </div>
-
-      <div class="section-square sq-pulse" onclick="navStack.push('screenApotheosis'); enterSection('apotheosis')">
-        <div class="sq-icon">
-          <svg width="32" height="32" viewBox="0 0 26 26" fill="none" style="position:relative;z-index:1">
-            <path d="M13 3l2.6 6.2 6.4.6-4.9 4.2 1.5 6.5L13 17.1 7.4 20.5 8.9 14 4 9.8l6.4-.6L13 3z" stroke="rgba(205,170,255,0.9)" stroke-width="1.8" stroke-linejoin="round"/>
-            <path d="M13 7v7" stroke="rgba(205,170,255,0.48)" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="sq-name">apotheosis</div>
-        <div class="sq-desc">release watchlist for<br>favorite artists</div>
+        <div class="sq-desc">revivals and release<br>watchlists</div>
       </div>
 
     </div>
@@ -4510,9 +4499,44 @@
     </div>
   </div>
 
-  <!-- ── Screen 9: Ghosted ── -->
+  <!-- ── Screen 9: Ghosted Sub-Nav ── -->
   <div class="screen" id="screenGhosted">
     <div class="detail-title">ghosted</div>
+    <div class="section-grid two-col">
+
+      <div class="section-square sq-chronicle" onclick="navStack.push('screenLongTimeNoHear'); enterSection('long-time-no-hear')">
+        <div class="sq-icon">
+          <svg width="32" height="32" viewBox="0 0 26 26" fill="none" style="position:relative;z-index:1">
+            <path d="M6 21V10a7 7 0 0114 0v11l-3-2-3 2-3-2-3 2z" stroke="rgba(220,140,140,0.9)" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="11" cy="11" r="1" fill="rgba(220,140,140,0.9)"/>
+            <circle cx="16" cy="11" r="1" fill="rgba(220,140,140,0.9)"/>
+          </svg>
+        </div>
+        <div class="sq-name">long time...no hear...</div>
+        <div class="sq-desc">forgotten pulls from<br>songs, artists &amp; albums</div>
+      </div>
+
+      <div class="section-square sq-pulse" onclick="navStack.push('screenApotheosis'); enterSection('apotheosis')">
+        <div class="sq-icon">
+          <svg width="32" height="32" viewBox="0 0 26 26" fill="none" style="position:relative;z-index:1">
+            <path d="M13 3l2.6 6.2 6.4.6-4.9 4.2 1.5 6.5L13 17.1 7.4 20.5 8.9 14 4 9.8l6.4-.6L13 3z" stroke="rgba(205,170,255,0.9)" stroke-width="1.8" stroke-linejoin="round"/>
+            <path d="M13 7v7" stroke="rgba(205,170,255,0.48)" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="sq-name">apotheosis</div>
+        <div class="sq-desc">release watchlist for<br>favorite artists</div>
+      </div>
+
+    </div>
+    <div class="detail-nav">
+      <button class="back-btn" onclick="goBack()">back</button>
+      <button class="home-btn" onclick="goHome()">home</button>
+    </div>
+  </div>
+
+  <!-- ── Screen 10: Long Time...No Hear... ── -->
+  <div class="screen" id="screenLongTimeNoHear">
+    <div class="detail-title">long time...no hear...</div>
     <div class="section-content">
 
       <div class="pill-row" id="ghostedWindowPills">
@@ -4558,7 +4582,7 @@
     </div>
   </div>
 
-  <!-- ── Screen 10: Apotheosis ── -->
+  <!-- ── Screen 11: Apotheosis ── -->
   <div class="screen" id="screenApotheosis">
     <div class="detail-title">apotheosis</div>
     <div class="section-content">
@@ -5532,7 +5556,7 @@ function enterSection(key) {
       syncMetallurgyControls();
       renderMetallurgyLab();
     }
-    if (s.screen === 'screenGhosted') {
+    if (s.screen === 'screenLongTimeNoHear') {
       ghostedType = 'tracks';
       ghostedWindow = 6;
       syncGhostedControls();
@@ -5573,6 +5597,7 @@ const SECTIONS = {
   momentous:      { screen: 'screenMomentous' },
   metallurgy:    { screen: 'screenMetallurgy' },
   ghosted:       { screen: 'screenGhosted'    },
+  'long-time-no-hear': { screen: 'screenLongTimeNoHear' },
   apotheosis:    { screen: 'screenApotheosis' },
   pulse:          { screen: 'screenPulse' },
   crate:          { screen: 'screenCrate'      },
@@ -5782,8 +5807,8 @@ function openGhostedSuggestion(type, windowValue) {
   ghostedType = type;
   ghostedWindow = windowValue;
   ghostedSkipped = new Set();
-  navStack = ['screenSelect', 'screenCrate', 'screenGhosted'];
-  showScreen('screenGhosted');
+  navStack = ['screenSelect', 'screenGhosted', 'screenLongTimeNoHear'];
+  showScreen('screenLongTimeNoHear');
   syncGhostedControls();
   renderGhostedList();
 }
@@ -5791,7 +5816,7 @@ function openGhostedSuggestion(type, windowValue) {
 function openApotheosisSuggestion() {
   apotheosisSkipped = new Set();
   apotheosisShuffled = false;
-  navStack = ['screenSelect', 'screenCrate', 'screenApotheosis'];
+  navStack = ['screenSelect', 'screenGhosted', 'screenApotheosis'];
   showScreen('screenApotheosis');
   renderApotheosis();
 }
@@ -5875,8 +5900,8 @@ function buildSmartJumpoffPool() {
         kicker: 'listening revival',
         action: 'create a ghosted station of ' + article + ' ' + singularType + ' ' + actionWindow,
         route: [
-          { label: 'crate', kind: 'crate' },
           { label: 'ghosted', kind: 'chronicle' },
+          { label: 'long time...no hear...', kind: 'chronicle' },
           { label, kind: 'time' },
           { label: type, kind: 'type' }
         ],
@@ -5893,7 +5918,7 @@ function buildSmartJumpoffPool() {
       kicker: 'discovery prompt',
       action: 'explore new tracks from an apotheosis artist',
       route: [
-        { label: 'crate', kind: 'crate' },
+        { label: 'ghosted', kind: 'chronicle' },
         { label: 'apotheosis', kind: 'pulse' },
         { label: 'new tracks', kind: 'type' }
       ],
