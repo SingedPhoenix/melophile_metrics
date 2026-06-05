@@ -5,5 +5,12 @@
   },
   "spotify": {
     "clientId": "your-spotify-client-id"
+  },
+  "listenbrainz": {
+    "username": "your-listenbrainz-username",
+    "token": "optional-listenbrainz-token"
+  },
+  "musicbrainz": {
+    "contact": "your-email-or-project-url"
   }
 }

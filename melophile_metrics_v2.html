@@ -4229,6 +4229,21 @@
         <div class="spotify-meta" id="spotifyCorrectionStatus">no correction selected.</div>
         <div class="spotify-corrections-list" id="spotifyCorrectionsList"></div>
       </div>
+      <div class="spotify-link-tools" id="openMusicApiPanel">
+        <div class="spotify-title">open music enrichment</div>
+        <div class="spotify-sub">connect ListenBrainz and MusicBrainz as cached metadata layers for canonical artist, album, and recording identity.</div>
+        <div class="spotify-link-grid">
+          <input class="spotify-input" id="listenbrainzUsernameInput" type="text" autocomplete="off" spellcheck="false" placeholder="listenbrainz username">
+          <input class="spotify-input" id="listenbrainzTokenInput" type="text" autocomplete="off" spellcheck="false" placeholder="listenbrainz token (optional)">
+          <input class="spotify-input" id="musicbrainzContactInput" type="text" autocomplete="off" spellcheck="false" placeholder="musicbrainz contact email or url">
+        </div>
+        <div class="spotify-actions">
+          <button class="pill" type="button" onclick="saveOpenMusicSettings()">save open music settings</button>
+          <button class="pill" type="button" onclick="reloadLocalServiceConfig()">load local config</button>
+          <button class="pill" type="button" onclick="testOpenMusicSettings()">test connection</button>
+        </div>
+        <div class="spotify-meta" id="openMusicApiStatus">MusicBrainz does not require an api key. ListenBrainz can use public username access; token is optional.</div>
+      </div>
       <div class="seed-scan-panel" id="seedScanPanel">
         <div>
           <div class="spotify-title">spotify maintenance</div>
@@ -5425,39 +5440,60 @@ async function reloadLocalServiceConfig() {
   const loaded = await loadLocalServiceConfig();
   renderLastfmPanel();
   renderSpotifyPanel();
+  renderOpenMusicPanel();
   showCopyToast(loaded ? 'local config loaded' : 'local config not found');
 }
 
 function applyLocalServiceConfig(config) {
   const lastfm = config.lastfm || {};
   const spotify = config.spotify || {};
+  const listenbrainz = config.listenbrainz || {};
+  const musicbrainz = config.musicbrainz || {};
   const lastfmUsername = (lastfm.username || config.lastfmUsername || '').trim();
   const lastfmApiKey = (lastfm.apiKey || config.lastfmApiKey || '').trim();
   const spotifyClientId = (spotify.clientId || config.spotifyClientId || '').trim();
+  const listenbrainzUsername = (listenbrainz.username || config.listenbrainzUsername || '').trim();
+  const listenbrainzToken = (listenbrainz.token || config.listenbrainzToken || '').trim();
+  const musicbrainzContact = (musicbrainz.contact || config.musicbrainzContact || '').trim();
 
   if (lastfmUsername) localStorage.setItem(LASTFM_USERNAME_KEY, lastfmUsername);
   if (lastfmApiKey) localStorage.setItem(LASTFM_API_KEY_KEY, lastfmApiKey);
   if (spotifyClientId) localStorage.setItem(SPOTIFY_CLIENT_ID_KEY, spotifyClientId);
+  if (listenbrainzUsername) localStorage.setItem(LISTENBRAINZ_USERNAME_KEY, listenbrainzUsername);
+  if (listenbrainzToken) localStorage.setItem(LISTENBRAINZ_TOKEN_KEY, listenbrainzToken);
+  if (musicbrainzContact) localStorage.setItem(MUSICBRAINZ_CONTACT_KEY, musicbrainzContact);
 }
 
 function bindServiceSettingsInputs() {
   const lastfmUsernameInput = document.getElementById('lastfmUsernameInput');
   const lastfmApiKeyInput = document.getElementById('lastfmApiKeyInput');
   const spotifyClientIdInput = document.getElementById('spotifyClientIdInput');
+  const listenbrainzUsernameInput = document.getElementById('listenbrainzUsernameInput');
+  const listenbrainzTokenInput = document.getElementById('listenbrainzTokenInput');
+  const musicbrainzContactInput = document.getElementById('musicbrainzContactInput');
 
   lastfmUsernameInput?.addEventListener('input', persistVisibleServiceSettings);
   lastfmApiKeyInput?.addEventListener('input', persistVisibleServiceSettings);
   spotifyClientIdInput?.addEventListener('input', persistVisibleServiceSettings);
+  listenbrainzUsernameInput?.addEventListener('input', persistVisibleServiceSettings);
+  listenbrainzTokenInput?.addEventListener('input', persistVisibleServiceSettings);
+  musicbrainzContactInput?.addEventListener('input', persistVisibleServiceSettings);
 }
 
 function persistVisibleServiceSettings() {
   const lastfmUsername = (document.getElementById('lastfmUsernameInput')?.value || '').trim();
   const lastfmApiKey = (document.getElementById('lastfmApiKeyInput')?.value || '').trim();
   const spotifyClientId = (document.getElementById('spotifyClientIdInput')?.value || '').trim();
+  const listenbrainzUsername = (document.getElementById('listenbrainzUsernameInput')?.value || '').trim();
+  const listenbrainzToken = (document.getElementById('listenbrainzTokenInput')?.value || '').trim();
+  const musicbrainzContact = (document.getElementById('musicbrainzContactInput')?.value || '').trim();
 
   if (lastfmUsername) localStorage.setItem(LASTFM_USERNAME_KEY, lastfmUsername);
   if (lastfmApiKey) localStorage.setItem(LASTFM_API_KEY_KEY, lastfmApiKey);
   if (spotifyClientId) localStorage.setItem(SPOTIFY_CLIENT_ID_KEY, spotifyClientId);
+  if (listenbrainzUsername) localStorage.setItem(LISTENBRAINZ_USERNAME_KEY, listenbrainzUsername);
+  if (listenbrainzToken) localStorage.setItem(LISTENBRAINZ_TOKEN_KEY, listenbrainzToken);
+  if (musicbrainzContact) localStorage.setItem(MUSICBRAINZ_CONTACT_KEY, musicbrainzContact);
 }
 
 // ── Nav stack for back button ─────────────────────────────────────────
@@ -5474,6 +5510,7 @@ function showScreen(id) {
   if (id === 'screenSettings') {
     renderLastfmPanel();
     renderSpotifyPanel();
+    renderOpenMusicPanel();
     renderSeedScanSettings();
   }
   window.scrollTo({ top: 0 });
@@ -5577,6 +5614,7 @@ function enterSection(key) {
       renderFreshHub();
     }
     if (s.screen === 'screenSettings') {
+      renderOpenMusicPanel();
       renderSpotifyLinkCorrections();
     }
     return;
@@ -11672,6 +11710,111 @@ function saveSpotifyClientId() {
   return true;
 }
 
+// ── Open music enrichment APIs ───────────────────────────────────────
+const LISTENBRAINZ_USERNAME_KEY = 'melophile.listenbrainz.username';
+const LISTENBRAINZ_TOKEN_KEY = 'melophile.listenbrainz.token';
+const MUSICBRAINZ_CONTACT_KEY = 'melophile.musicbrainz.contact';
+const MUSICBRAINZ_APP_NAME = 'MelophileMetrics';
+const MUSICBRAINZ_APP_VERSION = '0.1';
+let musicbrainzLastRequestMs = 0;
+
+function getListenBrainzSettings() {
+  const visibleUsername = (document.getElementById('listenbrainzUsernameInput')?.value || '').trim();
+  const visibleToken = (document.getElementById('listenbrainzTokenInput')?.value || '').trim();
+  return {
+    username: visibleUsername || (localStorage.getItem(LISTENBRAINZ_USERNAME_KEY) || '').trim(),
+    token: visibleToken || (localStorage.getItem(LISTENBRAINZ_TOKEN_KEY) || '').trim()
+  };
+}
+
+function getMusicBrainzSettings() {
+  const visibleContact = (document.getElementById('musicbrainzContactInput')?.value || '').trim();
+  return {
+    contact: visibleContact || (localStorage.getItem(MUSICBRAINZ_CONTACT_KEY) || '').trim()
+  };
+}
+
+function renderOpenMusicPanel() {
+  const listenbrainzUsernameInput = document.getElementById('listenbrainzUsernameInput');
+  const listenbrainzTokenInput = document.getElementById('listenbrainzTokenInput');
+  const musicbrainzContactInput = document.getElementById('musicbrainzContactInput');
+  const status = document.getElementById('openMusicApiStatus');
+  if (!listenbrainzUsernameInput || !listenbrainzTokenInput || !musicbrainzContactInput || !status) return;
+
+  const listenbrainz = getListenBrainzSettings();
+  const musicbrainz = getMusicBrainzSettings();
+  if (document.activeElement !== listenbrainzUsernameInput || !listenbrainzUsernameInput.value.trim()) listenbrainzUsernameInput.value = listenbrainz.username;
+  if (document.activeElement !== listenbrainzTokenInput || !listenbrainzTokenInput.value.trim()) listenbrainzTokenInput.value = listenbrainz.token;
+  if (document.activeElement !== musicbrainzContactInput || !musicbrainzContactInput.value.trim()) musicbrainzContactInput.value = musicbrainz.contact;
+
+  const pieces = [];
+  pieces.push(listenbrainz.username ? 'ListenBrainz username saved' : 'ListenBrainz username optional');
+  pieces.push(musicbrainz.contact ? 'MusicBrainz contact saved' : 'MusicBrainz contact recommended');
+  status.textContent = (localServiceConfigLoaded ? 'local config loaded · ' : '') + pieces.join(' · ');
+}
+
+function saveOpenMusicSettings() {
+  const listenbrainz = getListenBrainzSettings();
+  const musicbrainz = getMusicBrainzSettings();
+  if (listenbrainz.username) localStorage.setItem(LISTENBRAINZ_USERNAME_KEY, listenbrainz.username);
+  if (listenbrainz.token) localStorage.setItem(LISTENBRAINZ_TOKEN_KEY, listenbrainz.token);
+  if (musicbrainz.contact) localStorage.setItem(MUSICBRAINZ_CONTACT_KEY, musicbrainz.contact);
+  renderOpenMusicPanel();
+  showCopyToast('open music settings saved locally');
+  return true;
+}
+
+function musicbrainzUserAgent() {
+  const contact = getMusicBrainzSettings().contact;
+  return MUSICBRAINZ_APP_NAME + '/' + MUSICBRAINZ_APP_VERSION + (contact ? ' (' + contact + ')' : '');
+}
+
+async function musicbrainzFetch(path, params = {}) {
+  if (!getMusicBrainzSettings().contact) {
+    throw new Error('MusicBrainz contact missing');
+  }
+  const elapsed = Date.now() - musicbrainzLastRequestMs;
+  if (elapsed < 1100) {
+    await new Promise(resolve => setTimeout(resolve, 1100 - elapsed));
+  }
+  const query = new URLSearchParams({ fmt: 'json', ...params });
+  musicbrainzLastRequestMs = Date.now();
+  const response = await fetchWithTimeout('https://musicbrainz.org/ws/2' + path + '?' + query.toString(), {}, 12000);
+  if (!response.ok) throw new Error('MusicBrainz request failed: ' + response.status);
+  return response.json();
+}
+
+async function listenbrainzFetch(path, params = {}) {
+  const query = new URLSearchParams(params);
+  const listenbrainz = getListenBrainzSettings();
+  const headers = {};
+  if (listenbrainz.token) headers.Authorization = 'Token ' + listenbrainz.token;
+  const suffix = query.toString() ? '?' + query.toString() : '';
+  const response = await fetchWithTimeout('https://api.listenbrainz.org/1' + path + suffix, { headers }, 12000);
+  if (!response.ok) throw new Error('ListenBrainz request failed: ' + response.status);
+  return response.json();
+}
+
+async function testOpenMusicSettings() {
+  saveOpenMusicSettings();
+  const status = document.getElementById('openMusicApiStatus');
+  if (status) status.textContent = 'testing open music api connections...';
+  try {
+    const listenbrainz = getListenBrainzSettings();
+    if (listenbrainz.username) {
+      await listenbrainzFetch('/user/' + encodeURIComponent(listenbrainz.username) + '/listens', { count: '1' });
+    }
+    const musicbrainz = getMusicBrainzSettings();
+    if (status) status.textContent = listenbrainz.username
+      ? 'ListenBrainz public user lookup connected · MusicBrainz contact ' + (musicbrainz.contact ? 'saved' : 'recommended')
+      : 'add a ListenBrainz username to test ListenBrainz · MusicBrainz contact ' + (musicbrainz.contact ? 'saved' : 'recommended');
+    showCopyToast('open music settings checked');
+  } catch {
+    if (status) status.textContent = 'ListenBrainz test failed. check network access or username. MusicBrainz contact is still saved for enrichment.';
+    showCopyToast('open music api test failed');
+  }
+}
+
 async function connectSpotify() {
   if (!saveSpotifyClientId()) return;
   const clientId = getSpotifyClientId();
@@ -12195,6 +12338,7 @@ loadLocalServiceConfig()
     bindServiceSettingsInputs();
     renderLastfmPanel();
     renderSpotifyPanel();
+    renderOpenMusicPanel();
     renderSeedScanSettings();
     showScreen('screenSelect');
     loadLastfmCache({ silent: true });
