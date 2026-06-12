@@ -5546,6 +5546,11 @@ function goToSelect()  { navStack = ['screenSelect']; showScreen('screenSelect')
 function goHome()      { navStack = ['screenSelect']; showScreen('screenSelect'); }
 
 function goBack() {
+  const activeScreen = document.querySelector('.screen.active');
+  if (activeScreen?.id === 'screenFresh' && freshPath !== 'gate') {
+    openFreshPath('gate');
+    return;
+  }
   navStack.pop();
   const prev = navStack[navStack.length - 1] || 'screenSelect';
   showScreen(prev);
