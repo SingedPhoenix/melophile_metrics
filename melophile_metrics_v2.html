@@ -1409,7 +1409,7 @@
 
   .rankings-table tr:hover { background: rgba(204,204,204,0.03); }
 
-  .rankings-table tr.harvest-track-playable {
+  .rankings-table tr.harvest-spotify-playable {
     cursor: pointer;
   }
 
@@ -6085,13 +6085,14 @@ document.addEventListener('click', e => {
     return;
   }
 
-  const harvestTrack = e.target.closest('[data-harvest-spotify="track"]');
-  if (harvestTrack) {
-    const trackName = harvestTrack.dataset.name || '';
-    const trackArtist = harvestTrack.dataset.artist || '';
-    if (trackName && trackArtist) {
-      showCopyToast('opening track in spotify');
-      openSpotifyEntity('track', trackName, trackArtist);
+  const harvestSpotifyRow = e.target.closest('[data-harvest-spotify]');
+  if (harvestSpotifyRow) {
+    const entityType = harvestSpotifyRow.dataset.harvestSpotify || '';
+    const entityName = harvestSpotifyRow.dataset.name || '';
+    const entityArtist = harvestSpotifyRow.dataset.artist || '';
+    if (entityType && entityName) {
+      showCopyToast('opening ' + entityType + ' in spotify');
+      openSpotifyEntity(entityType, entityName, entityArtist);
       return;
     }
   }
@@ -10734,9 +10735,10 @@ function renderHarvestRankings() {
     const nameCell = harvestRankType === 'artists'
       ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">first logged · ' + esc(firstSeen) + '</div>'
       : '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + ' · first logged ' + esc(firstSeen) + '</div>';
-    const playableAttrs = harvestRankType === 'tracks'
-      ? ' class="harvest-track-playable" data-harvest-spotify="track" data-name="' + esc(entry.name) + '" data-artist="' + esc(entry.artist || '') + '" title="open track in spotify"'
-      : '';
+    const spotifyType = harvestRankType === 'artists'
+      ? 'artist'
+      : (harvestRankType === 'albums' ? 'album' : 'track');
+    const playableAttrs = ' class="harvest-spotify-playable" data-harvest-spotify="' + spotifyType + '" data-name="' + esc(entry.name) + '" data-artist="' + esc(entry.artist || '') + '" title="open ' + spotifyType + ' in spotify"';
     return '<tr' + playableAttrs + '>' +
       '<td class="r-rank">' + (index + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
