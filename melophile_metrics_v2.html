@@ -1409,6 +1409,10 @@
 
   .rankings-table tr:hover { background: rgba(204,204,204,0.03); }
 
+  .rankings-table tr.harvest-track-playable {
+    cursor: pointer;
+  }
+
   .rankings-table td {
     padding: 18px 4px;
     vertical-align: middle;
@@ -6081,6 +6085,17 @@ document.addEventListener('click', e => {
     return;
   }
 
+  const harvestTrack = e.target.closest('[data-harvest-spotify="track"]');
+  if (harvestTrack) {
+    const trackName = harvestTrack.dataset.name || '';
+    const trackArtist = harvestTrack.dataset.artist || '';
+    if (trackName && trackArtist) {
+      showCopyToast('opening track in spotify');
+      openSpotifyEntity('track', trackName, trackArtist);
+      return;
+    }
+  }
+
   const name = e.target.closest('.r-name');
   if (!name) return;
   const copyText = name.dataset.copy || name.textContent.trim();
@@ -10719,7 +10734,10 @@ function renderHarvestRankings() {
     const nameCell = harvestRankType === 'artists'
       ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">first logged · ' + esc(firstSeen) + '</div>'
       : '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + ' · first logged ' + esc(firstSeen) + '</div>';
-    return '<tr>' +
+    const playableAttrs = harvestRankType === 'tracks'
+      ? ' class="harvest-track-playable" data-harvest-spotify="track" data-name="' + esc(entry.name) + '" data-artist="' + esc(entry.artist || '') + '" title="open track in spotify"'
+      : '';
+    return '<tr' + playableAttrs + '>' +
       '<td class="r-rank">' + (index + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
