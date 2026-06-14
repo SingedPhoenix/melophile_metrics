@@ -12171,6 +12171,7 @@ const LASTFM_API_KEY_KEY = 'melophile.lastfm.apiKey';
 const LASTFM_DB_NAME = 'melophile-lastfm-cache';
 const LASTFM_DB_VERSION = 1;
 const LASTFM_STORE = 'scrobbles';
+const LASTFM_COUNT_REBUILD_TOLERANCE = 3;
 
 function getLastfmSettings() {
   const visibleUsername = (document.getElementById('lastfmUsernameInput')?.value || '').trim();
@@ -12245,9 +12246,27 @@ async function saveLastfmRows(rows) {
   });
 }
 
+async function replaceLastfmRows(rows) {
+  const db = await openLastfmDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(LASTFM_STORE, 'readwrite');
+    const store = tx.objectStore(LASTFM_STORE);
+    store.clear();
+    rows.forEach(row => store.put(row));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 async function latestCachedLastfmUts() {
   const rows = await readLastfmCachedRows();
   return rows.reduce((max, row) => Math.max(max, parseInt(row.uts) || 0), 0);
+}
+
+function lastfmCountsAreOutOfSync(localCount, profileCount) {
+  if (!Number.isFinite(profileCount) || profileCount <= 0) return false;
+  if (localCount > profileCount) return true;
+  return Math.abs(profileCount - localCount) > LASTFM_COUNT_REBUILD_TOLERANCE;
 }
 
 async function loadLastfmCache(options = {}) {
@@ -12272,13 +12291,21 @@ async function loadLastfmCache(options = {}) {
 
 async function syncLastfmRecent() {
   if (!saveLastfmSettings()) return;
-  const from = await latestCachedLastfmUts();
-  await syncLastfmHistory({ from: from ? from + 1 : null, mode: 'recent' });
+  const settings = getLastfmSettings();
+  const cachedRows = await readLastfmCachedRows();
+  const profileCount = await fetchLastfmProfileCount(settings);
+  if (cachedRows.length && lastfmCountsAreOutOfSync(cachedRows.length, profileCount)) {
+    showCopyToast('last.fm count drift found · rebuilding cache');
+    await syncLastfmHistory({ from: null, mode: 'full', rebuild: true, profileCount });
+    return;
+  }
+  const from = cachedRows.reduce((max, row) => Math.max(max, parseInt(row.uts) || 0), 0);
+  await syncLastfmHistory({ from: from ? from + 1 : null, mode: 'recent', profileCount });
 }
 
 async function syncLastfmFullHistory() {
   if (!saveLastfmSettings()) return;
-  await syncLastfmHistory({ from: null, mode: 'full' });
+  await syncLastfmHistory({ from: null, mode: 'full', rebuild: true });
 }
 
 async function syncLastfmHistory(options = {}) {
@@ -12307,13 +12334,36 @@ async function syncLastfmHistory(options = {}) {
       page++;
     } while (page <= totalPages);
 
-    await saveLastfmRows(fetchedRows);
+    if (options.rebuild || options.mode === 'full') await replaceLastfmRows(fetchedRows);
+    else await saveLastfmRows(fetchedRows);
     const cachedRows = await readLastfmCachedRows();
-    activateDataRows(cachedRows, fetchedRows.length.toLocaleString() + ' scrobbles synced from last.fm');
+    const profileCount = Number.isFinite(options.profileCount) ? options.profileCount : await fetchLastfmProfileCount(settings);
+    const drift = Number.isFinite(profileCount) ? cachedRows.length - profileCount : 0;
+    const driftNote = drift ? ' · profile delta ' + (drift > 0 ? '+' : '') + drift.toLocaleString() : '';
+    activateDataRows(cachedRows, cachedRows.length.toLocaleString() + ' cached scrobbles synced from last.fm' + driftNote);
   } catch (err) {
     loading.classList.add('hidden');
     showCopyToast('last.fm sync failed');
     renderLastfmPanel();
+  }
+}
+
+async function fetchLastfmProfileCount(settings) {
+  if (!settings || !settings.username || !settings.apiKey) return null;
+  try {
+    const params = new URLSearchParams({
+      method: 'user.getinfo',
+      user: settings.username,
+      api_key: settings.apiKey,
+      format: 'json'
+    });
+    const response = await fetch('https://ws.audioscrobbler.com/2.0/?' + params.toString());
+    if (!response.ok) return null;
+    const data = await response.json();
+    const playcount = data && data.user ? parseInt(data.user.playcount) : NaN;
+    return Number.isFinite(playcount) ? playcount : null;
+  } catch (err) {
+    return null;
   }
 }
 
