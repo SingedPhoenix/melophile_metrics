@@ -977,6 +977,39 @@
     flex-wrap: wrap;
   }
 
+  .lastfm-integrity-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .lastfm-integrity-card {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 10px;
+    background: rgba(10,10,10,0.16);
+    padding: 14px;
+    min-height: 74px;
+  }
+
+  .lastfm-integrity-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    line-height: 1.35;
+    color: rgba(204,204,204,0.38);
+    margin-bottom: 8px;
+  }
+
+  .lastfm-integrity-value {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 22px;
+    font-weight: 500;
+    color: rgba(204,204,204,0.86);
+  }
+
+  @media (max-width: 760px) {
+    .lastfm-integrity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
   .spotify-detail {
     grid-column: 1 / -1;
     border-top: 1px solid rgba(204,204,204,0.08);
@@ -4193,6 +4226,45 @@
           <button class="pill" type="button" onclick="loadLastfmCache()">load cached history</button>
         </div>
         <div class="lastfm-status" id="lastfmStatus">settings are stored in this browser only.</div>
+      </div>
+
+      <div class="lastfm-panel" id="lastfmIntegrityPanel">
+        <div>
+          <div class="lastfm-title">last.fm data integrity</div>
+          <div class="lastfm-sub">last.fm is the master dataset. the local cache is only a fast mirror and can be rebuilt whenever counts drift.</div>
+        </div>
+        <div class="lastfm-integrity-grid">
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">last.fm profile scrobbles</div>
+            <div class="lastfm-integrity-value" id="lastfmIntegrityProfile">—</div>
+          </div>
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">local cached scrobbles</div>
+            <div class="lastfm-integrity-value" id="lastfmIntegrityCache">—</div>
+          </div>
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">profile delta</div>
+            <div class="lastfm-integrity-value" id="lastfmIntegrityDelta">—</div>
+          </div>
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">cache status</div>
+            <div class="lastfm-integrity-value" id="lastfmIntegrityState">—</div>
+          </div>
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">last sync</div>
+            <div class="lastfm-integrity-value" id="lastfmIntegritySync">—</div>
+          </div>
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">last rebuild</div>
+            <div class="lastfm-integrity-value" id="lastfmIntegrityRebuild">—</div>
+          </div>
+        </div>
+        <div class="lastfm-actions">
+          <button class="pill" type="button" onclick="checkLastfmIntegrity()">check integrity</button>
+          <button class="pill" type="button" onclick="syncLastfmRecent()">sync new scrobbles</button>
+          <button class="pill" type="button" onclick="rebuildLastfmCache()">rebuild last.fm cache</button>
+        </div>
+        <div class="lastfm-status" id="lastfmIntegrityStatus">local cache status has not been checked yet.</div>
       </div>
 
       <div class="spotify-panel" id="spotifyPanel">
@@ -12172,6 +12244,8 @@ const LASTFM_DB_NAME = 'melophile-lastfm-cache';
 const LASTFM_DB_VERSION = 1;
 const LASTFM_STORE = 'scrobbles';
 const LASTFM_COUNT_REBUILD_TOLERANCE = 3;
+const LASTFM_LAST_SYNC_KEY = 'melophile.lastfm.lastSyncAt';
+const LASTFM_LAST_REBUILD_KEY = 'melophile.lastfm.lastRebuildAt';
 
 function getLastfmSettings() {
   const visibleUsername = (document.getElementById('lastfmUsernameInput')?.value || '').trim();
@@ -12193,6 +12267,39 @@ function renderLastfmPanel() {
   status.textContent = settings.username && settings.apiKey
     ? (localServiceConfigLoaded ? 'settings loaded from local config · ready to sync last.fm' : 'settings saved locally · ready to sync last.fm')
     : 'settings can be stored in this browser or loaded from local config.';
+  renderLastfmIntegrityPanel();
+}
+
+function setLastfmIntegrityText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+function formatLastfmIntegrityTime(value) {
+  if (!value) return '—';
+  const ms = Date.parse(value);
+  if (!Number.isFinite(ms)) return '—';
+  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toLowerCase();
+}
+
+function renderLastfmIntegrityPanel(snapshot = {}) {
+  const profileCount = Number.isFinite(snapshot.profileCount) ? snapshot.profileCount : null;
+  const cacheCount = Number.isFinite(snapshot.cacheCount) ? snapshot.cacheCount : null;
+  const delta = profileCount !== null && cacheCount !== null ? cacheCount - profileCount : null;
+  let state = snapshot.state || 'unknown';
+  if (!snapshot.state && profileCount !== null && cacheCount !== null) {
+    state = lastfmCountsAreOutOfSync(cacheCount, profileCount) ? 'rebuild' : 'in sync';
+  }
+
+  setLastfmIntegrityText('lastfmIntegrityProfile', profileCount !== null ? profileCount.toLocaleString() : '—');
+  setLastfmIntegrityText('lastfmIntegrityCache', cacheCount !== null ? cacheCount.toLocaleString() : '—');
+  setLastfmIntegrityText('lastfmIntegrityDelta', delta !== null ? ((delta > 0 ? '+' : '') + delta.toLocaleString()) : '—');
+  setLastfmIntegrityText('lastfmIntegrityState', state);
+  setLastfmIntegrityText('lastfmIntegritySync', formatLastfmIntegrityTime(localStorage.getItem(LASTFM_LAST_SYNC_KEY)));
+  setLastfmIntegrityText('lastfmIntegrityRebuild', formatLastfmIntegrityTime(localStorage.getItem(LASTFM_LAST_REBUILD_KEY)));
+
+  const status = document.getElementById('lastfmIntegrityStatus');
+  if (status && snapshot.message) status.textContent = snapshot.message;
 }
 
 function saveLastfmSettings() {
@@ -12279,13 +12386,16 @@ async function loadLastfmCache(options = {}) {
       updateUploadStatus('no cached last.fm history was found for this browser address. if your cache was created from file://, run a last.fm sync once from localhost to create the localhost cache.');
       if (!options.silent) showCopyToast('no last.fm cache found');
       renderLastfmPanel();
+      renderLastfmIntegrityPanel({ cacheCount: 0, state: 'empty', message: 'no local last.fm cache was found for this browser address.' });
       return;
     }
+    renderLastfmIntegrityPanel({ cacheCount: rows.length, message: 'cached local history is loaded. run check integrity to compare against last.fm.' });
     activateDataRows(rows, rows.length.toLocaleString() + ' cached scrobbles loaded');
   } catch (err) {
     document.getElementById('loadingOverlay').classList.add('hidden');
     updateUploadStatus('the cached history could not be opened. try syncing from last.fm or uploading a csv dataset.');
     if (!options.silent) showCopyToast('could not load last.fm cache');
+    renderLastfmIntegrityPanel({ state: 'unknown', message: 'the local last.fm cache could not be opened.' });
   }
 }
 
@@ -12306,6 +12416,39 @@ async function syncLastfmRecent() {
 async function syncLastfmFullHistory() {
   if (!saveLastfmSettings()) return;
   await syncLastfmHistory({ from: null, mode: 'full', rebuild: true });
+}
+
+async function rebuildLastfmCache() {
+  if (!saveLastfmSettings()) return;
+  await syncLastfmHistory({ from: null, mode: 'full', rebuild: true });
+}
+
+async function checkLastfmIntegrity() {
+  if (!saveLastfmSettings()) return;
+  const settings = getLastfmSettings();
+  const status = document.getElementById('lastfmIntegrityStatus');
+  if (status) status.textContent = 'checking last.fm profile count...';
+  try {
+    const cachedRows = await readLastfmCachedRows();
+    const profileCount = await fetchLastfmProfileCount(settings);
+    if (!Number.isFinite(profileCount)) {
+      renderLastfmIntegrityPanel({
+        cacheCount: cachedRows.length,
+        state: 'unknown',
+        message: 'last.fm profile count could not be checked.'
+      });
+      return;
+    }
+    const needsRebuild = lastfmCountsAreOutOfSync(cachedRows.length, profileCount);
+    renderLastfmIntegrityPanel({
+      profileCount,
+      cacheCount: cachedRows.length,
+      state: needsRebuild ? 'rebuild' : 'in sync',
+      message: needsRebuild ? 'cache drift detected. rebuild last.fm cache to realign with the master dataset.' : 'local cache matches the last.fm profile count.'
+    });
+  } catch (err) {
+    renderLastfmIntegrityPanel({ state: 'unknown', message: 'last.fm data integrity check failed.' });
+  }
 }
 
 async function syncLastfmHistory(options = {}) {
@@ -12338,13 +12481,24 @@ async function syncLastfmHistory(options = {}) {
     else await saveLastfmRows(fetchedRows);
     const cachedRows = await readLastfmCachedRows();
     const profileCount = Number.isFinite(options.profileCount) ? options.profileCount : await fetchLastfmProfileCount(settings);
+    const nowIso = new Date().toISOString();
+    localStorage.setItem(LASTFM_LAST_SYNC_KEY, nowIso);
+    if (options.rebuild || options.mode === 'full') localStorage.setItem(LASTFM_LAST_REBUILD_KEY, nowIso);
     const drift = Number.isFinite(profileCount) ? cachedRows.length - profileCount : 0;
     const driftNote = drift ? ' · profile delta ' + (drift > 0 ? '+' : '') + drift.toLocaleString() : '';
+    const needsRebuild = lastfmCountsAreOutOfSync(cachedRows.length, profileCount);
+    renderLastfmIntegrityPanel({
+      profileCount,
+      cacheCount: cachedRows.length,
+      state: needsRebuild ? 'rebuild' : 'in sync',
+      message: needsRebuild ? 'profile delta remains after sync; rebuild again if you were actively editing last.fm.' : 'last.fm cache synced and aligned.'
+    });
     activateDataRows(cachedRows, cachedRows.length.toLocaleString() + ' cached scrobbles synced from last.fm' + driftNote);
   } catch (err) {
     loading.classList.add('hidden');
     showCopyToast('last.fm sync failed');
     renderLastfmPanel();
+    renderLastfmIntegrityPanel({ state: 'unknown', message: 'last.fm sync failed before the cache could be verified.' });
   }
 }
 
