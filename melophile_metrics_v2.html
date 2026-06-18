@@ -11686,6 +11686,7 @@ function hasHeardRelease(artist, releaseName) {
 const SPOTIFY_CLIENT_ID_KEY = 'melophile.spotify.clientId';
 const SPOTIFY_TOKEN_KEY = 'melophile.spotify.token';
 const SPOTIFY_AUTH_KEY = 'melophile.spotify.auth';
+const SPOTIFY_AUTH_NOTICE_KEY = 'melophile.spotify.authNotice';
 const SPOTIFY_SCOPES = ['playlist-read-private', 'playlist-read-collaborative'];
 let spotifyProfile = null;
 let spotifyPlaylists = [];
@@ -11728,6 +11729,30 @@ function hasRefreshableSpotifyToken() {
   return Boolean(token && token.refresh_token);
 }
 
+function resetSpotifyRuntimeState() {
+  spotifyProfile = null;
+  spotifyPlaylists = [];
+  spotifySelectedPlaylistId = null;
+  Object.keys(spotifyPlaylistTracksCache).forEach(key => delete spotifyPlaylistTracksCache[key]);
+}
+
+function clearSpotifyStoredAuth(reason) {
+  localStorage.removeItem(SPOTIFY_TOKEN_KEY);
+  localStorage.removeItem(SPOTIFY_AUTH_KEY);
+  if (reason) localStorage.setItem(SPOTIFY_AUTH_NOTICE_KEY, reason);
+  resetSpotifyRuntimeState();
+}
+
+function markSpotifyAuthorizationExpired() {
+  const message = 'spotify authorization expired · reconnect spotify';
+  const previous = localStorage.getItem(SPOTIFY_AUTH_NOTICE_KEY);
+  clearSpotifyStoredAuth(message);
+  if (previous !== message) showCopyToast(message);
+  renderSpotifyPlaylists();
+  renderSpotifyPlaylistDetail(null);
+  renderSpotifyPanel();
+}
+
 async function getValidSpotifyToken() {
   const activeToken = readSpotifyToken();
   if (activeToken) return activeToken;
@@ -11749,7 +11774,18 @@ async function getValidSpotifyToken() {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body
   });
-  if (!response.ok) return null;
+  if (!response.ok) {
+    let errorData = null;
+    try {
+      errorData = await response.json();
+    } catch {
+      errorData = null;
+    }
+    if (errorData && errorData.error === 'invalid_grant') {
+      markSpotifyAuthorizationExpired();
+    }
+    return null;
+  }
 
   const refreshedToken = await response.json();
   const token = {
@@ -11759,6 +11795,7 @@ async function getValidSpotifyToken() {
     expires_at: Date.now() + (refreshedToken.expires_in || 3600) * 1000
   };
   localStorage.setItem(SPOTIFY_TOKEN_KEY, JSON.stringify(token));
+  localStorage.removeItem(SPOTIFY_AUTH_NOTICE_KEY);
   return token;
 }
 
@@ -11771,6 +11808,7 @@ function renderSpotifyPanel() {
   const clientId = getSpotifyClientId();
   const token = readSpotifyToken();
   const refreshableToken = hasRefreshableSpotifyToken();
+  const authNotice = localStorage.getItem(SPOTIFY_AUTH_NOTICE_KEY) || '';
   if (document.activeElement !== input || !input.value.trim()) input.value = clientId;
 
   if (location.protocol === 'file:') {
@@ -11787,6 +11825,9 @@ function renderSpotifyPanel() {
   } else if (refreshableToken && clientId) {
     status.textContent = 'connection saved · will refresh when playlists load';
     meta.textContent = 'client id saved · spotify refresh token stored in this browser';
+  } else if (authNotice && clientId) {
+    status.textContent = 'spotify authorization expired';
+    meta.textContent = authNotice + ' to continue playlist access.';
   } else if (clientId) {
     status.textContent = 'client id saved · ready to connect';
     meta.textContent = (localServiceConfigLoaded ? 'loaded from local config · ' : '') + 'redirect uri: ' + getSpotifyRedirectUri();
@@ -11926,6 +11967,7 @@ async function connectSpotify() {
   const verifier = generateCodeVerifier();
   const challenge = await generateCodeChallenge(verifier);
   const state = generateCodeVerifier().slice(0, 32);
+  localStorage.removeItem(SPOTIFY_AUTH_NOTICE_KEY);
   localStorage.setItem(SPOTIFY_AUTH_KEY, JSON.stringify({ verifier, state, createdAt: Date.now() }));
 
   const params = new URLSearchParams({
@@ -11986,6 +12028,7 @@ async function handleSpotifyRedirect() {
     token.expires_at = Date.now() + (token.expires_in || 3600) * 1000;
     localStorage.setItem(SPOTIFY_TOKEN_KEY, JSON.stringify(token));
     localStorage.removeItem(SPOTIFY_AUTH_KEY);
+    localStorage.removeItem(SPOTIFY_AUTH_NOTICE_KEY);
     history.replaceState({}, document.title, location.pathname);
     showCopyToast('spotify connected');
     await loadSpotifyPlaylists();
@@ -12069,6 +12112,10 @@ async function spotifyFetch(pathOrUrl, attempt = 0) {
     const retryAfter = Number(response.headers.get('Retry-After') || '2');
     await sleep(Math.max(1, retryAfter) * 1000);
     return spotifyFetch(pathOrUrl, attempt + 1);
+  }
+  if (response.status === 401) {
+    markSpotifyAuthorizationExpired();
+    throw new Error('spotify authorization expired');
   }
   if (!response.ok) throw new Error('spotify request failed');
   return response.json();
@@ -12207,12 +12254,8 @@ function formatSpotifyDuration(ms) {
 }
 
 function disconnectSpotify() {
-  localStorage.removeItem(SPOTIFY_TOKEN_KEY);
-  localStorage.removeItem(SPOTIFY_AUTH_KEY);
-  spotifyProfile = null;
-  spotifyPlaylists = [];
-  spotifySelectedPlaylistId = null;
-  Object.keys(spotifyPlaylistTracksCache).forEach(key => delete spotifyPlaylistTracksCache[key]);
+  clearSpotifyStoredAuth('');
+  localStorage.removeItem(SPOTIFY_AUTH_NOTICE_KEY);
   renderSpotifyPlaylists();
   renderSpotifyPlaylistDetail(null);
   renderSpotifyPanel();
