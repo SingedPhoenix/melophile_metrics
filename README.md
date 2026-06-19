@@ -2,6 +2,10 @@
 
 **Melophile Metrics is an AI-assisted personal music analytics application that turns Last.fm and Spotify listening activity into ranked insights, discovery workflows, and visual listening history.**
 
+## Portfolio Status Notice
+
+Melophile Metrics is actively in development as a personal analytics portfolio project. The repository is being prepared for public presentation while privacy-sensitive screenshots, local credentials, and personal data exports remain excluded from version control.
+
 ## Project Overview
 
 Melophile Metrics is an in-development portfolio project for exploring how personal listening data can become a richer analytics system. The app combines Last.fm scrobble history, Spotify playlist data, and user-defined classification rules to answer questions such as:
@@ -26,6 +30,19 @@ I built Melophile Metrics because standard music apps show listening history, bu
 - Tracks new releases from artists already connected to my taste profile.
 - Supports playlist families such as release-year playlists, fresh discovery playlists, and ranked gem tiers.
 - Provides data-integrity checks so Last.fm profile totals and local app totals can be reconciled.
+
+## Screenshots
+
+Portfolio screenshots should be added after a final privacy review, because many app screens display personal listening history. Recommended captures and filenames are documented in [docs/images/README.md](docs/images/README.md).
+
+Recommended visuals include:
+
+- Main navigation or dashboard.
+- Listening rankings.
+- Trend or historical analysis.
+- Data-integrity or synchronization screen.
+- Discovery or new-release features.
+- A distinctive visualization such as the listening clock.
 
 ## Key Features
 
@@ -77,25 +94,6 @@ My contributions include:
 
 This project was built with significant AI-assisted coding support. I did not independently hand-code every line. My role was to direct the product, define the analytical logic, test and critique the implementation, make design decisions, and guide the development process through iterative prompts, reviews, and refinements.
 
-## Screenshots
-
-Portfolio screenshots should be added after a final privacy review, because many app screens display personal listening history. Recommended captures and filenames are documented in [docs/images/README.md](docs/images/README.md).
-
-Recommended visuals include:
-
-- Main navigation or dashboard.
-- Listening rankings.
-- Trend or historical analysis.
-- Data-integrity or synchronization screen.
-- Discovery or new-release features.
-- A distinctive visualization such as the listening clock.
-
-## Current Development Status
-
-Melophile Metrics is actively in development. It is a personal analytics portfolio project and is not affiliated with Last.fm, Spotify, ListenBrainz, MusicBrainz, or Epic.
-
-The application depends on user-provided data and/or API access. Some features require Last.fm credentials, Spotify authorization, or locally cached data to display meaningful results.
-
 ## How To Run The Application Locally
 
 From the repository folder:
@@ -120,6 +118,10 @@ melophile_config.example.json
 
 Create a private local copy named `melophile_config.local.json` when needed. That local file is ignored by Git.
 
+## Current Development Status
+
+Melophile Metrics is actively in development. The application depends on user-provided data and/or API access. Some features require Last.fm credentials, Spotify authorization, or locally cached data to display meaningful results.
+
 ## Planned Improvements
 
 - Continue refining the nine-bento information architecture.
@@ -142,20 +144,10 @@ Create a private local copy named `melophile_config.local.json` when needed. Tha
 - Version control and repository hygiene.
 - AI-assisted software development and evaluation.
 
-## Repository Presentation Notes
-
-Suggested GitHub description:
-
-```text
-AI-assisted personal music analytics app for Last.fm and Spotify listening data, discovery workflows, playlist systems, and data visualization.
-```
-
-Suggested topic tags:
-
-```text
-music-analytics, lastfm, spotify-api, data-visualization, personal-analytics, javascript, portfolio-project, ai-assisted-development
-```
-
 ## Contact Or LinkedIn
 
 This project is intended to be shared from the owner's LinkedIn profile as a portfolio case study in personal analytics, workflow design, and AI-assisted application development.
+
+## Affiliation And Trademark Disclaimer
+
+Melophile Metrics is an independent personal portfolio project. It is not affiliated with, endorsed by, or sponsored by Last.fm, Spotify, ListenBrainz, MusicBrainz, or Epic. Product names, trademarks, and service names belong to their respective owners.

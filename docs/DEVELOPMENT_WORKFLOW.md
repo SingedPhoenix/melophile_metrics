@@ -76,3 +76,17 @@ Before presenting the project publicly:
 3. Confirm the app still loads through the localhost URL.
 4. Confirm documentation links are not broken.
 5. Keep internal notes in `docs/` rather than the public README.
+
+## Repository Presentation Notes
+
+Suggested GitHub description:
+
+```text
+AI-assisted personal music analytics app for Last.fm and Spotify listening data, discovery workflows, playlist systems, and data visualization.
+```
+
+Suggested topic tags:
+
+```text
+music-analytics, lastfm, spotify-api, data-visualization, personal-analytics, javascript, portfolio-project, ai-assisted-development
+```
