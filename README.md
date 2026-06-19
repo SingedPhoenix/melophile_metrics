@@ -1,55 +1,161 @@
-# melophile metrics
+# Melophile Metrics
 
-Recovered single-file Last.fm listening dashboard.
+**Melophile Metrics is an AI-assisted personal music analytics application that turns Last.fm and Spotify listening activity into ranked insights, discovery workflows, and visual listening history.**
 
-## source of truth
+## Project Overview
 
-- App: `melophile_metrics_v2.html`
-- Latest handoff: `handoffs/LastFM Data Update Handoff - 2026-05-13 ambient theme rotation.md`
-- Older recovered backup: `backups/LastFM Data Update Dashboard.backup.html`
+Melophile Metrics is an in-development portfolio project for exploring how personal listening data can become a richer analytics system. The app combines Last.fm scrobble history, Spotify playlist data, and user-defined classification rules to answer questions such as:
 
-## local preview
+- What music has shaped my listening history most strongly?
+- Which songs, artists, and albums are rising in recent periods?
+- Which older favorites have been forgotten?
+- Which new releases are worth exploring?
+- How can personal taste be organized into meaningful playlist systems?
 
-From this folder:
+The project is intentionally personal, but the underlying work demonstrates transferable skills in data analysis, product thinking, information architecture, data quality, and iterative software development.
+
+## Why I Built It
+
+I built Melophile Metrics because standard music apps show listening history, but rarely explain it in a way that supports reflection, curation, or decision-making. I wanted a system that could combine listening counts, playlist structure, release years, discovery workflows, and custom ranking rules into one coherent analytics experience.
+
+## Problems It Solves
+
+- Converts raw listening history into browsable ranking systems.
+- Helps distinguish short-term listening spikes from long-term favorites.
+- Creates workflows for rediscovering forgotten music.
+- Tracks new releases from artists already connected to my taste profile.
+- Supports playlist families such as release-year playlists, fresh discovery playlists, and ranked gem tiers.
+- Provides data-integrity checks so Last.fm profile totals and local app totals can be reconciled.
+
+## Key Features
+
+- **Fresh**: discovery workflows for seed playlists, harvest playlists, and new-release indexing.
+- **Pulse**: dynamic rankings for recent listening windows such as the last 1, 3, 6, or 12 months.
+- **Gem Mines**: rank-banded classifications that group tracks, artists, and albums into custom gem tiers.
+- **Past Tense**: release-year playlist portals that organize favorite music by the year it was released.
+- **Dashboard**: visual summaries of listening patterns, averages, yearly views, and data health.
+- **Ghosted and Apotheosis**: rediscovery tools for artists and music that have gone quiet in the listening record.
+- **Settings and Sync**: local configuration for Last.fm, Spotify, ListenBrainz, and MusicBrainz integrations.
+
+## Analytical Methods And Concepts Demonstrated
+
+- Data cleaning and local cache management.
+- Time-window analysis across dynamic and static periods.
+- Ranking, thresholding, and classification systems.
+- Percentile-inspired segmentation and custom tiering.
+- Playlist-family mapping and taxonomy design.
+- Recency, frequency, and first-seen/last-seen analysis.
+- Data-integrity comparison between local cached data and Last.fm profile totals.
+- Human-centered workflow design for discovery, curation, and review.
+
+## Technologies And Tools
+
+- HTML, CSS, and vanilla JavaScript.
+- Last.fm API for listening-history sync and profile comparison.
+- Spotify Web API for playlist inventory, playlist contents, and music links.
+- ListenBrainz and MusicBrainz as planned/open metadata enrichment layers.
+- Browser localStorage for local settings and cached data.
+- Git and GitHub for version control.
+- AI coding tools used during iterative development.
+
+## My Role And Contributions
+
+Melophile Metrics is an AI-assisted application that I conceived, specified, tested, refined, and developed through an iterative collaboration with coding tools.
+
+My contributions include:
+
+- Defining the product vision and feature philosophy.
+- Creating the analytical questions the app is meant to answer.
+- Designing classification rules, gem tiers, playlist families, and thresholds.
+- Planning workflows for discovery, rediscovery, and data review.
+- Evaluating generated code and identifying bugs.
+- Testing app behavior across local browser sessions.
+- Refining the visual direction, layout, and user experience.
+- Deciding how Last.fm, Spotify, and other music metadata sources should support the app.
+
+## AI-Assisted Development Disclosure
+
+This project was built with significant AI-assisted coding support. I did not independently hand-code every line. My role was to direct the product, define the analytical logic, test and critique the implementation, make design decisions, and guide the development process through iterative prompts, reviews, and refinements.
+
+## Screenshots
+
+Portfolio screenshots should be added after a final privacy review, because many app screens display personal listening history. Recommended captures and filenames are documented in [docs/images/README.md](docs/images/README.md).
+
+Recommended visuals include:
+
+- Main navigation or dashboard.
+- Listening rankings.
+- Trend or historical analysis.
+- Data-integrity or synchronization screen.
+- Discovery or new-release features.
+- A distinctive visualization such as the listening clock.
+
+## Current Development Status
+
+Melophile Metrics is actively in development. It is a personal analytics portfolio project and is not affiliated with Last.fm, Spotify, ListenBrainz, MusicBrainz, or Epic.
+
+The application depends on user-provided data and/or API access. Some features require Last.fm credentials, Spotify authorization, or locally cached data to display meaningful results.
+
+## How To Run The Application Locally
+
+From the repository folder:
 
 ```sh
-python3 -m http.server 8765
+python3 -m http.server 8767
 ```
 
 Then open:
 
 ```text
-http://127.0.0.1:8765/melophile_metrics_v2.html
+http://127.0.0.1:8767/melophile_metrics_v2.html
 ```
 
-## save rule
+The app can be opened directly as a local HTML file for some views, but API authentication flows such as Spotify work best through the localhost URL above.
 
-After every meaningful app change, run:
+Optional local configuration can be based on:
 
-```sh
-scripts/autosave.sh "describe the change"
+```text
+melophile_config.example.json
 ```
 
-That script commits all changed project files and pushes to the configured GitHub remote when one exists.
+Create a private local copy named `melophile_config.local.json` when needed. That local file is ignored by Git.
 
-For future Codex work on this app:
+## Planned Improvements
 
-1. Edit only the project source-of-truth files in this repository.
-2. Verify the app after the change.
-3. Run `scripts/autosave.sh "short change summary"` before ending the session.
+- Continue refining the nine-bento information architecture.
+- Add stronger metadata enrichment through ListenBrainz and MusicBrainz.
+- Improve correction workflows for Spotify links and metadata mismatches.
+- Expand playlist-family tagging and cached playlist analysis.
+- Add more privacy-safe portfolio screenshots and visual demos.
+- Continue improving data-integrity checks between Last.fm and local cache.
+- Explore animation and transition polish once core workflows stabilize.
 
-## GitHub setup
+## Skills Demonstrated
 
-Once an empty GitHub repository exists, connect it with:
+- Product thinking and feature planning.
+- Data analysis and classification design.
+- User-centered workflow design.
+- Information architecture.
+- Data visualization planning.
+- API integration planning and implementation.
+- QA testing and bug reporting.
+- Version control and repository hygiene.
+- AI-assisted software development and evaluation.
 
-```sh
-git remote add origin git@github.com:OWNER/REPO.git
-git push -u origin main
+## Repository Presentation Notes
+
+Suggested GitHub description:
+
+```text
+AI-assisted personal music analytics app for Last.fm and Spotify listening data, discovery workflows, playlist systems, and data visualization.
 ```
 
-HTTPS remotes also work:
+Suggested topic tags:
 
-```sh
-git remote add origin https://github.com/OWNER/REPO.git
-git push -u origin main
+```text
+music-analytics, lastfm, spotify-api, data-visualization, personal-analytics, javascript, portfolio-project, ai-assisted-development
 ```
+
+## Contact Or LinkedIn
+
+This project is intended to be shared from the owner's LinkedIn profile as a portfolio case study in personal analytics, workflow design, and AI-assisted application development.

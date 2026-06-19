@@ -1,16 +1,16 @@
 {
   "lastfm": {
-    "username": "your-lastfm-username",
-    "apiKey": "your-lastfm-api-key"
+    "username": "",
+    "apiKey": ""
   },
   "spotify": {
-    "clientId": "your-spotify-client-id"
+    "clientId": ""
   },
   "listenbrainz": {
-    "username": "your-listenbrainz-username",
-    "token": "optional-listenbrainz-token"
+    "username": "",
+    "token": ""
   },
   "musicbrainz": {
-    "contact": "your-email-or-project-url"
+    "contact": ""
   }
 }
