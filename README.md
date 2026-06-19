@@ -164,8 +164,6 @@ Melophile Metrics is functional as a local portfolio application and continues t
 
 Melophile Metrics was created by **Daniel Aberle** as a portfolio case study in personal analytics, information systems, data quality, workflow improvement, and AI-assisted application development. The project reflects Daniel's professional interest in turning messy personal data into structured, useful, and thoughtfully designed decision-support tools.
 
-LinkedIn: temporary placeholder until Daniel provides the exact profile URL.
-
 ## Affiliation And Trademark Disclaimer
 
 Melophile Metrics is an independent personal portfolio project. It is not affiliated with, endorsed by, or sponsored by Last.fm, Spotify, ListenBrainz, or MusicBrainz. Product names, trademarks, and service names belong to their respective owners.
