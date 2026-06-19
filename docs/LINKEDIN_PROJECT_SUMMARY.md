@@ -6,7 +6,7 @@ Melophile Metrics
 
 ## 2-3 Sentence Description
 
-Melophile Metrics is an AI-assisted personal music analytics application that turns Last.fm and Spotify listening activity into rankings, discovery workflows, playlist systems, and visual insights. I conceived the product vision, defined the analytical questions, designed the classification logic, tested functionality, and iteratively refined the user experience through collaboration with coding tools.
+Melophile Metrics is an AI-assisted personal music analytics application that turns Last.fm and Spotify listening activity into rankings, discovery workflows, playlist systems, and visual insights. Created by Daniel Aberle, the project demonstrates product thinking, data classification, workflow design, API integration planning, and iterative QA through collaboration with coding tools.
 
 ## Five Key Skills
 
@@ -22,7 +22,7 @@ Melophile Metrics is an AI-assisted personal music analytics application that tu
 - Designed gem-tier ranking logic for tracks, artists, and albums.
 - Created discovery workflows for new releases, fresh playlists, and rediscovery prompts.
 - Added data-integrity checks to compare local cached listening data against Last.fm profile totals.
-- Developed a bento-style interface for navigating complex personal music data.
+- Developed a nine-section card-based interface for navigating complex personal music data.
 
 ## AI-Assisted Development Disclosure
 
@@ -30,4 +30,4 @@ This project was developed with significant AI-assisted coding support. My role 
 
 ## Suggested LinkedIn Featured-Section Text
 
-Melophile Metrics is my in-development personal music analytics app, built to explore what Last.fm and Spotify listening data can reveal about taste, discovery, ranking systems, and listening behavior. The project demonstrates data analysis, workflow design, information architecture, API integration planning, and AI-assisted application development.
+Melophile Metrics is my personal music analytics app, built to explore what Last.fm and Spotify listening data can reveal about taste, discovery, ranking systems, and listening behavior. The project demonstrates data analysis, workflow design, information architecture, API integration planning, and AI-assisted application development.

@@ -4,11 +4,11 @@
 
 ## Portfolio Status Notice
 
-Melophile Metrics is actively in development as a personal analytics portfolio project. The repository is being prepared for public presentation while privacy-sensitive screenshots, local credentials, and personal data exports remain excluded from version control.
+Melophile Metrics is a local-first personal analytics portfolio project that continues to evolve through active development. The public repository presents the product concept, development workflow, privacy approach, and representative screenshots reviewed for public presentation while excluding local credentials, private configuration, and personal data exports.
 
 ## Project Overview
 
-Melophile Metrics is an in-development portfolio project for exploring how personal listening data can become a richer analytics system. The app combines Last.fm scrobble history, Spotify playlist data, and user-defined classification rules to answer questions such as:
+Melophile Metrics explores how personal listening data can become a richer analytics system. The app combines Last.fm scrobble history, Spotify playlist data, and user-defined classification rules to answer questions such as:
 
 - What music has shaped my listening history most strongly?
 - Which songs, artists, and albums are rising in recent periods?
@@ -33,25 +33,41 @@ I built Melophile Metrics because standard music apps show listening history, bu
 
 ## Screenshots
 
-Portfolio screenshots should be added after a final privacy review, because many app screens display personal listening history. Recommended captures and filenames are documented in [docs/images/README.md](docs/images/README.md).
+The screenshots below are included for portfolio review and avoid credential or account-settings screens.
 
-Recommended visuals include:
+### Main Navigation
 
-- Main navigation or dashboard.
-- Listening rankings.
-- Trend or historical analysis.
-- Data-integrity or synchronization screen.
-- Discovery or new-release features.
-- A distinctive visualization such as the listening clock.
+![Melophile Metrics main navigation with nine card-based sections](docs/images/main-navigation.png)
+
+The app opens into a nine-section card-based navigation system that organizes listening analysis, discovery, release-year playlists, rediscovery, settings, and future experience areas.
+
+### Fresh Discovery
+
+![Fresh discovery screen showing Spotify seed playlists and new-release workflow](docs/images/fresh-discovery.png)
+
+Fresh supports new-music discovery through seed playlists, harvest playlists, and release-monitoring workflows tied to Spotify playlist data and Last.fm listening history.
+
+### Gem Mines
+
+![Gem Mines screen showing custom gem-tier classification controls](docs/images/gem-mines.png)
+
+Gem Mines classifies tracks, artists, and albums into custom rank-banded tiers, making long-term favorites easier to browse and compare.
+
+### Past Tense
+
+![Past Tense release-year playlist grid showing Spotify playlist volumes](docs/images/past-tense-playlists.png)
+
+Past Tense organizes release-year playlist families so each year can be explored as its own curated music-history view.
 
 ## Key Features
 
-- **Fresh**: discovery workflows for seed playlists, harvest playlists, and new-release indexing.
-- **Pulse**: dynamic rankings for recent listening windows such as the last 1, 3, 6, or 12 months.
-- **Gem Mines**: rank-banded classifications that group tracks, artists, and albums into custom gem tiers.
+- **Fresh**: new-music discovery workflows built around seed playlists, harvest playlists, and monitored releases from artists connected to the listening record.
+- **Pulse**: rolling rankings for recent listening windows such as the last 1, 3, 6, or 12 months.
+- **Gem Mines**: custom rank-banded classifications that group tracks, artists, and albums into gem tiers.
 - **Past Tense**: release-year playlist portals that organize favorite music by the year it was released.
 - **Dashboard**: visual summaries of listening patterns, averages, yearly views, and data health.
-- **Ghosted and Apotheosis**: rediscovery tools for artists and music that have gone quiet in the listening record.
+- **Ghosted**: rediscovery workflows for artists and music that have faded from recent listening.
+- **Apotheosis**: artist-expansion analysis that highlights artists whose catalog has not recently grown in the listening record.
 - **Settings and Sync**: local configuration for Last.fm, Spotify, ListenBrainz, and MusicBrainz integrations.
 
 ## Analytical Methods And Concepts Demonstrated
@@ -120,11 +136,11 @@ Create a private local copy named `melophile_config.local.json` when needed. Tha
 
 ## Current Development Status
 
-Melophile Metrics is actively in development. The application depends on user-provided data and/or API access. Some features require Last.fm credentials, Spotify authorization, or locally cached data to display meaningful results.
+Melophile Metrics is functional as a local portfolio application and continues to evolve through iterative development. The application depends on user-provided data and/or API access, so some views require Last.fm credentials, Spotify authorization, or locally cached data to display meaningful results.
 
 ## Planned Improvements
 
-- Continue refining the nine-bento information architecture.
+- Continue refining the nine-section card-based navigation system.
 - Add stronger metadata enrichment through ListenBrainz and MusicBrainz.
 - Improve correction workflows for Spotify links and metadata mismatches.
 - Expand playlist-family tagging and cached playlist analysis.
@@ -144,10 +160,12 @@ Melophile Metrics is actively in development. The application depends on user-pr
 - Version control and repository hygiene.
 - AI-assisted software development and evaluation.
 
-## Contact Or LinkedIn
+## About the Creator
 
-This project is intended to be shared from the owner's LinkedIn profile as a portfolio case study in personal analytics, workflow design, and AI-assisted application development.
+Melophile Metrics was created by **Daniel Aberle** as a portfolio case study in personal analytics, information systems, data quality, workflow improvement, and AI-assisted application development. The project reflects Daniel's professional interest in turning messy personal data into structured, useful, and thoughtfully designed decision-support tools.
+
+LinkedIn: temporary placeholder until Daniel provides the exact profile URL.
 
 ## Affiliation And Trademark Disclaimer
 
-Melophile Metrics is an independent personal portfolio project. It is not affiliated with, endorsed by, or sponsored by Last.fm, Spotify, ListenBrainz, MusicBrainz, or Epic. Product names, trademarks, and service names belong to their respective owners.
+Melophile Metrics is an independent personal portfolio project. It is not affiliated with, endorsed by, or sponsored by Last.fm, Spotify, ListenBrainz, or MusicBrainz. Product names, trademarks, and service names belong to their respective owners.
