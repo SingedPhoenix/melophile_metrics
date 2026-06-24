@@ -921,11 +921,115 @@
     text-overflow: ellipsis;
   }
 
+  .genre-reality-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .genre-reality-list {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .genre-reality-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    padding: 10px 0;
+    border: 0;
+    border-top: 1px solid rgba(204,204,204,0.055);
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .genre-reality-row:first-child {
+    border-top-color: transparent;
+  }
+
+  .genre-reality-row:hover,
+  .genre-reality-row.active {
+    color: var(--silver);
+  }
+
+  .genre-reality-rank,
+  .genre-reality-count {
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-sm);
+    color: rgba(204,204,204,0.42);
+  }
+
+  .genre-reality-count {
+    text-align: right;
+  }
+
+  .genre-reality-name {
+    font-family: 'Afacad', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: rgba(238,238,238,0.86);
+  }
+
+  .genre-reality-meta {
+    margin-top: 2px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-sm);
+    line-height: 1.45;
+    color: rgba(204,204,204,0.42);
+  }
+
+  .genre-index-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 16px;
+  }
+
+  .genre-index-pill {
+    border: 1px solid rgba(204,204,204,0.09);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.028);
+    color: rgba(238,238,238,0.76);
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-sm);
+    padding: 9px 13px;
+    cursor: pointer;
+  }
+
+  .genre-index-pill:hover,
+  .genre-index-pill.active {
+    border-color: var(--border-hover);
+    background: color-mix(in srgb, var(--theme-accent) 26%, rgba(255,255,255,0.045));
+    color: var(--silver);
+  }
+
+  .genre-detail-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .genre-detail-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   @media (max-width: 760px) {
     .spotify-link-grid,
     .spotify-correction-row,
     .genre-profile-summary,
-    .genre-profile-row {
+    .genre-profile-row,
+    .genre-reality-grid {
       grid-template-columns: 1fr;
     }
   }
@@ -5382,18 +5486,43 @@
   <!-- ── Screen 7c: Gen-Reality ── -->
   <div class="screen" id="screenGenReality">
     <div class="detail-title">gen-reality</div>
-    <div class="section-subtitle">genre and subgenre correction layer</div>
+    <div class="section-subtitle">genre and subgenre listening map</div>
     <div class="section-content">
-      <div class="genre-profile-summary" id="genRealitySummary"></div>
-      <div class="fresh-panel full">
-        <div class="seed-section-head">
+      <div class="genre-reality-grid">
+        <div class="fresh-panel">
           <div>
-            <div class="fresh-panel-title">manual genre profiles</div>
-            <div class="fresh-panel-sub">local corrections that override api suggestions when gen-reality needs a more personal read.</div>
+            <div class="fresh-panel-title">genre prominence</div>
+            <div class="fresh-panel-sub">ranked by matched scrobbles across your listening history.</div>
           </div>
-          <button class="pill" type="button" onclick="navStack.push('screenGenReality'); enterSection('settings')">open settings</button>
+          <div class="genre-reality-list" id="genRealityRankingList"></div>
         </div>
-        <div class="spotify-corrections-list" id="genRealityProfilesList"></div>
+        <div class="fresh-panel">
+          <div class="seed-section-head">
+            <div>
+              <div class="fresh-panel-title">genre index</div>
+              <div class="fresh-panel-sub" id="genRealityScanStatus">every mapped genre and subgenre currently found in your library.</div>
+            </div>
+            <div class="genre-detail-pills">
+              <button class="pill" type="button" onclick="scanGenRealityGenres()">scan genres</button>
+              <button class="pill" type="button" onclick="navStack.push('screenGenReality'); enterSection('settings')">open settings</button>
+            </div>
+          </div>
+          <div class="genre-index-list" id="genRealityIndexList"></div>
+        </div>
+      </div>
+      <div class="fresh-panel full" id="genRealityDetailPanel">
+        <div class="genre-detail-head">
+          <div>
+            <div class="fresh-panel-title" id="genRealityDetailTitle">select a genre...</div>
+            <div class="fresh-panel-sub" id="genRealityDetailSub">choose a genre or subgenre above to view matching tracks, artists, and albums.</div>
+          </div>
+          <div class="genre-detail-pills">
+            <button class="pill active" type="button" id="genRealityTracksPill" onclick="setGenRealityDetailType('tracks')">tracks</button>
+            <button class="pill" type="button" id="genRealityArtistsPill" onclick="setGenRealityDetailType('artists')">artists</button>
+            <button class="pill" type="button" id="genRealityAlbumsPill" onclick="setGenRealityDetailType('albums')">albums</button>
+          </div>
+        </div>
+        <div class="genre-reality-list" id="genRealityDetailList"></div>
       </div>
     </div>
     <div class="detail-nav">
@@ -9795,6 +9924,8 @@ function writeJsonMap(key, value) {
 }
 
 const GENRE_PROFILE_KEY = 'melophile.genreProfiles.v1';
+const GENRE_ARTIST_CACHE_KEY = 'melophile.genreReality.artistGenres.v1';
+const GENRE_ARTIST_CACHE_TTL_MS = 60 * 86400000;
 
 function genreProfileKey(type, name, artist) {
   return [type || 'artist', normalizeEntityText(artist || ''), normalizeEntityText(name || '')].join('|||');
@@ -9955,23 +10086,335 @@ function renderGenreProfilePanel() {
   renderGenreProfileRows('genreProfilesList', 80);
 }
 
-function renderGenReality() {
-  const summary = document.getElementById('genRealitySummary');
-  const counts = genreProfileCounts();
-  if (summary) {
-    summary.innerHTML = [
-      ['total profiles', counts.total],
-      ['artist profiles', counts.artist],
-      ['album profiles', counts.album],
-      ['track profiles', counts.track]
-    ].map(item =>
-      '<div class="genre-profile-card">' +
-        '<div class="genre-profile-value">' + Number(item[1] || 0).toLocaleString() + '</div>' +
-        '<div class="genre-profile-label">' + esc(item[0]) + '</div>' +
-      '</div>'
-    ).join('');
+let genRealitySelectedGenre = '';
+let genRealityDetailType = 'tracks';
+
+function genreRealityEntityKey(artist, name) {
+  return normalizeEntityText(artist || '') + '|||' + normalizeEntityText(name || '');
+}
+
+function genreRealityGenreKey(label) {
+  return normalizeEntityText(label || '');
+}
+
+function genreRealityProfileLabels(profile) {
+  return [
+    profile.family || '',
+    profile.primary || '',
+    ...(profile.subgenres || [])
+  ].map(label => String(label || '').trim()).filter(Boolean);
+}
+
+function genreRealityCachedArtistGenresByName() {
+  const byName = new Map();
+  Object.values(readJsonMap(GENRE_ARTIST_CACHE_KEY)).forEach(entry => {
+    const name = normalizeEntityText(entry && entry.name);
+    const genres = (entry && entry.genres || []).map(genre => String(genre || '').trim()).filter(Boolean);
+    if (name && genres.length && !byName.has(name)) byName.set(name, genres);
+  });
+  Object.values(pastTenseArtistGenreCache || {}).forEach(entry => {
+    const name = normalizeEntityText(entry && entry.name);
+    const genres = (entry && entry.genres || []).map(genre => String(genre || '').trim()).filter(Boolean);
+    if (name && genres.length && !byName.has(name)) byName.set(name, genres);
+  });
+  return byName;
+}
+
+function genreRealityProfileMaps() {
+  const maps = { artists: new Map(), albums: new Map(), tracks: new Map() };
+  genreProfileEntries().forEach(profile => {
+    const labels = genreRealityProfileLabels(profile);
+    if (!labels.length) return;
+    const type = profile.type || 'artist';
+    const name = normalizeEntityText(profile.name || '');
+    const artist = normalizeEntityText(profile.artist || '');
+    const compact = { ...profile, labels };
+    if (type === 'artist' && name) {
+      maps.artists.set(name, compact);
+      return;
+    }
+    if (type === 'album' && name) {
+      maps.albums.set(artist + '|||' + name, compact);
+      if (!artist) maps.albums.set('|||' + name, compact);
+      return;
+    }
+    if (type === 'track' && name) {
+      maps.tracks.set(artist + '|||' + name, compact);
+      if (!artist) maps.tracks.set('|||' + name, compact);
+    }
+  });
+  return maps;
+}
+
+function genreRealityAddToBucket(map, key, item, count = 1) {
+  if (!key) return;
+  if (!map.has(key)) map.set(key, { ...item, count: 0 });
+  map.get(key).count += count;
+}
+
+function buildGenreRealityModel() {
+  const rows = Array.isArray(allScrobbles) ? allScrobbles : [];
+  const profileMaps = genreRealityProfileMaps();
+  const cachedArtistGenres = genreRealityCachedArtistGenresByName();
+  const genres = new Map();
+
+  function ensureGenre(label) {
+    const cleanLabel = String(label || '').trim();
+    const key = genreRealityGenreKey(cleanLabel);
+    if (!key) return null;
+    if (!genres.has(key)) {
+      genres.set(key, {
+        key,
+        label: cleanLabel.toLowerCase(),
+        scrobbles: 0,
+        tracks: new Map(),
+        artists: new Map(),
+        albums: new Map(),
+        profileMatches: 0
+      });
+    }
+    return genres.get(key);
   }
-  renderGenreProfileRows('genRealityProfilesList', 40);
+
+  rows.forEach(row => {
+    const artist = row.artist || '';
+    const track = row.track || '';
+    const album = row.album || '';
+    const artistKey = normalizeEntityText(artist);
+    const trackKey = genreRealityEntityKey(artist, track);
+    const albumKey = genreRealityEntityKey(artist, album);
+    const matchedLabels = new Set();
+
+    const artistProfile = profileMaps.artists.get(artistKey);
+    const trackProfile = profileMaps.tracks.get(trackKey) || profileMaps.tracks.get('|||' + normalizeEntityText(track));
+    const albumProfile = profileMaps.albums.get(albumKey) || profileMaps.albums.get('|||' + normalizeEntityText(album));
+    [artistProfile, trackProfile, albumProfile].filter(Boolean).forEach(profile => {
+      profile.labels.forEach(label => matchedLabels.add(label));
+    });
+
+    (cachedArtistGenres.get(artistKey) || []).forEach(label => matchedLabels.add(label));
+
+    matchedLabels.forEach(label => {
+      const genre = ensureGenre(label);
+      if (!genre) return;
+      genre.scrobbles += 1;
+      if (artistProfile || trackProfile || albumProfile) genre.profileMatches += 1;
+      genreRealityAddToBucket(genre.artists, artistKey, { title: artist, sub: 'artist' });
+      if (track) {
+        genreRealityAddToBucket(genre.tracks, trackKey, {
+          title: track,
+          sub: [artist, album].filter(Boolean).join(' | ')
+        });
+      }
+      if (album) {
+        genreRealityAddToBucket(genre.albums, albumKey, {
+          title: album,
+          sub: artist || 'album'
+        });
+      }
+    });
+  });
+
+  const list = Array.from(genres.values()).map(genre => ({
+    ...genre,
+    trackCount: genre.tracks.size,
+    artistCount: genre.artists.size,
+    albumCount: genre.albums.size
+  })).sort((a, b) => b.scrobbles - a.scrobbles || a.label.localeCompare(b.label));
+
+  return {
+    rows,
+    genres: list,
+    byKey: new Map(list.map(genre => [genre.key, genre]))
+  };
+}
+
+function renderGenreRealityRanking(model) {
+  const target = document.getElementById('genRealityRankingList');
+  if (!target) return;
+  if (!model.genres.length) {
+    target.innerHTML = '<div class="spotify-empty">no genre data has been mapped yet. connect spotify caches or add manual genre profiles in settings.</div>';
+    return;
+  }
+  target.innerHTML = model.genres.slice(0, 18).map((genre, index) => (
+    '<button class="genre-reality-row ' + (genre.key === genRealitySelectedGenre ? 'active' : '') + '" type="button" onclick="selectGenRealityGenre(\'' + esc(genre.key) + '\')">' +
+      '<div class="genre-reality-rank">' + (index + 1) + '</div>' +
+      '<div>' +
+        '<div class="genre-reality-name">' + esc(genre.label) + '</div>' +
+        '<div class="genre-reality-meta">' +
+          genre.trackCount.toLocaleString() + ' tracks | ' +
+          genre.artistCount.toLocaleString() + ' artists | ' +
+          genre.albumCount.toLocaleString() + ' albums' +
+        '</div>' +
+      '</div>' +
+      '<div class="genre-reality-count">' + genre.scrobbles.toLocaleString() + ' scrobbles</div>' +
+    '</button>'
+  )).join('');
+}
+
+function renderGenreRealityIndex(model) {
+  const target = document.getElementById('genRealityIndexList');
+  if (!target) return;
+  if (!model.genres.length) {
+    target.innerHTML = '<div class="spotify-empty">genre index will appear after genre data is mapped.</div>';
+    return;
+  }
+  target.innerHTML = model.genres
+    .slice()
+    .sort((a, b) => a.label.localeCompare(b.label))
+    .map(genre =>
+      '<button class="genre-index-pill ' + (genre.key === genRealitySelectedGenre ? 'active' : '') + '" type="button" onclick="selectGenRealityGenre(\'' + esc(genre.key) + '\')">' +
+        esc(genre.label) +
+      '</button>'
+    ).join('');
+}
+
+function genreRealityDetailItems(genre) {
+  const source = genre && genre[genRealityDetailType] ? genre[genRealityDetailType] : new Map();
+  return Array.from(source.values())
+    .sort((a, b) => b.count - a.count || String(a.title || '').localeCompare(String(b.title || '')))
+    .slice(0, 80);
+}
+
+function renderGenreRealityDetail(model) {
+  const title = document.getElementById('genRealityDetailTitle');
+  const sub = document.getElementById('genRealityDetailSub');
+  const list = document.getElementById('genRealityDetailList');
+  ['tracks', 'artists', 'albums'].forEach(type => {
+    const pill = document.getElementById('genReality' + type.charAt(0).toUpperCase() + type.slice(1) + 'Pill');
+    if (pill) pill.classList.toggle('active', genRealityDetailType === type);
+  });
+  if (!list) return;
+  const genre = model.byKey.get(genRealitySelectedGenre);
+  if (!genre) {
+    if (title) title.textContent = 'select a genre...';
+    if (sub) sub.textContent = 'choose a genre or subgenre above to view matching tracks, artists, and albums.';
+    list.innerHTML = '';
+    return;
+  }
+  const items = genreRealityDetailItems(genre);
+  if (title) title.textContent = genre.label + '...';
+  if (sub) {
+    sub.textContent = genre.scrobbles.toLocaleString() + ' matched scrobbles | ' +
+      genre.trackCount.toLocaleString() + ' tracks | ' +
+      genre.artistCount.toLocaleString() + ' artists | ' +
+      genre.albumCount.toLocaleString() + ' albums';
+  }
+  if (!items.length) {
+    list.innerHTML = '<div class="spotify-empty">no ' + esc(genRealityDetailType) + ' found for this genre yet.</div>';
+    return;
+  }
+  list.innerHTML = items.map((item, index) => (
+    '<div class="genre-reality-row">' +
+      '<div class="genre-reality-rank">' + (index + 1) + '</div>' +
+      '<div>' +
+        '<div class="genre-reality-name">' + esc(item.title || '') + '</div>' +
+        '<div class="genre-reality-meta">' + esc(item.sub || genRealityDetailType.slice(0, -1)) + '</div>' +
+      '</div>' +
+      '<div class="genre-reality-count">' + Number(item.count || 0).toLocaleString() + '</div>' +
+    '</div>'
+  )).join('');
+}
+
+function selectGenRealityGenre(key) {
+  genRealitySelectedGenre = key || '';
+  renderGenReality();
+}
+
+function setGenRealityDetailType(type) {
+  genRealityDetailType = ['tracks', 'artists', 'albums'].includes(type) ? type : 'tracks';
+  renderGenReality();
+}
+
+function genRealityTopArtists(limit = 300) {
+  const artists = new Map();
+  (Array.isArray(allScrobbles) ? allScrobbles : []).forEach(row => {
+    const name = String(row.artist || '').trim();
+    const key = normalizeEntityText(name);
+    if (!key) return;
+    if (!artists.has(key)) artists.set(key, { key, name, count: 0 });
+    artists.get(key).count += 1;
+  });
+  return Array.from(artists.values())
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+    .slice(0, limit);
+}
+
+async function scanGenRealityGenres() {
+  const status = document.getElementById('genRealityScanStatus');
+  if (!(readSpotifyToken() || hasRefreshableSpotifyToken())) {
+    if (status) status.textContent = 'connect spotify in settings before scanning genre metadata.';
+    showCopyToast('spotify connection needed');
+    return;
+  }
+  const artists = genRealityTopArtists(300);
+  if (!artists.length) {
+    if (status) status.textContent = 'load last.fm history before scanning genre metadata.';
+    showCopyToast('last.fm history needed');
+    return;
+  }
+  const cache = readJsonMap(GENRE_ARTIST_CACHE_KEY);
+  const missing = artists.filter(artist => {
+    const cached = cache[artist.key];
+    return !cached || Date.now() - (cached.updatedAtMs || 0) > GENRE_ARTIST_CACHE_TTL_MS;
+  });
+  if (!missing.length) {
+    if (status) status.textContent = 'genre metadata is already cached for your top ' + artists.length.toLocaleString() + ' artists.';
+    renderGenReality();
+    return;
+  }
+  if (status) status.textContent = 'scanning spotify genres for ' + missing.length.toLocaleString() + ' artists...';
+  try {
+    for (let i = 0; i < missing.length; i++) {
+      const artist = missing[i];
+      const params = new URLSearchParams({ q: 'artist:' + artist.name, type: 'artist', limit: '5' });
+      const data = await spotifyFetch('/v1/search?' + params.toString());
+      const items = data.artists && Array.isArray(data.artists.items) ? data.artists.items : [];
+      const winner = items
+        .map(item => ({ item, score: spotifyCandidateScore('artist', item, artist.name, '') }))
+        .sort((a, b) => b.score - a.score)[0];
+      cache[artist.key] = {
+        name: artist.name,
+        spotifyId: winner && winner.score >= 4 ? winner.item.id || '' : '',
+        genres: winner && winner.score >= 4 ? winner.item.genres || [] : [],
+        image: winner && winner.score >= 4 && winner.item.images && winner.item.images[0] ? winner.item.images[0].url : '',
+        scrobbles: artist.count,
+        updatedAtMs: Date.now()
+      };
+      if (i % 15 === 0) {
+        writeJsonMap(GENRE_ARTIST_CACHE_KEY, cache);
+        if (status) status.textContent = 'scanning spotify genres... ' + (i + 1).toLocaleString() + ' of ' + missing.length.toLocaleString();
+        renderGenReality();
+      }
+      await sleep(80);
+    }
+    writeJsonMap(GENRE_ARTIST_CACHE_KEY, cache);
+    if (status) status.textContent = 'genre scan complete · ' + artists.length.toLocaleString() + ' top artists cached.';
+    renderGenReality();
+    showCopyToast('genre scan complete');
+  } catch (err) {
+    writeJsonMap(GENRE_ARTIST_CACHE_KEY, cache);
+    if (status) status.textContent = 'genre scan paused. reconnect spotify and try again.';
+    showCopyToast('genre scan paused');
+  }
+}
+
+function renderGenReality() {
+  const model = buildGenreRealityModel();
+  const status = document.getElementById('genRealityScanStatus');
+  if (status && !status.textContent.includes('scanning')) {
+    const cachedCount = Object.keys(readJsonMap(GENRE_ARTIST_CACHE_KEY)).length;
+    status.textContent = model.genres.length
+      ? model.genres.length.toLocaleString() + ' mapped genre labels · ' + cachedCount.toLocaleString() + ' artist genre profiles cached'
+      : 'scan spotify genres or add manual profiles to build your gen-reality index.';
+  }
+  if (!genRealitySelectedGenre && model.genres.length) genRealitySelectedGenre = model.genres[0].key;
+  if (genRealitySelectedGenre && !model.byKey.has(genRealitySelectedGenre)) {
+    genRealitySelectedGenre = model.genres[0] ? model.genres[0].key : '';
+  }
+  renderGenreRealityRanking(model);
+  renderGenreRealityIndex(model);
+  renderGenreRealityDetail(model);
 }
 
 function spotifyExternalUrlFromUri(uri) {
