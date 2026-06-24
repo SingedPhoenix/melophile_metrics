@@ -875,9 +875,57 @@
     text-overflow: ellipsis;
   }
 
+  .genre-profile-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin: 14px 0;
+  }
+
+  .genre-profile-card {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.035);
+    padding: 14px;
+  }
+
+  .genre-profile-value {
+    font-family: 'Afacad', sans-serif;
+    font-size: 28px;
+    color: var(--silver);
+    line-height: 1;
+  }
+
+  .genre-profile-label {
+    margin-top: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--silver-dim);
+  }
+
+  .genre-profile-row {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr) minmax(120px, 0.6fr) auto;
+    gap: 10px;
+    align-items: center;
+    border-top: 1px solid rgba(204,204,204,0.06);
+    padding-top: 8px;
+  }
+
+  .genre-profile-tags {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: color-mix(in srgb, var(--cherry-bright) 58%, var(--silver));
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   @media (max-width: 760px) {
     .spotify-link-grid,
-    .spotify-correction-row {
+    .spotify-correction-row,
+    .genre-profile-summary,
+    .genre-profile-row {
       grid-template-columns: 1fr;
     }
   }
@@ -4502,6 +4550,32 @@
         </div>
         <div class="spotify-meta" id="openMusicApiStatus">MusicBrainz does not require an api key. ListenBrainz can use public username access; token is optional.</div>
       </div>
+      <div class="spotify-link-tools" id="genreProfilePanel">
+        <div class="spotify-title">genre corrections</div>
+        <div class="spotify-sub">manual genre and subgenre profiles for artists, albums, and tracks. these local profiles become the trusted layer above api suggestions.</div>
+        <div class="spotify-link-grid">
+          <select class="spotify-input" id="genreProfileType">
+            <option value="artist">artist</option>
+            <option value="album">album</option>
+            <option value="track">track</option>
+          </select>
+          <input class="spotify-input" id="genreProfileName" type="text" autocomplete="off" spellcheck="false" placeholder="artist, album, or track name">
+          <input class="spotify-input" id="genreProfileArtist" type="text" autocomplete="off" spellcheck="false" placeholder="artist name if needed">
+        </div>
+        <div class="spotify-link-grid">
+          <input class="spotify-input" id="genreProfileFamily" type="text" autocomplete="off" spellcheck="false" placeholder="genre family">
+          <input class="spotify-input" id="genreProfilePrimary" type="text" autocomplete="off" spellcheck="false" placeholder="primary genre">
+          <input class="spotify-input" id="genreProfileSubgenres" type="text" autocomplete="off" spellcheck="false" placeholder="subgenres, comma separated">
+        </div>
+        <input class="spotify-input spotify-link-url" id="genreProfileNotes" type="text" autocomplete="off" spellcheck="false" placeholder="notes or source context">
+        <div class="spotify-actions">
+          <button class="pill" type="button" onclick="saveGenreProfileFromSettings()">save genre</button>
+          <button class="pill" type="button" onclick="clearGenreProfileFromSettings()">clear genre</button>
+          <button class="pill" type="button" onclick="renderGenreProfilePanel()">refresh list</button>
+        </div>
+        <div class="spotify-meta" id="genreProfileStatus">no genre profile selected.</div>
+        <div class="spotify-corrections-list" id="genreProfilesList"></div>
+      </div>
       <div class="seed-scan-panel" id="seedScanPanel">
         <div>
           <div class="spotify-title">spotify maintenance</div>
@@ -5305,6 +5379,29 @@
     </div>
   </div>
 
+  <!-- ── Screen 7c: Gen-Reality ── -->
+  <div class="screen" id="screenGenReality">
+    <div class="detail-title">gen-reality</div>
+    <div class="section-subtitle">genre and subgenre correction layer</div>
+    <div class="section-content">
+      <div class="genre-profile-summary" id="genRealitySummary"></div>
+      <div class="fresh-panel full">
+        <div class="seed-section-head">
+          <div>
+            <div class="fresh-panel-title">manual genre profiles</div>
+            <div class="fresh-panel-sub">local corrections that override api suggestions when gen-reality needs a more personal read.</div>
+          </div>
+          <button class="pill" type="button" onclick="navStack.push('screenGenReality'); enterSection('settings')">open settings</button>
+        </div>
+        <div class="spotify-corrections-list" id="genRealityProfilesList"></div>
+      </div>
+    </div>
+    <div class="detail-nav">
+      <button class="back-btn" onclick="goBack()">back</button>
+      <button class="home-btn" onclick="goHome()">home</button>
+    </div>
+  </div>
+
   <!-- ── Screen 8: Fresh ── -->
   <div class="screen" id="screenFresh">
     <div class="detail-title">fresh</div>
@@ -5913,6 +6010,10 @@ function enterSection(key) {
     if (s.screen === 'screenSettings') {
       renderOpenMusicPanel();
       renderSpotifyLinkCorrections();
+      renderGenreProfilePanel();
+    }
+    if (s.screen === 'screenGenReality') {
+      renderGenReality();
     }
     return;
   }
@@ -5941,7 +6042,7 @@ const SECTIONS = {
   'years-review': { screen: 'screenYearsReview' },
   analytics:      { screen: 'screenAnalytics' },
   settings:       { screen: 'screenSettings' },
-  'gen-reality':  { name: 'gen-reality' },
+  'gen-reality':  { screen: 'screenGenReality' },
   frisson:        { name: 'frisson' },
 };
 
@@ -9691,6 +9792,186 @@ function readJsonMap(key) {
 
 function writeJsonMap(key, value) {
   localStorage.setItem(key, JSON.stringify(value || {}));
+}
+
+const GENRE_PROFILE_KEY = 'melophile.genreProfiles.v1';
+
+function genreProfileKey(type, name, artist) {
+  return [type || 'artist', normalizeEntityText(artist || ''), normalizeEntityText(name || '')].join('|||');
+}
+
+function readGenreProfiles() {
+  return readJsonMap(GENRE_PROFILE_KEY);
+}
+
+function writeGenreProfiles(profiles) {
+  writeJsonMap(GENRE_PROFILE_KEY, profiles);
+}
+
+function splitGenreList(value) {
+  return String(value || '')
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
+}
+
+function genreProfileEntries() {
+  return Object.entries(readGenreProfiles())
+    .map(([key, profile]) => ({ key, ...profile }))
+    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0) || String(a.name || '').localeCompare(String(b.name || '')));
+}
+
+function genreProfileCounts() {
+  return genreProfileEntries().reduce((counts, profile) => {
+    counts.total += 1;
+    counts[profile.type] = (counts[profile.type] || 0) + 1;
+    return counts;
+  }, { total: 0, artist: 0, album: 0, track: 0 });
+}
+
+function getGenreProfileForm() {
+  return {
+    type: (document.getElementById('genreProfileType')?.value || 'artist').trim(),
+    name: (document.getElementById('genreProfileName')?.value || '').trim(),
+    artist: (document.getElementById('genreProfileArtist')?.value || '').trim(),
+    family: (document.getElementById('genreProfileFamily')?.value || '').trim(),
+    primary: (document.getElementById('genreProfilePrimary')?.value || '').trim(),
+    subgenres: splitGenreList(document.getElementById('genreProfileSubgenres')?.value || ''),
+    notes: (document.getElementById('genreProfileNotes')?.value || '').trim()
+  };
+}
+
+function setGenreProfileForm(profile) {
+  const typeInput = document.getElementById('genreProfileType');
+  const nameInput = document.getElementById('genreProfileName');
+  const artistInput = document.getElementById('genreProfileArtist');
+  const familyInput = document.getElementById('genreProfileFamily');
+  const primaryInput = document.getElementById('genreProfilePrimary');
+  const subgenresInput = document.getElementById('genreProfileSubgenres');
+  const notesInput = document.getElementById('genreProfileNotes');
+  if (typeInput) typeInput.value = profile.type || 'artist';
+  if (nameInput) nameInput.value = profile.name || '';
+  if (artistInput) artistInput.value = profile.artist || '';
+  if (familyInput) familyInput.value = profile.family || '';
+  if (primaryInput) primaryInput.value = profile.primary || '';
+  if (subgenresInput) subgenresInput.value = (profile.subgenres || []).join(', ');
+  if (notesInput) notesInput.value = profile.notes || '';
+}
+
+function saveGenreProfileFromSettings() {
+  const form = getGenreProfileForm();
+  const status = document.getElementById('genreProfileStatus');
+  if (!form.name) {
+    if (status) status.textContent = 'add a name before saving a genre profile.';
+    showCopyToast('genre profile name missing');
+    return;
+  }
+  if (!form.family && !form.primary && !form.subgenres.length) {
+    if (status) status.textContent = 'add at least one genre family, primary genre, or subgenre.';
+    showCopyToast('genre detail missing');
+    return;
+  }
+  const key = genreProfileKey(form.type, form.name, form.artist);
+  const profiles = readGenreProfiles();
+  profiles[key] = {
+    ...form,
+    source: 'manual',
+    locked: true,
+    updatedAt: Date.now()
+  };
+  writeGenreProfiles(profiles);
+  if (status) status.textContent = 'saved manual genre profile for ' + form.name + '.';
+  renderGenreProfilePanel();
+  renderGenReality();
+  showCopyToast('genre profile saved');
+}
+
+function clearGenreProfileFromSettings() {
+  const form = getGenreProfileForm();
+  const key = genreProfileKey(form.type, form.name, form.artist);
+  const profiles = readGenreProfiles();
+  if (!profiles[key]) {
+    showCopyToast('genre profile not found');
+    return;
+  }
+  delete profiles[key];
+  writeGenreProfiles(profiles);
+  const status = document.getElementById('genreProfileStatus');
+  if (status) status.textContent = 'manual genre profile cleared.';
+  renderGenreProfilePanel();
+  renderGenReality();
+  showCopyToast('genre profile cleared');
+}
+
+function loadGenreProfileIntoSettings(key) {
+  const profile = readGenreProfiles()[key];
+  if (!profile) return;
+  setGenreProfileForm(profile);
+  const status = document.getElementById('genreProfileStatus');
+  if (status) status.textContent = 'loaded ' + (profile.name || 'genre profile') + ' for editing.';
+}
+
+function openGenreProfileInSettings(key) {
+  navStack.push(currentScreen);
+  enterSection('settings');
+  setTimeout(() => loadGenreProfileIntoSettings(key), 0);
+}
+
+function renderGenreProfileRows(targetId, limit) {
+  const target = document.getElementById(targetId);
+  if (!target) return;
+  const entries = genreProfileEntries().slice(0, limit || 80);
+  if (!entries.length) {
+    target.innerHTML = '<div class="spotify-empty">no manual genre profiles yet.</div>';
+    return;
+  }
+  target.innerHTML = entries.map(profile => {
+    const sub = [
+      profile.artist && profile.type !== 'artist' ? profile.artist : '',
+      profile.family || '',
+      profile.primary || ''
+    ].filter(Boolean).join(' · ');
+    const tags = (profile.subgenres || []).join(', ') || profile.primary || profile.family || 'manual';
+    return '<div class="genre-profile-row">' +
+      '<div class="spotify-correction-kind">' + esc(profile.type || 'artist') + '</div>' +
+      '<div class="spotify-correction-name">' +
+        '<div class="spotify-correction-title">' + esc(profile.name || '') + '</div>' +
+        '<div class="spotify-correction-sub">' + esc(sub || 'manual genre profile') + '</div>' +
+      '</div>' +
+      '<div class="genre-profile-tags">' + esc(tags) + '</div>' +
+      '<button class="pill" type="button" onclick="' + (targetId === 'genreProfilesList' ? 'loadGenreProfileIntoSettings' : 'openGenreProfileInSettings') + '(\'' + esc(profile.key) + '\')">edit</button>' +
+    '</div>';
+  }).join('');
+}
+
+function renderGenreProfilePanel() {
+  const status = document.getElementById('genreProfileStatus');
+  const counts = genreProfileCounts();
+  if (status) {
+    status.textContent = counts.total
+      ? counts.total.toLocaleString() + ' manual genre profiles saved locally · ' + counts.artist + ' artists · ' + counts.album + ' albums · ' + counts.track + ' tracks'
+      : 'manual genre profiles will be stored in this browser only.';
+  }
+  renderGenreProfileRows('genreProfilesList', 80);
+}
+
+function renderGenReality() {
+  const summary = document.getElementById('genRealitySummary');
+  const counts = genreProfileCounts();
+  if (summary) {
+    summary.innerHTML = [
+      ['total profiles', counts.total],
+      ['artist profiles', counts.artist],
+      ['album profiles', counts.album],
+      ['track profiles', counts.track]
+    ].map(item =>
+      '<div class="genre-profile-card">' +
+        '<div class="genre-profile-value">' + Number(item[1] || 0).toLocaleString() + '</div>' +
+        '<div class="genre-profile-label">' + esc(item[0]) + '</div>' +
+      '</div>'
+    ).join('');
+  }
+  renderGenreProfileRows('genRealityProfilesList', 40);
 }
 
 function spotifyExternalUrlFromUri(uri) {
