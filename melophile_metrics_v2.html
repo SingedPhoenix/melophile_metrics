@@ -2603,6 +2603,97 @@
     letter-spacing: 0.3px;
   }
 
+  .fresh-current-vs-wrap {
+    width: min(1200px, 100%);
+    margin: 22px auto 0;
+  }
+
+  .fresh-current-vs-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 16px;
+  }
+
+  .fresh-current-vs-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--silver);
+    line-height: 1;
+    letter-spacing: 0.8px;
+  }
+
+  .fresh-current-vs-sub {
+    margin-top: 9px;
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-sm);
+    line-height: 1.5;
+    color: rgba(204,204,204,0.48);
+  }
+
+  .fresh-current-vs-list {
+    border: 1px solid rgba(204,204,204,0.1);
+    border-radius: 18px;
+    background: rgba(204,204,204,0.026);
+    padding: 16px 22px;
+  }
+
+  .fresh-current-vs-row {
+    min-height: 70px;
+    display: grid;
+    grid-template-columns: 92px 1fr auto;
+    gap: 18px;
+    align-items: center;
+    border-bottom: 1px solid rgba(204,204,204,0.075);
+  }
+
+  .fresh-current-vs-row:last-child { border-bottom: none; }
+
+  .fresh-current-vs-row.is-current {
+    margin-inline: -10px;
+    padding-inline: 10px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--amethyst-mid) 18%, transparent);
+  }
+
+  .fresh-current-vs-rank {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    color: rgba(204,204,204,0.38);
+  }
+
+  .fresh-current-vs-year {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 25px;
+    font-weight: 600;
+    color: var(--silver);
+    line-height: 1.1;
+  }
+
+  .fresh-current-vs-needed {
+    margin-top: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: rgba(204,204,204,0.46);
+    line-height: 1.35;
+  }
+
+  .fresh-current-vs-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 19px;
+    color: rgba(204,204,204,0.68);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 760px) {
+    .fresh-current-vs-header { align-items: flex-start; flex-direction: column; }
+    .fresh-current-vs-list { padding: 14px 18px; }
+    .fresh-current-vs-row { grid-template-columns: 56px 1fr; }
+    .fresh-current-vs-value { grid-column: 2; justify-self: start; }
+  }
+
   .fresh-path {
     width: 100%;
     display: grid;
@@ -3933,6 +4024,97 @@
     gap: 10px;
   }
 
+  .analytics-current-vs-wrap {
+    width: 100%;
+    max-width: 1120px;
+    margin: 46px auto 64px;
+  }
+
+  .analytics-current-vs-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+
+  .analytics-current-vs-title {
+    font-family: 'Quicksand', sans-serif;
+    font-size: clamp(26px, 3vw, 38px);
+    font-weight: 600;
+    color: var(--silver);
+    line-height: 1.05;
+  }
+
+  .analytics-current-vs-sub {
+    margin-top: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--silver-dim);
+  }
+
+  .analytics-current-vs-list {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(204,204,204,0.025);
+    padding: 18px 28px;
+  }
+
+  .analytics-current-vs-row {
+    display: grid;
+    grid-template-columns: 70px minmax(120px, 1fr) minmax(150px, 1fr);
+    align-items: center;
+    gap: 18px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgba(204,204,204,0.04);
+  }
+
+  .analytics-current-vs-row:last-child { border-bottom: none; }
+
+  .analytics-current-vs-row.is-current {
+    margin: 0 -14px;
+    padding-left: 14px;
+    padding-right: 14px;
+    border-radius: 8px;
+    background: rgba(204,204,204,0.055);
+  }
+
+  .analytics-current-vs-rank {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: rgba(204,204,204,0.46);
+  }
+
+  .analytics-current-vs-year {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--silver);
+  }
+
+  .analytics-current-vs-needed {
+    margin-top: 7px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--silver-dim);
+    line-height: 1.35;
+  }
+
+  .analytics-current-vs-value {
+    justify-self: end;
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    color: var(--silver-dim);
+  }
+
+  @media (max-width: 720px) {
+    .analytics-current-vs-header { align-items: flex-start; flex-direction: column; }
+    .analytics-current-vs-list { padding: 14px 18px; }
+    .analytics-current-vs-row { grid-template-columns: 56px 1fr; }
+    .analytics-current-vs-value { grid-column: 2; justify-self: start; }
+  }
+
   .analytics-year-row {
     display: grid;
     grid-template-columns: 72px minmax(140px, 1fr) 118px 104px;
@@ -4821,6 +5003,23 @@
       </div>
     </div>
 
+    <div class="analytics-current-vs-wrap">
+      <div class="analytics-current-vs-header">
+        <div>
+          <div class="analytics-current-vs-title">current year vs.</div>
+          <div class="analytics-current-vs-sub" id="analyticsCurrentVsSub">how this year stacks up against past years</div>
+        </div>
+        <div class="pill-row" id="analyticsCurrentVsPills">
+          <button class="pill active" data-current-vs="scrobbles" onclick="setAnalyticsCurrentVsMetric('scrobbles')">listens</button>
+          <button class="pill" data-current-vs="tracks" onclick="setAnalyticsCurrentVsMetric('tracks')">tracks</button>
+          <button class="pill" data-current-vs="albums" onclick="setAnalyticsCurrentVsMetric('albums')">albums</button>
+          <button class="pill" data-current-vs="artists" onclick="setAnalyticsCurrentVsMetric('artists')">artists</button>
+        </div>
+      </div>
+      <div class="analytics-current-vs-list" id="analyticsCurrentVsRows"></div>
+      <div class="rankings-empty" id="analyticsCurrentVsEmpty" style="display:none">no yearly comparison data found</div>
+    </div>
+
     <div class="last-averages-wrap visible" id="lastAveragesWrap">
       <div class="year-review-heading">averages</div>
       <div class="pill-row" id="dashboardAverageWindowPills">
@@ -5123,6 +5322,22 @@
             <div class="fresh-gate-title">harvest</div>
             <div class="fresh-gate-desc">the songs that survived the seedling stage and earned a place in your lasting rotation.</div>
           </button>
+        </div>
+
+        <div class="fresh-current-vs-wrap" id="freshCurrentVsWrap">
+          <div class="fresh-current-vs-header">
+            <div>
+              <div class="fresh-current-vs-title">current year vs.</div>
+              <div class="fresh-current-vs-sub" id="freshCurrentVsSub">newly introduced music by first Last.fm log year</div>
+            </div>
+            <div class="pill-row" id="freshCurrentVsPills">
+              <button class="pill active" data-fresh-current-vs="tracks" onclick="setFreshCurrentVsMetric('tracks')">songs</button>
+              <button class="pill" data-fresh-current-vs="artists" onclick="setFreshCurrentVsMetric('artists')">artists</button>
+              <button class="pill" data-fresh-current-vs="albums" onclick="setFreshCurrentVsMetric('albums')">albums</button>
+            </div>
+          </div>
+          <div class="fresh-current-vs-list" id="freshCurrentVsRows"></div>
+          <div class="rankings-empty" id="freshCurrentVsEmpty" style="display:none">load or sync Last.fm history to compare discovery years</div>
         </div>
 
         <div class="fresh-path hidden" id="freshSeedPath">
@@ -7448,6 +7663,7 @@ function renderAnalytics() {
   document.getElementById('analyticsAvgDay').textContent = avgDay.toLocaleString();
   document.getElementById('analyticsPeakYear').textContent = peak ? String(peak.year) : '—';
   renderDashboardAverages();
+  renderAnalyticsCurrentVs(years);
   renderAnalyticsAnnualPulse(years);
   renderAnalyticsYearPills();
   document.querySelectorAll('#analyticsTimeframePills .pill').forEach(p => {
@@ -7490,6 +7706,95 @@ function renderDashboardAverages() {
 function yearAveragePerActiveDay(year) {
   const activeDays = year.activeDays.size;
   return activeDays ? Math.round(year.scrobbles / activeDays) : 0;
+}
+
+let analyticsCurrentVsMetric = 'scrobbles';
+
+function analyticsCurrentVsValue(year, metric) {
+  if (!year) return 0;
+  if (metric === 'tracks') return year.tracks.size;
+  if (metric === 'albums') return year.albums.size;
+  if (metric === 'artists') return year.artists.size;
+  return year.scrobbles;
+}
+
+function analyticsCurrentVsLabel(metric) {
+  if (metric === 'tracks') return 'annual tracks';
+  if (metric === 'albums') return 'annual albums';
+  if (metric === 'artists') return 'annual artists';
+  return 'annual listens';
+}
+
+function analyticsCurrentVsUnit(metric, count) {
+  if (metric === 'tracks') return count === 1 ? 'track' : 'tracks';
+  if (metric === 'albums') return count === 1 ? 'album' : 'albums';
+  if (metric === 'artists') return count === 1 ? 'artist' : 'artists';
+  return count === 1 ? 'listen' : 'listens';
+}
+
+function setAnalyticsCurrentVsMetric(metric) {
+  analyticsCurrentVsMetric = metric;
+  const stats = summarizeAnalytics();
+  const years = Object.values(stats.years).sort((a,b) => a.year - b.year);
+  renderAnalyticsCurrentVs(years);
+  scheduleScrollControlUpdate();
+}
+
+function renderAnalyticsCurrentVs(years) {
+  const rows = document.getElementById('analyticsCurrentVsRows');
+  const empty = document.getElementById('analyticsCurrentVsEmpty');
+  const sub = document.getElementById('analyticsCurrentVsSub');
+  if (!rows || !empty) return;
+  rows.innerHTML = '';
+
+  document.querySelectorAll('#analyticsCurrentVsPills .pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.currentVs === analyticsCurrentVsMetric);
+  });
+
+  const ranked = years
+    .map(year => ({ year, value: analyticsCurrentVsValue(year, analyticsCurrentVsMetric) }))
+    .filter(item => item.value > 0)
+    .sort((a,b) => b.value - a.value || b.year.year - a.year.year)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
+
+  if (!ranked.length) {
+    empty.style.display = 'block';
+    if (sub) sub.textContent = 'no annual data found';
+    return;
+  }
+
+  empty.style.display = 'none';
+  const current = ranked.find(item => item.year.year === CY);
+  const visible = ranked.slice(0, 6);
+
+  if (current && current.rank > 6) {
+    const before = ranked[current.rank - 2];
+    const after = ranked[current.rank];
+    [before, current, after].forEach(item => {
+      if (item && !visible.some(existing => existing.year.year === item.year.year)) visible.push(item);
+    });
+  }
+
+  visible.sort((a,b) => a.rank - b.rank);
+  if (sub) {
+    sub.textContent = current
+      ? CY + ' is #' + current.rank + ' for ' + analyticsCurrentVsLabel(analyticsCurrentVsMetric)
+      : CY + ' has no logged ' + analyticsCurrentVsLabel(analyticsCurrentVsMetric) + ' yet';
+  }
+
+  rows.innerHTML = visible.map(item => {
+    const isCurrent = item.year.year === CY;
+    const target = isCurrent && item.rank > 1 ? ranked[item.rank - 2] : null;
+    const needed = target ? Math.max(0, target.value - item.value + 1) : 0;
+    const neededText = target
+      ? '<div class="analytics-current-vs-needed">needs ' + needed.toLocaleString() + ' more ' + analyticsCurrentVsUnit(analyticsCurrentVsMetric, needed) + ' to pass ' + target.year.year + '</div>'
+      : (isCurrent ? '<div class="analytics-current-vs-needed">currently leading this ranking</div>' : '');
+    return '<div class="analytics-current-vs-row' + (isCurrent ? ' is-current' : '') + '">' +
+      '<div class="analytics-current-vs-rank">#' + item.rank + '</div>' +
+      '<div><div class="analytics-current-vs-year">' + item.year.year + (isCurrent ? ' · current year' : '') + '</div>' + neededText + '</div>' +
+      '<div class="analytics-current-vs-value">' + item.value.toLocaleString() + ' ' + analyticsCurrentVsLabel(analyticsCurrentVsMetric).replace('annual ', '') + '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function renderAnalyticsAnnualPulse(years) {
@@ -10219,6 +10524,7 @@ let harvestPlaylistHydrating = false;
 let harvestRankWindow = 1;
 let harvestRankType = 'tracks';
 let harvestTrackIndexHydrating = false;
+let freshCurrentVsMetric = 'tracks';
 let seedReleaseScanning = false;
 let seedReleaseResults = [];
 let seedScanTimer = null;
@@ -10231,6 +10537,7 @@ function populateFresh() {
 
 function renderFreshHub() {
   renderFreshPath();
+  renderFreshCurrentVs();
   renderSeedPlaylistRow();
   renderHarvestPlaylistRow();
   renderHarvestRankings();
@@ -10242,6 +10549,108 @@ function openFreshPath(path) {
   freshPath = path === 'seed' || path === 'harvest' ? path : 'gate';
   renderFreshHub();
   scheduleScrollControlUpdate();
+}
+
+function freshCurrentVsLabel(metric) {
+  if (metric === 'artists') return 'new artists';
+  if (metric === 'albums') return 'new albums';
+  return 'new songs';
+}
+
+function freshCurrentVsUnit(metric, count) {
+  if (metric === 'artists') return count === 1 ? 'artist' : 'artists';
+  if (metric === 'albums') return count === 1 ? 'album' : 'albums';
+  return count === 1 ? 'song' : 'songs';
+}
+
+function freshCurrentVsEntity(scrobble, metric) {
+  if (metric === 'artists') {
+    const key = (scrobble.artist || '').toLowerCase();
+    return key ? key : null;
+  }
+  if (metric === 'albums') return scrobble.album ? scrobble.aKey : null;
+  return scrobble.track ? scrobble.tKey : null;
+}
+
+function freshCurrentVsYearCounts(metric) {
+  const firstSeen = {};
+  allScrobbles.forEach(scrobble => {
+    const key = freshCurrentVsEntity(scrobble, metric);
+    if (!key) return;
+    if (!firstSeen[key] || scrobble.uts < firstSeen[key]) firstSeen[key] = scrobble.uts;
+  });
+  const years = {};
+  Object.values(firstSeen).forEach(uts => {
+    const year = new Date(uts * 1000).getFullYear();
+    years[year] = (years[year] || 0) + 1;
+  });
+  return years;
+}
+
+function setFreshCurrentVsMetric(metric) {
+  freshCurrentVsMetric = ['tracks', 'artists', 'albums'].includes(metric) ? metric : 'tracks';
+  renderFreshCurrentVs();
+  scheduleScrollControlUpdate();
+}
+
+function renderFreshCurrentVs() {
+  const rows = document.getElementById('freshCurrentVsRows');
+  const empty = document.getElementById('freshCurrentVsEmpty');
+  const sub = document.getElementById('freshCurrentVsSub');
+  const wrap = document.getElementById('freshCurrentVsWrap');
+  if (!rows || !empty) return;
+  if (wrap) wrap.style.display = freshPath === 'gate' ? '' : 'none';
+  rows.innerHTML = '';
+
+  document.querySelectorAll('#freshCurrentVsPills .pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.freshCurrentVs === freshCurrentVsMetric);
+  });
+
+  const yearCounts = freshCurrentVsYearCounts(freshCurrentVsMetric);
+  const ranked = Object.entries(yearCounts)
+    .map(([year, value]) => ({ year: Number(year), value }))
+    .filter(item => item.value > 0)
+    .sort((a, b) => b.value - a.value || b.year - a.year)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
+
+  if (!ranked.length) {
+    empty.style.display = 'block';
+    if (sub) sub.textContent = 'load or sync Last.fm history to compare discovery years';
+    return;
+  }
+
+  empty.style.display = 'none';
+  const current = ranked.find(item => item.year === CY);
+  const visible = ranked.slice(0, 6);
+  if (current && current.rank > 6) {
+    const before = ranked[current.rank - 2];
+    const after = ranked[current.rank];
+    [before, current, after].forEach(item => {
+      if (item && !visible.some(existing => existing.year === item.year)) visible.push(item);
+    });
+  }
+  visible.sort((a, b) => a.rank - b.rank);
+
+  const label = freshCurrentVsLabel(freshCurrentVsMetric);
+  if (sub) {
+    sub.textContent = current
+      ? CY + ' is #' + current.rank + ' for ' + label + ' discovered'
+      : CY + ' has no ' + label + ' discovered yet';
+  }
+
+  rows.innerHTML = visible.map(item => {
+    const isCurrent = item.year === CY;
+    const target = isCurrent && item.rank > 1 ? ranked[item.rank - 2] : null;
+    const needed = target ? Math.max(0, target.value - item.value + 1) : 0;
+    const neededText = target
+      ? '<div class="fresh-current-vs-needed">needs ' + needed.toLocaleString() + ' more ' + freshCurrentVsUnit(freshCurrentVsMetric, needed) + ' to pass ' + target.year + '</div>'
+      : (isCurrent ? '<div class="fresh-current-vs-needed">currently leading this ranking</div>' : '');
+    return '<div class="fresh-current-vs-row' + (isCurrent ? ' is-current' : '') + '">' +
+      '<div class="fresh-current-vs-rank">#' + item.rank + '</div>' +
+      '<div><div class="fresh-current-vs-year">' + item.year + (isCurrent ? ' · current year' : '') + '</div>' + neededText + '</div>' +
+      '<div class="fresh-current-vs-value">' + item.value.toLocaleString() + ' ' + freshCurrentVsUnit(freshCurrentVsMetric, item.value) + '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function renderFreshPath() {
