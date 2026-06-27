@@ -1097,21 +1097,72 @@
     padding-right: 6px;
   }
 
+  .genre-artist-search-wrap {
+    position: relative;
+    margin-top: 16px;
+  }
+
+  .genre-artist-search {
+    width: 100%;
+    border: 1px solid rgba(204,204,204,0.1);
+    border-radius: 18px;
+    background: rgba(8,8,8,0.26);
+    color: var(--silver);
+    font-family: 'DM Mono', monospace;
+    font-size: var(--font-floor-md);
+    padding: 16px 18px;
+    outline: none;
+  }
+
+  .genre-artist-search:focus {
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-accent) 18%, transparent);
+  }
+
+  .genre-artist-results {
+    display: grid;
+    gap: 6px;
+    margin-top: 10px;
+    max-height: 280px;
+    overflow: auto;
+    padding-right: 4px;
+  }
+
+  .genre-artist-result {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+    width: 100%;
+    border: 1px solid rgba(204,204,204,0.07);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.025);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    padding: 12px 14px;
+  }
+
+  .genre-artist-result:hover,
+  .genre-artist-result.active {
+    border-color: var(--border-hover);
+    background: color-mix(in srgb, var(--theme-accent) 16%, rgba(255,255,255,0.035));
+  }
+
   .genre-artist-detail-card {
     min-height: 260px;
   }
 
   .genre-artist-detail-head {
     display: grid;
-    grid-template-columns: 96px minmax(0, 1fr);
-    gap: 16px;
+    grid-template-columns: 172px 1px minmax(0, 1fr);
+    gap: 22px;
     align-items: center;
   }
 
   .genre-artist-image {
-    width: 96px;
-    height: 96px;
-    border-radius: 12px;
+    width: 172px;
+    height: 172px;
+    border-radius: 14px;
     object-fit: cover;
     border: 1px solid rgba(204,204,204,0.12);
     background: rgba(255,255,255,0.035);
@@ -1122,15 +1173,35 @@
     align-items: center;
     justify-content: center;
     font-family: 'Quicksand', sans-serif;
-    font-size: 30px;
+    font-size: 46px;
     color: rgba(238,238,238,0.42);
+  }
+
+  .genre-artist-card-rule {
+    width: 1px;
+    align-self: stretch;
+    min-height: 178px;
+    background: linear-gradient(to bottom, transparent, var(--border-hover), transparent);
+  }
+
+  .genre-artist-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .genre-artist-card-line {
+    height: 1px;
+    margin: 18px 0;
+    background: linear-gradient(to right, transparent, var(--border-hover), transparent);
   }
 
   .genre-artist-tags {
     display: flex;
     flex-wrap: wrap;
     gap: 9px;
-    margin-top: 18px;
+    margin-top: 0;
   }
 
   .genre-artist-source {
@@ -1150,6 +1221,17 @@
     .genre-reality-home,
     .genre-artist-grid {
       grid-template-columns: 1fr;
+    }
+
+    .genre-artist-detail-head {
+      grid-template-columns: 1fr;
+    }
+
+    .genre-artist-card-rule {
+      width: 100%;
+      min-height: 1px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--border-hover), transparent);
     }
   }
 
@@ -5681,9 +5763,12 @@
         </div>
         <div class="genre-artist-grid">
           <div class="fresh-panel">
-            <div class="fresh-panel-title">artist index</div>
-            <div class="fresh-panel-sub">ranked by total scrobbles, with uncached artists still listed.</div>
-            <div class="genre-artist-list" id="genRealityArtistList"></div>
+            <div class="fresh-panel-title">artist search</div>
+            <div class="fresh-panel-sub">type to filter your listening history and select the exact artist classification.</div>
+            <div class="genre-artist-search-wrap">
+              <input class="genre-artist-search" id="genRealityArtistSearch" type="search" placeholder="search artist..." autocomplete="off" oninput="setGenRealityArtistSearch(this.value)">
+              <div class="genre-artist-results" id="genRealityArtistList"></div>
+            </div>
           </div>
           <div class="fresh-panel genre-artist-detail-card" id="genRealityArtistDetail"></div>
         </div>
@@ -10254,6 +10339,7 @@ let genRealitySelectedGenre = '';
 let genRealityDetailType = 'tracks';
 let genRealityView = 'home';
 let genRealitySelectedArtist = '';
+let genRealityArtistSearch = '';
 
 function setGenRealityView(view) {
   genRealityView = ['home', 'genres', 'artists'].includes(view) ? view : 'home';
@@ -10497,6 +10583,10 @@ function setGenRealityDetailType(type) {
   renderGenReality();
 }
 
+function escapeRegexText(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function genRealityTopArtists(limit = 300) {
   const artists = new Map();
   (Array.isArray(allScrobbles) ? allScrobbles : []).forEach(row => {
@@ -10568,31 +10658,41 @@ function genreRealityArtistClassifications() {
 function renderGenreRealityArtistList() {
   const target = document.getElementById('genRealityArtistList');
   const status = document.getElementById('genRealityArtistStatus');
+  const search = document.getElementById('genRealityArtistSearch');
   if (!target) return;
   const artists = genreRealityArtistClassifications();
   const cached = artists.filter(artist => artist.genres && artist.genres.length).length;
   if (status) {
     status.textContent = artists.length.toLocaleString() + ' artists listed · ' + cached.toLocaleString() + ' with genre classifications';
   }
+  if (search && search.value !== genRealityArtistSearch) search.value = genRealityArtistSearch;
   if (!artists.length) {
     target.innerHTML = '<div class="spotify-empty">load last.fm history to build the artist classification index.</div>';
     renderGenreRealityArtistDetail([]);
     return;
   }
+
+  const query = String(genRealityArtistSearch || '').trim();
+  const tokens = query.split(/\s+/).filter(Boolean);
+  const matcher = tokens.length ? new RegExp(tokens.map(escapeRegexText).join('.*'), 'i') : null;
+  const matches = matcher
+    ? artists.filter(artist => matcher.test(String(artist.name || '')) || matcher.test(String((artist.genres || []).join(' '))))
+    : artists.slice(0, 12);
+  const visible = matches.slice(0, 18);
+
   if (!genRealitySelectedArtist || !artists.some(artist => artist.key === genRealitySelectedArtist)) {
-    genRealitySelectedArtist = artists[0].key;
+    genRealitySelectedArtist = visible[0] ? visible[0].key : artists[0].key;
   }
-  target.innerHTML = artists.map((artist, index) => {
+  target.innerHTML = visible.length ? visible.map((artist) => {
     const genrePreview = artist.genres && artist.genres.length ? artist.genres.slice(0, 3).join(' | ') : artist.source;
-    return '<button class="genre-reality-row ' + (artist.key === genRealitySelectedArtist ? 'active' : '') + '" type="button" onclick="selectGenRealityArtist(\'' + esc(artist.key) + '\')">' +
-      '<div class="genre-reality-rank">' + (index + 1) + '</div>' +
+    return '<button class="genre-artist-result ' + (artist.key === genRealitySelectedArtist ? 'active' : '') + '" type="button" onclick="selectGenRealityArtist(\'' + esc(artist.key) + '\')">' +
       '<div>' +
         '<div class="genre-reality-name">' + esc(artist.name || '') + '</div>' +
         '<div class="genre-reality-meta">' + esc(genrePreview) + '</div>' +
       '</div>' +
       '<div class="genre-reality-count">' + Number(artist.scrobbles || 0).toLocaleString() + '</div>' +
     '</button>';
-  }).join('');
+  }).join('') : '<div class="spotify-empty">no artists match that search.</div>';
   renderGenreRealityArtistDetail(artists);
 }
 
@@ -10620,19 +10720,30 @@ function renderGenreRealityArtistDetail(artists) {
   target.innerHTML =
     '<div class="genre-artist-detail-head">' +
       image +
+      '<div class="genre-artist-card-rule" aria-hidden="true"></div>' +
       '<div>' +
-        '<div class="fresh-panel-title">' + esc(artist.name || '') + '</div>' +
-        '<div class="fresh-panel-sub">' + Number(artist.scrobbles || 0).toLocaleString() + ' scrobbles · ' + esc(artist.source || 'artist classification') + '</div>' +
-        '<div class="genre-detail-pills" style="justify-content:flex-start;margin-top:12px;">' + spotifyLink + '</div>' +
+        '<div class="genre-artist-card-top">' +
+          '<div>' +
+            '<div class="fresh-panel-title">' + esc(artist.name || '') + '</div>' +
+            '<div class="fresh-panel-sub">' + Number(artist.scrobbles || 0).toLocaleString() + ' scrobbles</div>' +
+          '</div>' +
+          '<div class="genre-detail-pills">' + spotifyLink + '</div>' +
+        '</div>' +
+        '<div class="genre-artist-card-line" aria-hidden="true"></div>' +
+        '<div class="genre-artist-tags">' + genreTags + '</div>' +
+        '<div class="genre-artist-source">source: ' + esc(artist.source || 'unknown') + '<br>last updated: ' + esc(updated) + '</div>' +
       '</div>' +
-    '</div>' +
-    '<div class="genre-artist-tags">' + genreTags + '</div>' +
-    '<div class="genre-artist-source">source: ' + esc(artist.source || 'unknown') + '<br>last updated: ' + esc(updated) + '</div>';
+    '</div>';
 }
 
 function selectGenRealityArtist(key) {
   genRealitySelectedArtist = key || '';
   renderGenReality();
+}
+
+function setGenRealityArtistSearch(value) {
+  genRealityArtistSearch = String(value || '');
+  renderGenreRealityArtistList();
 }
 
 async function scanGenRealityGenres() {
