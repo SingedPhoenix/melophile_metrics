@@ -5726,7 +5726,7 @@
                 <div class="fresh-panel-sub" id="genRealityScanStatus">every mapped genre and subgenre currently found in your library.</div>
               </div>
               <div class="genre-detail-pills">
-                <button class="pill" type="button" onclick="scanGenRealityGenres()">scan genres</button>
+                <button class="pill" type="button" onclick="scanGenRealityGenres(300)">scan top 300</button>
                 <button class="pill" type="button" onclick="navStack.push('screenGenReality'); enterSection('settings')">open settings</button>
               </div>
             </div>
@@ -5757,7 +5757,10 @@
             <div class="fresh-panel-sub" id="genRealityArtistStatus">spotify genre labels cached by artist.</div>
           </div>
           <div class="genre-detail-pills">
-            <button class="pill" type="button" onclick="scanGenRealityGenres()">scan artists</button>
+            <button class="pill" type="button" onclick="scanGenRealityGenres(300)">scan top 300</button>
+            <button class="pill" type="button" onclick="scanGenRealityGenres(1000)">scan top 1,000</button>
+            <button class="pill" type="button" onclick="scanSelectedGenRealityArtist()">scan selected</button>
+            <button class="pill" type="button" onclick="exportGenRealityArtistCache()">export cache</button>
             <button class="pill" type="button" onclick="setGenRealityView('home')">gen-reality home</button>
           </div>
         </div>
@@ -10340,6 +10343,7 @@ let genRealityDetailType = 'tracks';
 let genRealityView = 'home';
 let genRealitySelectedArtist = '';
 let genRealityArtistSearch = '';
+let genRealityScanActive = false;
 
 function setGenRealityView(view) {
   genRealityView = ['home', 'genres', 'artists'].includes(view) ? view : 'home';
@@ -10746,71 +10750,127 @@ function setGenRealityArtistSearch(value) {
   renderGenreRealityArtistList();
 }
 
-async function scanGenRealityGenres() {
+function setGenRealityScanStatus(message) {
   const status = document.getElementById('genRealityScanStatus');
   const artistStatus = document.getElementById('genRealityArtistStatus');
-  if (!(readSpotifyToken() || hasRefreshableSpotifyToken())) {
-    if (status) status.textContent = 'connect spotify in settings before scanning genre metadata.';
-    if (artistStatus) artistStatus.textContent = 'connect spotify in settings before scanning artist classifications.';
-    showCopyToast('spotify connection needed');
-    return;
-  }
-  const artists = genRealityTopArtists(300);
-  if (!artists.length) {
-    if (status) status.textContent = 'load last.fm history before scanning genre metadata.';
-    if (artistStatus) artistStatus.textContent = 'load last.fm history before scanning artist classifications.';
-    showCopyToast('last.fm history needed');
-    return;
-  }
+  if (status) status.textContent = message;
+  if (artistStatus) artistStatus.textContent = message;
+}
+
+async function scanGenRealityArtistBatch(artists, label) {
   const cache = readJsonMap(GENRE_ARTIST_CACHE_KEY);
   const missing = artists.filter(artist => {
     const cached = cache[artist.key];
     return !cached || Date.now() - (cached.updatedAtMs || 0) > GENRE_ARTIST_CACHE_TTL_MS;
   });
   if (!missing.length) {
-    if (status) status.textContent = 'genre metadata is already cached for your top ' + artists.length.toLocaleString() + ' artists.';
-    if (artistStatus) artistStatus.textContent = 'artist classifications are already cached for your top ' + artists.length.toLocaleString() + ' artists.';
+    setGenRealityScanStatus('genre metadata is already cached for ' + label + '.');
     renderGenReality();
     return;
   }
-  if (status) status.textContent = 'scanning spotify genres for ' + missing.length.toLocaleString() + ' artists...';
-  if (artistStatus) artistStatus.textContent = 'scanning spotify classifications for ' + missing.length.toLocaleString() + ' artists...';
-  try {
-    for (let i = 0; i < missing.length; i++) {
-      const artist = missing[i];
-      const params = new URLSearchParams({ q: 'artist:' + artist.name, type: 'artist', limit: '5' });
-      const data = await spotifyFetch('/v1/search?' + params.toString());
-      const items = data.artists && Array.isArray(data.artists.items) ? data.artists.items : [];
-      const winner = items
-        .map(item => ({ item, score: spotifyCandidateScore('artist', item, artist.name, '') }))
-        .sort((a, b) => b.score - a.score)[0];
-      cache[artist.key] = {
-        name: artist.name,
-        spotifyId: winner && winner.score >= 4 ? winner.item.id || '' : '',
-        genres: winner && winner.score >= 4 ? winner.item.genres || [] : [],
-        image: winner && winner.score >= 4 && winner.item.images && winner.item.images[0] ? winner.item.images[0].url : '',
-        scrobbles: artist.count,
-        updatedAtMs: Date.now()
-      };
-      if (i % 15 === 0) {
-        writeJsonMap(GENRE_ARTIST_CACHE_KEY, cache);
-        if (status) status.textContent = 'scanning spotify genres... ' + (i + 1).toLocaleString() + ' of ' + missing.length.toLocaleString();
-        if (artistStatus) artistStatus.textContent = 'scanning spotify classifications... ' + (i + 1).toLocaleString() + ' of ' + missing.length.toLocaleString();
-        renderGenReality();
-      }
-      await sleep(80);
+
+  setGenRealityScanStatus('scanning spotify classifications for ' + missing.length.toLocaleString() + ' artists...');
+  for (let i = 0; i < missing.length; i++) {
+    const artist = missing[i];
+    const params = new URLSearchParams({ q: 'artist:' + artist.name, type: 'artist', limit: '5' });
+    const data = await spotifyFetch('/v1/search?' + params.toString());
+    const items = data.artists && Array.isArray(data.artists.items) ? data.artists.items : [];
+    const winner = items
+      .map(item => ({ item, score: spotifyCandidateScore('artist', item, artist.name, '') }))
+      .sort((a, b) => b.score - a.score)[0];
+    cache[artist.key] = {
+      name: artist.name,
+      spotifyId: winner && winner.score >= 4 ? winner.item.id || '' : '',
+      genres: winner && winner.score >= 4 ? winner.item.genres || [] : [],
+      image: winner && winner.score >= 4 && winner.item.images && winner.item.images[0] ? winner.item.images[0].url : '',
+      scrobbles: artist.count,
+      updatedAtMs: Date.now()
+    };
+    if (i % 15 === 0) {
+      writeJsonMap(GENRE_ARTIST_CACHE_KEY, cache);
+      setGenRealityScanStatus('scanning spotify classifications... ' + (i + 1).toLocaleString() + ' of ' + missing.length.toLocaleString());
+      renderGenReality();
     }
-    writeJsonMap(GENRE_ARTIST_CACHE_KEY, cache);
-    if (status) status.textContent = 'genre scan complete · ' + artists.length.toLocaleString() + ' top artists cached.';
-    if (artistStatus) artistStatus.textContent = 'artist classification scan complete · ' + artists.length.toLocaleString() + ' top artists cached.';
-    renderGenReality();
+    await sleep(80);
+  }
+  writeJsonMap(GENRE_ARTIST_CACHE_KEY, cache);
+  setGenRealityScanStatus('artist classification scan complete · ' + label + ' cached.');
+  renderGenReality();
+}
+
+async function scanGenRealityGenres(limit = 300) {
+  const scanLimit = Math.max(1, Number(limit || 300));
+  if (!(readSpotifyToken() || hasRefreshableSpotifyToken())) {
+    setGenRealityScanStatus('connect spotify in settings before scanning artist classifications.');
+    showCopyToast('spotify connection needed');
+    return;
+  }
+  if (genRealityScanActive) {
+    showCopyToast('artist scan already running');
+    return;
+  }
+  const artists = genRealityTopArtists(scanLimit);
+  if (!artists.length) {
+    setGenRealityScanStatus('load last.fm history before scanning artist classifications.');
+    showCopyToast('last.fm history needed');
+    return;
+  }
+  genRealityScanActive = true;
+  try {
+    await scanGenRealityArtistBatch(artists, 'top ' + artists.length.toLocaleString() + ' artists');
     showCopyToast('genre scan complete');
   } catch (err) {
-    writeJsonMap(GENRE_ARTIST_CACHE_KEY, cache);
-    if (status) status.textContent = 'genre scan paused. reconnect spotify and try again.';
-    if (artistStatus) artistStatus.textContent = 'artist classification scan paused. reconnect spotify and try again.';
+    setGenRealityScanStatus('artist classification scan paused. reconnect spotify and try again.');
     showCopyToast('genre scan paused');
+  } finally {
+    genRealityScanActive = false;
   }
+}
+
+async function scanSelectedGenRealityArtist() {
+  const artist = genreRealityArtistClassifications().find(item => item.key === genRealitySelectedArtist);
+  if (!artist) {
+    showCopyToast('select an artist first');
+    return;
+  }
+  if (!(readSpotifyToken() || hasRefreshableSpotifyToken())) {
+    setGenRealityScanStatus('connect spotify in settings before scanning artist classifications.');
+    showCopyToast('spotify connection needed');
+    return;
+  }
+  if (genRealityScanActive) {
+    showCopyToast('artist scan already running');
+    return;
+  }
+  genRealityScanActive = true;
+  try {
+    await scanGenRealityArtistBatch([{ key: artist.key, name: artist.name, count: artist.scrobbles }], artist.name);
+    showCopyToast('artist scanned');
+  } catch (err) {
+    setGenRealityScanStatus('selected artist scan paused. reconnect spotify and try again.');
+    showCopyToast('artist scan paused');
+  } finally {
+    genRealityScanActive = false;
+  }
+}
+
+function exportGenRealityArtistCache() {
+  const cache = readJsonMap(GENRE_ARTIST_CACHE_KEY);
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    cacheKey: GENRE_ARTIST_CACHE_KEY,
+    artists: Object.values(cache).sort((a, b) => Number(b.scrobbles || 0) - Number(a.scrobbles || 0) || String(a.name || '').localeCompare(String(b.name || '')))
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'melophile-genre-artist-cache.json';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showCopyToast('genre cache exported');
 }
 
 function renderGenReality() {
