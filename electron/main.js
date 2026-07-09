@@ -14,11 +14,13 @@ const APP_ROOT = path.join(__dirname, '..');
 const APP_HTML = path.join(__dirname, '..', 'melophile_metrics_v2.html');
 const APP_ICON_PNG = path.join(APP_ROOT, 'assets', 'app-icon', 'melophile-metrics.png');
 const APP_NAME = 'melophile metrics';
+const USER_DATA_DIR_NAME = 'melophile-metrics';
 const PRELOAD = path.join(__dirname, 'preload.js');
 const LOCAL_PORT = 8767;
 const SPOTIFY_EXTERNAL_RE = /^(spotify:|https:\/\/open\.spotify\.com\/)/i;
 
 app.setName(APP_NAME);
+app.setPath('userData', path.join(app.getPath('appData'), USER_DATA_DIR_NAME));
 
 async function createWindow() {
   const appUrl = await getAppUrl();
