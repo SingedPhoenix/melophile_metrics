@@ -4802,6 +4802,36 @@
         <div class="lastfm-status" id="lastfmIntegrityStatus">local cache status has not been checked yet.</div>
       </div>
 
+      <div class="lastfm-panel" id="databasePanel">
+        <div>
+          <div class="lastfm-title">local sqlite database</div>
+          <div class="lastfm-sub">permanent desktop storage for scrobbles, correction history, and future rollups. last.fm syncs can be copied here without publishing private data.</div>
+        </div>
+        <div class="lastfm-integrity-grid">
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">stored scrobbles</div>
+            <div class="lastfm-integrity-value" id="databaseScrobbleCount">—</div>
+          </div>
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">stored revisions</div>
+            <div class="lastfm-integrity-value" id="databaseRevisionCount">—</div>
+          </div>
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">schema</div>
+            <div class="lastfm-integrity-value" id="databaseSchemaVersion">—</div>
+          </div>
+          <div class="lastfm-integrity-card">
+            <div class="lastfm-integrity-label">last database sync</div>
+            <div class="lastfm-integrity-value" id="databaseLastSync">—</div>
+          </div>
+        </div>
+        <div class="lastfm-actions">
+          <button class="pill" type="button" onclick="refreshDatabasePanel()">refresh database</button>
+          <button class="pill" type="button" onclick="saveLastfmCacheToDatabase()">save last.fm cache to sqlite</button>
+        </div>
+        <div class="lastfm-status" id="databaseStatus">sqlite is available in the desktop app.</div>
+      </div>
+
       <div class="spotify-panel" id="spotifyPanel">
       <div>
         <div class="spotify-title">spotify read access</div>
@@ -6289,6 +6319,7 @@ function showScreen(id) {
     renderLastfmPanel();
     renderSpotifyPanel();
     renderOpenMusicPanel();
+    refreshDatabasePanel();
     renderSeedScanSettings();
   }
   window.scrollTo({ top: 0 });
@@ -6981,6 +7012,85 @@ function activateDataRows(rows, sourceLabel) {
   navStack = ['screenSelect'];
   showScreen('screenSelect');
   showCopyToast(sourceLabel || 'listening history loaded');
+}
+
+// ── Desktop SQLite database bridge ───────────────────────────────────
+function desktopDatabaseAvailable() {
+  return Boolean(window.melophileDesktop?.databaseStatus && window.melophileDesktop?.importLastfmScrobbles);
+}
+
+async function refreshDatabasePanel() {
+  const status = document.getElementById('databaseStatus');
+  if (!desktopDatabaseAvailable()) {
+    setDatabasePanelValues(null);
+    if (status) status.textContent = 'sqlite is available after launching with the electron desktop app.';
+    return null;
+  }
+
+  try {
+    const snapshot = await window.melophileDesktop.databaseStatus();
+    setDatabasePanelValues(snapshot);
+    if (status) status.textContent = snapshot.path ? 'database file: ' + snapshot.path : 'sqlite database is ready.';
+    return snapshot;
+  } catch {
+    setDatabasePanelValues(null);
+    if (status) status.textContent = 'database status could not be read.';
+    return null;
+  }
+}
+
+function setDatabasePanelValues(snapshot) {
+  setText('databaseScrobbleCount', snapshot ? Number(snapshot.scrobbles || 0).toLocaleString() : '—');
+  setText('databaseRevisionCount', snapshot ? Number(snapshot.revisions || 0).toLocaleString() : '—');
+  setText('databaseSchemaVersion', snapshot ? String(snapshot.schemaVersion || '—') : '—');
+  const lastSync = snapshot && snapshot.lastSync ? snapshot.lastSync : null;
+  setText('databaseLastSync', lastSync && lastSync.finished_at ? formatLastfmIntegrityTime(lastSync.finished_at) : '—');
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+async function saveLastfmCacheToDatabase() {
+  if (!desktopDatabaseAvailable()) {
+    showCopyToast('desktop database unavailable');
+    await refreshDatabasePanel();
+    return null;
+  }
+
+  const status = document.getElementById('databaseStatus');
+  if (status) status.textContent = 'reading last.fm cache for sqlite import...';
+  try {
+    const rows = await readLastfmCachedRows();
+    return importLastfmRowsToDatabase(rows, 'last.fm cache saved to sqlite');
+  } catch {
+    if (status) status.textContent = 'last.fm cache could not be copied to sqlite.';
+    showCopyToast('sqlite import failed');
+    return null;
+  }
+}
+
+async function importLastfmRowsToDatabase(rows, toastMessage) {
+  if (!desktopDatabaseAvailable() || !Array.isArray(rows) || !rows.length) return null;
+  const status = document.getElementById('databaseStatus');
+  if (status) status.textContent = 'saving ' + rows.length.toLocaleString() + ' scrobbles to sqlite...';
+  try {
+    const result = await window.melophileDesktop.importLastfmScrobbles(rows);
+    const stats = [
+      Number(result.rowsInserted || 0).toLocaleString() + ' new',
+      Number(result.rowsUpdated || 0).toLocaleString() + ' changed',
+      Number(result.rowsUnchanged || 0).toLocaleString() + ' unchanged'
+    ].join(' · ');
+    if (status) status.textContent = 'sqlite sync complete · ' + stats;
+    if (result.status) setDatabasePanelValues(result.status);
+    showCopyToast(toastMessage || 'sqlite database updated');
+    return result;
+  } catch {
+    if (status) status.textContent = 'sqlite import failed.';
+    showCopyToast('sqlite import failed');
+    return null;
+  }
 }
 
 // ── Current year data store ───────────────────────────────────────────
@@ -14188,6 +14298,7 @@ async function loadLastfmCache(options = {}) {
       return;
     }
     renderLastfmIntegrityPanel({ cacheCount: rows.length, message: 'cached local history is loaded. run check integrity to compare against last.fm.' });
+    importLastfmRowsToDatabase(rows, 'last.fm cache saved to sqlite');
     activateDataRows(rows, rows.length.toLocaleString() + ' cached scrobbles loaded');
   } catch (err) {
     document.getElementById('loadingOverlay').classList.add('hidden');
@@ -14291,6 +14402,7 @@ async function syncLastfmHistory(options = {}) {
       state: needsRebuild ? 'rebuild' : 'in sync',
       message: needsRebuild ? 'profile delta remains after sync; rebuild again if you were actively editing last.fm.' : 'last.fm cache synced and aligned.'
     });
+    await importLastfmRowsToDatabase(cachedRows, 'last.fm sync saved to sqlite');
     activateDataRows(cachedRows, cachedRows.length.toLocaleString() + ' cached scrobbles synced from last.fm' + driftNote);
   } catch (err) {
     loading.classList.add('hidden');

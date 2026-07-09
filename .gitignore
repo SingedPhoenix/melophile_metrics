@@ -5,6 +5,9 @@
 !.env.example
 *.local.json
 melophile_config.local.json
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 private/
 exports/
 node_modules/

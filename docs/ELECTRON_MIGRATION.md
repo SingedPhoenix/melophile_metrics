@@ -5,9 +5,22 @@ This migration is intentionally gradual. The first checkpoint keeps `melophile_m
 ## Current Scope
 
 - Load the existing app through Electron.
-- Keep renderer code unchanged for the first shell checkpoint.
+- Keep the single-file renderer as the UI source of truth while adding desktop services.
 - Route Spotify and `open.spotify.com` links through Electron external-link handling.
+- Serve the renderer from `http://127.0.0.1:8767` so Spotify redirect auth keeps working.
+- Store Last.fm scrobbles in a local SQLite database through a narrow preload bridge.
 - Keep private data and generated datasets out of the public repository.
+
+## SQLite Checkpoint
+
+The desktop app creates `melophile.sqlite` in Electron's user data directory, not in the public repository. The first schema includes:
+
+- `scrobbles`: active Last.fm scrobble rows copied from the existing app cache.
+- `scrobble_revisions`: field-level changes detected when an existing scrobble row changes.
+- `sync_runs`: import/sync summaries for database status and troubleshooting.
+- `app_meta`: schema metadata.
+
+The current renderer still uses IndexedDB for its active in-memory load path. SQLite is now a permanent desktop copy and audit foundation; later checkpoints can read directly from SQLite and move Last.fm reconciliation into the Electron main process.
 
 ## Near-Term Architecture
 

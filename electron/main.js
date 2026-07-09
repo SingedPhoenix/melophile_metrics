@@ -3,6 +3,12 @@ const fs = require('node:fs/promises');
 const http = require('node:http');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+const {
+  closeMelophileDatabase,
+  databaseStatus,
+  importLastfmScrobbles,
+  openMelophileDatabase
+} = require('./database');
 
 const APP_ROOT = path.join(__dirname, '..');
 const APP_HTML = path.join(__dirname, '..', 'melophile_metrics_v2.html');
@@ -48,6 +54,7 @@ function openExternalUrl(url) {
 }
 
 app.whenReady().then(() => {
+  openMelophileDatabase(app.getPath('userData'));
   registerDesktopHandlers();
   createWindow();
 
@@ -60,12 +67,24 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
+app.on('before-quit', () => {
+  closeMelophileDatabase();
+});
+
 function registerDesktopHandlers() {
   ipcMain.handle('melophile:read-local-config', async () => {
     const configPath = await findLocalConfigPath();
     if (!configPath) return null;
     const raw = await fs.readFile(configPath, 'utf8');
     return JSON.parse(raw);
+  });
+
+  ipcMain.handle('melophile:database-status', async () => databaseStatus());
+
+  ipcMain.handle('melophile:import-lastfm-scrobbles', async (_event, payload = {}) => {
+    const rows = Array.isArray(payload.rows) ? payload.rows : [];
+    const mode = typeof payload.mode === 'string' ? payload.mode : 'manual';
+    return importLastfmScrobbles(rows, mode);
   });
 }
 
