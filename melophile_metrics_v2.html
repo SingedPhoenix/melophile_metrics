@@ -1382,6 +1382,69 @@
     margin-right: auto;
   }
 
+  .theme-picker-panel {
+    max-width: 980px;
+  }
+
+  .theme-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: 10px;
+  }
+
+  .theme-card {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 10px;
+    background:
+      linear-gradient(145deg, color-mix(in srgb, var(--theme-bg) 72%, transparent), color-mix(in srgb, var(--theme-surface) 46%, transparent));
+    padding: 10px;
+    min-height: 92px;
+    display: grid;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: border-color 0.16s, transform 0.16s, background 0.16s;
+  }
+
+  .theme-card:hover,
+  .theme-card.active {
+    border-color: color-mix(in srgb, var(--theme-primary) 52%, rgba(204,204,204,0.16));
+    transform: translateY(-1px);
+  }
+
+  .theme-card.active {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-primary) 20%, transparent);
+  }
+
+  .theme-sample {
+    height: 34px;
+    border-radius: 8px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 0.8fr 0.65fr;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .theme-sample span:nth-child(1) { background: var(--theme-bg); }
+  .theme-sample span:nth-child(2) { background: var(--theme-secondary); }
+  .theme-sample span:nth-child(3) { background: var(--theme-primary); }
+  .theme-sample span:nth-child(4) { background: var(--theme-surface); }
+
+  .theme-card-name {
+    font-family: 'Quicksand', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.25;
+    color: rgba(238,238,238,0.84);
+  }
+
+  .theme-card-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    line-height: 1.3;
+    color: rgba(204,204,204,0.36);
+  }
+
   .lastfm-title {
     font-family: 'Quicksand', sans-serif;
     font-size: 18px;
@@ -4814,7 +4877,7 @@
         <button class="pill settings-tab" type="button" data-settings-tab="data" onclick="setSettingsSection('data')">data</button>
         <button class="pill settings-tab" type="button" data-settings-tab="corrections" onclick="setSettingsSection('corrections')">corrections</button>
         <button class="pill settings-tab" type="button" data-settings-tab="automation" onclick="setSettingsSection('automation')">automation</button>
-        <button class="pill settings-tab" type="button" data-settings-tab="app" onclick="setSettingsSection('app')">app</button>
+        <button class="pill settings-tab" type="button" data-settings-tab="appearance" onclick="setSettingsSection('appearance')">appearance</button>
       </div>
 
       <div class="settings-section" data-settings-section="accounts">
@@ -5069,21 +5132,23 @@
         </div>
       </div>
 
-      <div class="settings-section" data-settings-section="app">
+      <div class="settings-section" data-settings-section="appearance">
         <div class="settings-section-heading">
-          <div class="settings-section-title">app</div>
-          <div class="settings-section-sub">display and local interface preferences.</div>
+          <div class="settings-section-title">appearance</div>
+          <div class="settings-section-sub">choose a stored color scheme and keep it fixed until you change it.</div>
         </div>
 
-        <div class="lastfm-panel" id="displayPreferencesPanel">
+        <div class="lastfm-panel theme-picker-panel" id="themePickerPanel">
           <div>
-            <div class="lastfm-title">display layout</div>
-            <div class="lastfm-sub">switch between vertical and horizontal workspace layouts.</div>
+            <div class="lastfm-title">color scheme</div>
+            <div class="lastfm-sub">minimal swatches from every theme on file, arranged by color family.</div>
           </div>
           <div class="lastfm-actions">
-            <button class="pill" type="button" onclick="toggleDisplayMode()">toggle layout</button>
+            <button class="pill" type="button" onclick="shuffleThemeNow()">shuffle once</button>
+            <button class="pill" type="button" onclick="unlockThemeRotation()">resume ambient rotation</button>
           </div>
-          <div class="lastfm-status" id="displayPreferencesStatus">layout preference is saved locally.</div>
+          <div class="theme-picker-grid" id="themePickerGrid"></div>
+          <div class="lastfm-status" id="themePickerStatus">theme preference is saved locally.</div>
         </div>
       </div>
     </div>
@@ -6268,9 +6333,13 @@ function refreshVisibleThemedCharts() {
   }
 }
 
-function saveThemeState(seed, expiresAt) {
+function saveThemeState(seed, expiresAt, options = {}) {
   try {
-    localStorage.setItem(THEME_STATE_KEY, JSON.stringify({ name: seed[0], expiresAt }));
+    localStorage.setItem(THEME_STATE_KEY, JSON.stringify({
+      name: seed[0],
+      expiresAt,
+      locked: Boolean(options.locked)
+    }));
   } catch (err) {}
 }
 
@@ -6284,6 +6353,7 @@ function readThemeState() {
 
 function scheduleThemeRotation(expiresAt) {
   clearTimeout(themeTimer);
+  if (!Number.isFinite(expiresAt)) return;
   const delay = Math.max(1000, expiresAt - Date.now());
   themeTimer = setTimeout(() => rotateTheme(true), delay);
 }
@@ -6292,6 +6362,13 @@ function rotateTheme(forceNew = false) {
   const state = readThemeState();
   let seed = null;
   let expiresAt = state && state.expiresAt;
+  if (!forceNew && state && state.locked && state.name) {
+    seed = THEME_SEEDS.find(candidate => candidate[0] === state.name);
+    if (seed) {
+      applyTheme(seed);
+      return;
+    }
+  }
   if (!forceNew && state && state.name && expiresAt > Date.now()) {
     seed = THEME_SEEDS.find(candidate => candidate[0] === state.name);
   }
@@ -6308,12 +6385,99 @@ function rotateTheme(forceNew = false) {
 function shuffleThemeNow() {
   const state = readThemeState();
   const seed = chooseThemeSeed(state && state.name);
-  const expiresAt = Date.now() + randomThemeIntervalMs();
-  saveThemeState(seed, expiresAt);
+  saveThemeState(seed, null, { locked: true });
   const theme = applyTheme(seed);
-  scheduleThemeRotation(expiresAt);
+  scheduleThemeRotation(null);
   refreshVisibleThemedCharts();
+  renderThemePicker();
   showCopyToast('theme · ' + theme.name);
+}
+
+function themeSeedByName(name) {
+  return THEME_SEEDS.find(seed => seed[0] === name) || null;
+}
+
+function selectThemeByName(name) {
+  const seed = themeSeedByName(name);
+  if (!seed) return;
+  saveThemeState(seed, null, { locked: true });
+  applyTheme(seed);
+  scheduleThemeRotation(null);
+  refreshVisibleThemedCharts();
+  renderThemePicker();
+  showCopyToast('theme · ' + seed[0]);
+}
+
+function unlockThemeRotation() {
+  const state = readThemeState();
+  const seed = themeSeedByName(state && state.name) || chooseThemeSeed();
+  const expiresAt = Date.now() + randomThemeIntervalMs();
+  saveThemeState(seed, expiresAt, { locked: false });
+  applyTheme(seed);
+  scheduleThemeRotation(expiresAt);
+  renderThemePicker();
+  showCopyToast('ambient theme rotation resumed');
+}
+
+function hueFromHex(hex) {
+  const { r, g, b } = hexToRgb(hex);
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const delta = max - min;
+  if (!delta) return 999;
+  let hue = 0;
+  if (max === rn) hue = 60 * (((gn - bn) / delta) % 6);
+  else if (max === gn) hue = 60 * ((bn - rn) / delta + 2);
+  else hue = 60 * ((rn - gn) / delta + 4);
+  return hue < 0 ? hue + 360 : hue;
+}
+
+function themeFamilyRank(hue) {
+  if (hue >= 260 && hue < 330) return 0; // purple
+  if (hue >= 185 && hue < 260) return 1; // blue
+  if (hue >= 80 && hue < 185) return 2;  // green
+  if (hue >= 45 && hue < 80) return 3;   // yellow
+  if (hue >= 20 && hue < 45) return 4;   // orange
+  if (hue < 20 || hue >= 330) return 5;  // red and pink
+  return 6;
+}
+
+function themeSortInfo(seed) {
+  const theme = deriveTheme(seed);
+  const primary = theme.vars['--cherry-bright'];
+  const hue = hueFromHex(primary);
+  return { theme, hue, rank: themeFamilyRank(hue) };
+}
+
+function sortedThemeSeeds() {
+  return THEME_SEEDS
+    .map(seed => ({ seed, ...themeSortInfo(seed) }))
+    .sort((a, b) => a.rank - b.rank || a.hue - b.hue || a.seed[0].localeCompare(b.seed[0]));
+}
+
+function renderThemePicker() {
+  const grid = document.getElementById('themePickerGrid');
+  const status = document.getElementById('themePickerStatus');
+  if (!grid) return;
+  const state = readThemeState();
+  const activeName = (state && state.name) || document.documentElement.dataset.themeName || '';
+  grid.innerHTML = sortedThemeSeeds().map(({ seed, theme, hue }) => {
+    const vars = theme.vars;
+    const active = seed[0] === activeName ? ' active' : '';
+    return '<button class="theme-card' + active + '" type="button" onclick="selectThemeByName(' + JSON.stringify(seed[0]).replace(/"/g, '&quot;') + ')" style="--theme-bg:' + esc(vars['--onyx']) + ';--theme-surface:' + esc(vars['--charcoal-light']) + ';--theme-primary:' + esc(vars['--cherry-bright']) + ';--theme-secondary:' + esc(vars['--amethyst-mid']) + '">'
+      + '<div class="theme-sample"><span></span><span></span><span></span><span></span></div>'
+      + '<div class="theme-card-name">' + esc(seed[0]) + '</div>'
+      + '<div class="theme-card-meta">hue ' + Math.round(hue) + ' · ' + seed[1].length + ' colors</div>'
+      + '</button>';
+  }).join('');
+  if (status) {
+    status.textContent = activeName
+      ? activeName.toLowerCase() + (state && state.locked ? ' is locked as your theme.' : ' is active · ambient rotation on.')
+      : 'choose a color scheme.';
+  }
 }
 
 rotateTheme();
@@ -6355,7 +6519,6 @@ function toggleDisplayMode() {
     localStorage.setItem(DISPLAY_MODE_KEY, nextMode);
   } catch {}
   applyDisplayMode(nextMode);
-  renderDisplayPreferences();
   showCopyToast(nextMode + ' layout');
 }
 
@@ -6447,7 +6610,7 @@ function persistVisibleServiceSettings() {
 
 // ── Nav stack for back button ─────────────────────────────────────────
 const SETTINGS_SECTION_KEY = 'melophile.settings.section';
-const SETTINGS_SECTIONS = ['accounts', 'data', 'corrections', 'automation', 'app'];
+const SETTINGS_SECTIONS = ['accounts', 'data', 'corrections', 'automation', 'appearance'];
 let navStack = [];
 let scrollControlTimer = null;
 
@@ -6492,14 +6655,8 @@ function setSettingsSection(section, options = {}) {
   });
   if (nextSection === 'data') refreshDatabasePanel();
   if (nextSection === 'automation') renderSeedScanSettings();
-  if (nextSection === 'app') renderDisplayPreferences();
+  if (nextSection === 'appearance') renderThemePicker();
   if (!options.silent) scheduleScrollControlUpdate();
-}
-
-function renderDisplayPreferences() {
-  const status = document.getElementById('displayPreferencesStatus');
-  if (!status) return;
-  status.textContent = currentDisplayMode() + ' layout is active.';
 }
 
 function scheduleScrollControlUpdate() {
