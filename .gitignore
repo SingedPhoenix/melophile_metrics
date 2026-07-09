@@ -2,7 +2,11 @@
 *.log
 .env
 .env.*
+!.env.example
+*.local.json
 melophile_config.local.json
+private/
+exports/
 node_modules/
 dist/
 build/
