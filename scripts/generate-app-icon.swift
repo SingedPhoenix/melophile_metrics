@@ -2,14 +2,15 @@ import AppKit
 import Foundation
 
 let args = CommandLine.arguments
-guard args.count == 4 else {
-  fputs("usage: generate-app-icon.swift <source-png> <png-output> <iconset-output>\n", stderr)
+guard args.count == 4 || args.count == 5 else {
+  fputs("usage: generate-app-icon.swift <source-png> <png-output> <iconset-output> [scale]\n", stderr)
   exit(64)
 }
 
 let sourcePath = args[1]
 let pngOutputPath = args[2]
 let iconsetPath = args[3]
+let iconScale = args.count == 5 ? Double(args[4]) ?? 1.0 : 1.0
 
 guard let source = NSImage(contentsOfFile: sourcePath) else {
   fputs("could not open source image: \(sourcePath)\n", stderr)
@@ -42,8 +43,10 @@ func writePng(size: Int, to path: String) throws {
   NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
   NSColor.clear.setFill()
   NSRect(x: 0, y: 0, width: size, height: size).fill()
+  let drawSize = CGFloat(size) * CGFloat(max(0.1, min(iconScale, 1.0)))
+  let drawInset = (CGFloat(size) - drawSize) / 2
   source.draw(
-    in: NSRect(x: 0, y: 0, width: size, height: size),
+    in: NSRect(x: drawInset, y: drawInset, width: drawSize, height: drawSize),
     from: .zero,
     operation: .copy,
     fraction: 1.0
