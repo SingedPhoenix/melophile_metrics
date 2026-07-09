@@ -134,6 +134,17 @@ melophile_config.example.json
 
 Create a private local copy named `melophile_config.local.json` when needed. That local file is ignored by Git.
 
+## Experimental Electron Shell
+
+The project now includes a minimal Electron shell that loads the existing single-file app without changing the renderer architecture:
+
+```sh
+npm install
+npm start
+```
+
+This is the first step toward a local desktop architecture with private database-backed storage and API sync handled outside the renderer. The static browser workflow above remains supported.
+
 ## Current Development Status
 
 Melophile Metrics is functional as a local portfolio application and continues to evolve through iterative development. The application depends on user-provided data and/or API access, so some views require Last.fm credentials, Spotify authorization, or locally cached data to display meaningful results.
