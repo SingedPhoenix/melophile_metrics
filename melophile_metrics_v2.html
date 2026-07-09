@@ -2142,29 +2142,57 @@
   }
 
   .r-bar-wrap {
-    width: 240px;
-    height: 8px;
-    background: rgba(204,204,204,0.06);
-    border-radius: 4px;
+    width: clamp(320px, 28vw, 560px);
+    height: 42px;
+    background:
+      linear-gradient(90deg, rgba(204,204,204,0.055), rgba(204,204,204,0.11));
+    border: 1px solid rgba(204,204,204,0.075);
+    border-radius: 999px;
     overflow: hidden;
-    margin: 0 24px;
+    margin: 0 18px;
+    box-shadow:
+      inset 0 0 0 1px rgba(0,0,0,0.22),
+      inset 0 10px 22px rgba(255,255,255,0.025);
   }
 
   .r-bar-fill {
+    position: relative;
     height: 100%;
-    border-radius: 4px;
+    min-width: 2px;
+    border-radius: inherit;
     background: var(--bar-gradient);
+    overflow: visible;
     transition: width 0.6s ease;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      0 0 18px color-mix(in srgb, var(--cherry-bright) 18%, transparent);
+  }
+
+  .r-bar-value {
+    position: absolute;
+    top: 50%;
+    right: 16px;
+    transform: translateY(-50%);
+    z-index: 1;
+    font-family: 'DM Mono', monospace;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: rgba(255,255,255,0.92);
+    line-height: 1;
+    text-align: right;
+    white-space: nowrap;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.42);
   }
 
   .r-count {
-    font-family: 'DM Mono', monospace;
-    font-size: 20px;
-    color: var(--silver-dim);
-    width: 90px;
+    display: none;
+  }
+
+  .r-row-actions {
+    width: 72px;
     text-align: right;
     white-space: nowrap;
-    padding-left: 10px;
   }
 
   .ghost-count {
@@ -4614,7 +4642,7 @@
 
   .analytics-year-row {
     display: grid;
-    grid-template-columns: 72px minmax(140px, 1fr) 118px 104px;
+    grid-template-columns: 72px minmax(260px, 1fr) 140px;
     align-items: center;
     gap: 16px;
     padding: 12px 0;
@@ -4630,17 +4658,40 @@
   }
 
   .analytics-year-bar {
-    height: 10px;
-    border-radius: 5px;
-    background: rgba(204,204,204,0.055);
+    height: 38px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(204,204,204,0.055), rgba(204,204,204,0.11));
+    border: 1px solid rgba(204,204,204,0.075);
     overflow: hidden;
+    box-shadow:
+      inset 0 0 0 1px rgba(0,0,0,0.22),
+      inset 0 10px 22px rgba(255,255,255,0.025);
   }
 
   .analytics-year-fill {
+    position: relative;
     height: 100%;
     min-width: 2px;
-    border-radius: 5px;
+    border-radius: inherit;
     background: var(--bar-gradient);
+    overflow: visible;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      0 0 18px color-mix(in srgb, var(--cherry-bright) 18%, transparent);
+  }
+
+  .analytics-year-value {
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.92);
+    line-height: 1;
+    white-space: nowrap;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.42);
   }
 
   .analytics-year-count,
@@ -4662,7 +4713,6 @@
       gap: 8px 12px;
     }
 
-    .analytics-year-count,
     .analytics-year-detail {
       grid-column: 2;
       text-align: left;
@@ -8448,6 +8498,12 @@ function formatScrobbleTimestamp(date) {
   }).toLowerCase();
 }
 
+function renderRankDataBar(valueHtml, fillPercent, fillStyle = '') {
+  const percent = Number.isFinite(fillPercent) ? Math.max(0, Math.min(fillPercent, 100)) : 0;
+  const style = 'width:' + percent + '%;' + fillStyle;
+  return '<div class="r-bar-wrap"><div class="r-bar-fill" style="' + style + '"><span class="r-bar-value">' + valueHtml + '</span></div></div>';
+}
+
 function changeYearReviewPage(delta) {
   yearReviewPage += delta;
   renderYearReview();
@@ -8486,7 +8542,7 @@ function renderYearReviewList(entries, color) {
     return '<tr>' +
       '<td class="r-rank">' + (pageStart+i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%;background:linear-gradient(90deg,' + color + ',rgba(10,10,10,0.2))"></div></div></td>' +
+      '<td>' + renderRankDataBar(entry.isLog ? esc(entry.count) : entry.count.toLocaleString(), barW, 'background:linear-gradient(90deg,' + color + ',rgba(10,10,10,0.2));') + '</td>' +
       '<td class="r-count">' + (entry.isLog ? esc(entry.count) : entry.count.toLocaleString()) + '</td>' +
     '</tr>';
   }).join('');
@@ -8779,8 +8835,7 @@ function renderAnalyticsAnnualPulse(years) {
     const avgDay = yearAveragePerActiveDay(year);
     return '<div class="analytics-year-row">' +
       '<div class="analytics-year-label">' + year.year + '</div>' +
-      '<div class="analytics-year-bar"><div class="analytics-year-fill" style="width:' + barW + '%"></div></div>' +
-      '<div class="analytics-year-count">' + year.scrobbles.toLocaleString() + '</div>' +
+      '<div class="analytics-year-bar"><div class="analytics-year-fill" style="width:' + barW + '%"><span class="analytics-year-value">' + year.scrobbles.toLocaleString() + '</span></div></div>' +
       '<div class="analytics-year-detail">' + year.activeDays.size.toLocaleString() + ' days · ' + avgDay.toLocaleString() + '/day</div>' +
     '</div>';
   }).join('');
@@ -9195,7 +9250,7 @@ function renderRankings() {
     return '<tr>' +
       '<td class="r-rank">' + (i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%;background:linear-gradient(90deg,' + color + ',rgba(10,10,10,0.2))"></div></div></td>' +
+      '<td>' + renderRankDataBar(gemDot + entry.count.toLocaleString(), barW, 'background:linear-gradient(90deg,' + color + ',rgba(10,10,10,0.2));') + '</td>' +
       '<td class="r-count">' + gemDot + entry.count + '</td>' +
     '</tr>';
   }).join('');
@@ -9421,7 +9476,7 @@ function renderLastList() {
     return '<tr>' +
       '<td class="r-rank">' + (pageStart+i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
+      '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW) + '</td>' +
       '<td class="r-count">' + entry.count.toLocaleString() + '</td>' +
     '</tr>';
   }).join('');
@@ -9504,7 +9559,7 @@ function renderLastCurrentYear() {
     return '<tr>' +
       '<td class="r-rank">' + (pageStart + index + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
+      '<td>' + renderRankDataBar(count.toLocaleString(), barW) + '</td>' +
       '<td class="r-count">' + count.toLocaleString() + '</td>' +
     '</tr>';
   }).join('');
@@ -9640,7 +9695,7 @@ function renderMomentousList() {
     return '<tr>' +
       '<td class="r-rank">' + (pageStart + i + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
+      '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW) + '</td>' +
       '<td class="r-count">' + entry.count.toLocaleString() + '</td>' +
     '</tr>';
   }).join('');
@@ -11734,7 +11789,7 @@ function renderMetallurgyLab() {
     return '<tr>' +
       '<td class="r-rank">' + entry.rank.toLocaleString() + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%;background:linear-gradient(90deg,' + entry.color + ',rgba(10,10,10,0.2))"></div></div></td>' +
+      '<td>' + renderRankDataBar(gemDot + entry.count.toLocaleString(), barW, 'background:linear-gradient(90deg,' + entry.color + ',rgba(10,10,10,0.2));') + '</td>' +
       '<td class="r-count">' + gemDot + entry.count.toLocaleString() + '</td>' +
     '</tr>';
   }).join('');
@@ -11849,8 +11904,8 @@ function renderGhostedList() {
     return '<tr>' +
       '<td class="r-rank">' + (i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%;background:var(--bar-gradient-soft)"></div></div></td>' +
-      '<td class="r-count"><span class="ghost-count"><span>' + entry.count.toLocaleString() + '</span><button class="ghost-skip" onclick="skipGhosted(' + JSON.stringify(entry.key).replace(/"/g, '&quot;') + ')">skip</button></span></td>' +
+      '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW, 'background:var(--bar-gradient-soft);') + '</td>' +
+      '<td class="r-row-actions"><button class="ghost-skip" onclick="skipGhosted(' + JSON.stringify(entry.key).replace(/"/g, '&quot;') + ')">skip</button></td>' +
     '</tr>';
   }).join('');
   scheduleScrollControlUpdate();
@@ -11940,8 +11995,8 @@ function renderApotheosis() {
     return '<tr>' +
       '<td class="r-rank">' + (i+1) + '</td>' +
       '<td><div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(note) + '</div></td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%;background:var(--bar-gradient-soft)"></div></div></td>' +
-      '<td class="r-count"><span class="ghost-count"><span>' + entry.count.toLocaleString() + '</span><button class="ghost-skip" onclick="skipApotheosis(' + JSON.stringify(entry.key).replace(/"/g, '&quot;') + ')">skip</button></span></td>' +
+      '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW, 'background:var(--bar-gradient-soft);') + '</td>' +
+      '<td class="r-row-actions"><button class="ghost-skip" onclick="skipApotheosis(' + JSON.stringify(entry.key).replace(/"/g, '&quot;') + ')">skip</button></td>' +
     '</tr>';
   }).join('');
   scheduleScrollControlUpdate();
@@ -12938,7 +12993,7 @@ function renderHarvestRankings() {
     return '<tr' + playableAttrs + '>' +
       '<td class="r-rank">' + (index + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
-      '<td><div class="r-bar-wrap"><div class="r-bar-fill" style="width:' + barW + '%"></div></div></td>' +
+      '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW) + '</td>' +
       '<td class="r-count">' + entry.count.toLocaleString() + '</td>' +
     '</tr>';
   }).join('');
