@@ -8,9 +8,11 @@ melophile_config.local.json
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
+*.iconset/
 private/
 exports/
 node_modules/
+__pycache__/
 dist/
 build/
 coverage/

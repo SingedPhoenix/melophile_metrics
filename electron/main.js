@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, nativeImage, shell } = require('electron');
 const fs = require('node:fs/promises');
 const http = require('node:http');
 const path = require('node:path');
@@ -12,9 +12,13 @@ const {
 
 const APP_ROOT = path.join(__dirname, '..');
 const APP_HTML = path.join(__dirname, '..', 'melophile_metrics_v2.html');
+const APP_ICON_PNG = path.join(APP_ROOT, 'assets', 'app-icon', 'melophile-metrics.png');
+const APP_NAME = 'melophile metrics';
 const PRELOAD = path.join(__dirname, 'preload.js');
 const LOCAL_PORT = 8767;
 const SPOTIFY_EXTERNAL_RE = /^(spotify:|https:\/\/open\.spotify\.com\/)/i;
+
+app.setName(APP_NAME);
 
 async function createWindow() {
   const appUrl = await getAppUrl();
@@ -24,7 +28,8 @@ async function createWindow() {
     minWidth: 1100,
     minHeight: 760,
     backgroundColor: '#0A0A0A',
-    title: 'melophile metrics',
+    title: APP_NAME,
+    icon: APP_ICON_PNG,
     webPreferences: {
       preload: PRELOAD,
       contextIsolation: true,
@@ -54,6 +59,7 @@ function openExternalUrl(url) {
 }
 
 app.whenReady().then(() => {
+  applyDesktopIdentity();
   openMelophileDatabase(app.getPath('userData'));
   registerDesktopHandlers();
   createWindow();
@@ -62,6 +68,18 @@ app.whenReady().then(() => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 });
+
+function applyDesktopIdentity() {
+  const icon = nativeImage.createFromPath(APP_ICON_PNG);
+  if (!icon.isEmpty() && process.platform === 'darwin' && app.dock) {
+    app.dock.setIcon(icon);
+  }
+  app.setAboutPanelOptions({
+    applicationName: APP_NAME,
+    applicationVersion: app.getVersion(),
+    iconPath: APP_ICON_PNG
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();

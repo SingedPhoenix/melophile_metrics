@@ -1,5 +1,6 @@
 {
   "name": "melophile-metrics",
+  "productName": "melophile metrics",
   "version": "0.1.0",
   "private": true,
   "description": "Local-first personal music analytics app for Last.fm, Spotify, and MusicBrainz workflows.",
@@ -8,6 +9,13 @@
     "start": "electron .",
     "start:web": "python3 -m http.server 8767",
     "check:js": "node --check electron/main.js && node --check electron/preload.js && node --check electron/database.js"
+  },
+  "build": {
+    "appId": "com.singedphoenix.melophilemetrics",
+    "productName": "melophile metrics",
+    "mac": {
+      "icon": "assets/app-icon/melophile-metrics.icns"
+    }
   },
   "devDependencies": {
     "electron": "^43.1.0"

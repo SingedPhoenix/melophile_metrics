@@ -9,6 +9,7 @@ This migration is intentionally gradual. The first checkpoint keeps `melophile_m
 - Route Spotify and `open.spotify.com` links through Electron external-link handling.
 - Serve the renderer from `http://127.0.0.1:8767` so Spotify redirect auth keeps working.
 - Store Last.fm scrobbles in a local SQLite database through a narrow preload bridge.
+- Set the desktop app identity to `melophile metrics` with tracked PNG/ICNS app icon assets.
 - Keep private data and generated datasets out of the public repository.
 
 ## SQLite Checkpoint
