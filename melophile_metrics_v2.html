@@ -6866,6 +6866,20 @@ document.addEventListener('click', e => {
     }
   }
 
+  const seedReleaseCard = e.target.closest('.seed-release-card');
+  if (seedReleaseCard) {
+    const link = seedReleaseCard.dataset.spotifyLink || seedReleaseCard.getAttribute('href') || '';
+    if (/^spotify:/.test(link)) {
+      return;
+    }
+    e.preventDefault();
+    const entityType = seedReleaseCard.dataset.entityType || '';
+    const entityName = seedReleaseCard.dataset.name || '';
+    const entityArtist = seedReleaseCard.dataset.artist || '';
+    openSpotifyReleaseCard(link, entityType, entityName, entityArtist);
+    return;
+  }
+
   const name = e.target.closest('.r-name');
   if (!name) return;
   const copyText = name.dataset.copy || name.textContent.trim();
@@ -10906,6 +10920,17 @@ function spotifyExternalUrlFromUri(uri) {
   return match ? 'https://open.spotify.com/' + match[1] + '/' + match[2] : '';
 }
 
+function spotifyUriFromExternalUrl(link) {
+  try {
+    const url = new URL(String(link || '').trim());
+    if (url.hostname !== 'open.spotify.com') return '';
+    const match = url.pathname.match(/^\/(track|album|artist)\/([A-Za-z0-9]+)/);
+    return match ? 'spotify:' + match[1] + ':' + match[2] : '';
+  } catch {
+    return '';
+  }
+}
+
 function normalizeSpotifyManualLink(value, expectedType) {
   const link = String(value || '').trim();
   if (!link) return '';
@@ -10979,7 +11004,30 @@ function openSpotifyLink(link) {
     window.location.href = normalized;
     return;
   }
+  const spotifyUri = spotifyUriFromExternalUrl(normalized);
+  if (spotifyUri) {
+    window.location.href = spotifyUri;
+    return;
+  }
   window.open(normalized, '_blank', 'noopener');
+}
+
+function spotifyEntityTypeFromReleaseType(type) {
+  const normalized = String(type || '').toLowerCase();
+  if (normalized === 'album' || normalized === 'compilation') return 'album';
+  if (normalized === 'single') return 'track';
+  return 'album';
+}
+
+async function openSpotifyReleaseCard(link, entityType, name, artist) {
+  if (link && link !== '#') {
+    openSpotifyLink(link);
+    showCopyToast('opening in spotify');
+    return;
+  }
+  if (!entityType || !name) return;
+  showCopyToast('opening ' + entityType + ' in spotify');
+  await openSpotifyEntity(entityType, name, artist || '');
 }
 
 async function openSpotifyEntity(type, name, artist) {
@@ -11696,6 +11744,7 @@ const SEED_NEW_RELEASES_KEY = 'melophile.seed.newReleases';
 const SEED_ARTIST_AUDIT_KEY = 'melophile.seed.artistAudit';
 const SEED_SCAN_SCHEDULE_KEY = 'melophile.seed.scanSchedule';
 const SEED_RELEASE_SORT_KEY = 'melophile.seed.releaseSort';
+const SEED_RELEASE_TRACK_LINK_KEY = 'melophile.seed.releaseTrackLinks';
 const HARVEST_TRACK_INDEX_KEY = 'melophile.harvest.trackIndex';
 const SEED_ARTIST_AUDIT_VERSION = 2;
 const LASTFM_ALBUM_ART_KEY = 'melophile.lastfm.albumArt';
@@ -12653,13 +12702,86 @@ function toggleSeedReleaseSort() {
   showCopyToast('seed releases sorted by ' + seedReleaseSortLabel());
 }
 
+function seedReleaseTrackCacheKey(release) {
+  return release && release.id ? release.id : '';
+}
+
+function seedReleasePreferredLink(release) {
+  const cache = readJsonMap(SEED_RELEASE_TRACK_LINK_KEY);
+  const key = seedReleaseTrackCacheKey(release);
+  const cached = key ? cache[key] : null;
+  return (release && (release.trackUri || (cached && cached.uri))) ||
+    (release && release.uri) ||
+    spotifyUriFromExternalUrl(release && release.trackUrl) ||
+    spotifyUriFromExternalUrl(release && release.url) ||
+    (release && (release.trackUrl || release.url)) ||
+    '#';
+}
+
+function applySeedReleaseTrackLink(releaseId, link) {
+  if (!releaseId || !link) return;
+  document.querySelectorAll('.seed-release-card[data-release-id]').forEach(card => {
+    if (card.dataset.releaseId !== releaseId) return;
+    card.setAttribute('href', link);
+    card.dataset.spotifyLink = link;
+    card.dataset.entityType = 'track';
+  });
+}
+
+function scoreSeedReleaseTrackCandidate(track, release) {
+  return spotifyCandidateScore('track', track, release.name || '', release.artist || '');
+}
+
+async function resolveSeedReleaseTrackLink(release) {
+  if (!release || !release.id || String(release.type || '').toLowerCase() !== 'single') return '';
+  if (release.trackUri) return release.trackUri;
+  const cache = readJsonMap(SEED_RELEASE_TRACK_LINK_KEY);
+  const key = seedReleaseTrackCacheKey(release);
+  if (key && cache[key]) return cache[key].uri || cache[key].url || '';
+
+  const data = await spotifyFetch('/v1/albums/' + encodeURIComponent(release.id) + '/tracks?market=US&limit=50');
+  const items = data && Array.isArray(data.items) ? data.items : [];
+  const winner = items
+    .map(item => ({ item, score: scoreSeedReleaseTrackCandidate(item, release) }))
+    .sort((a, b) => b.score - a.score)[0];
+  const track = winner && winner.score >= 5 ? winner.item : items[0];
+  if (!track) return '';
+  const link = {
+    uri: track.uri || '',
+    url: track.external_urls && track.external_urls.spotify ? track.external_urls.spotify : ''
+  };
+  if (key) {
+    cache[key] = link;
+    writeJsonMap(SEED_RELEASE_TRACK_LINK_KEY, cache);
+  }
+  release.trackUri = link.uri;
+  release.trackUrl = link.url;
+  return link.uri || link.url;
+}
+
+async function hydrateSeedReleaseTrackLinks(releases) {
+  const candidates = (releases || [])
+    .filter(release => release && String(release.type || '').toLowerCase() === 'single')
+    .filter(release => release.id)
+    .slice(0, 160);
+  if (!candidates.length || !readSpotifyToken() && !hasRefreshableSpotifyToken()) return;
+  for (const release of candidates) {
+    try {
+      const link = await resolveSeedReleaseTrackLink(release);
+      const preferred = /^spotify:/.test(link) ? link : spotifyUriFromExternalUrl(link);
+      if (preferred) applySeedReleaseTrackLink(release.id, preferred);
+    } catch {}
+  }
+}
+
 function renderSeedReleaseCard(release) {
   const image = release.image
     ? '<img class="seed-release-cover" src="' + esc(release.image) + '" alt="">'
     : '<div class="seed-release-cover" aria-hidden="true"></div>';
   const date = new Date(release.releaseMs).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const href = release.uri || release.url || '#';
-  return '<a class="seed-release-card" href="' + esc(href) + '">' +
+  const href = seedReleasePreferredLink(release);
+  const entityType = spotifyEntityTypeFromReleaseType(release.type);
+  return '<a class="seed-release-card" href="' + esc(href) + '" data-spotify-link="' + esc(href) + '" data-release-id="' + esc(release.id || '') + '" data-entity-type="' + esc(entityType) + '" data-name="' + esc(release.name || '') + '" data-artist="' + esc(release.artist || '') + '">' +
     image +
     '<div class="seed-release-name">' + esc(release.name) + '</div>' +
     '<div class="seed-release-artist">' + esc(release.artist) + '</div>' +
@@ -12715,6 +12837,7 @@ function renderSeedNewReleaseGrid() {
   target.innerHTML =
     renderSeedReleaseShelf('all-time artist releases', seedReleaseSortSubcopy('top 1,000 artists overall'), allTimeReleases) +
     renderSeedReleaseShelf('new artist releases', seedReleaseSortSubcopy('first logged in the rolling last 18 months · 6+ total scrobbles'), recentReleases);
+  hydrateSeedReleaseTrackLinks([...allTimeReleases, ...recentReleases]);
   scheduleScrollControlUpdate();
 }
 
