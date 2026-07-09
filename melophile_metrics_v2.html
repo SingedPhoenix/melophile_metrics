@@ -6194,6 +6194,15 @@ let localServiceConfigLoaded = false;
 
 async function loadLocalServiceConfig() {
   try {
+    const desktopConfig = await window.melophileDesktop?.readLocalConfig?.();
+    if (desktopConfig && typeof desktopConfig === 'object') {
+      applyLocalServiceConfig(desktopConfig);
+      localServiceConfigLoaded = true;
+      return true;
+    }
+  } catch {}
+
+  try {
     const response = await fetch(LOCAL_SERVICE_CONFIG_FILE + '?v=' + Date.now(), { cache: 'no-store' });
     if (!response.ok) return false;
     const config = await response.json();
