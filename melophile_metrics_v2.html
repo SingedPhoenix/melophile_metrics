@@ -6869,9 +6869,6 @@ document.addEventListener('click', e => {
   const seedReleaseCard = e.target.closest('.seed-release-card');
   if (seedReleaseCard) {
     const link = seedReleaseCard.dataset.spotifyLink || seedReleaseCard.getAttribute('href') || '';
-    if (/^spotify:/.test(link)) {
-      return;
-    }
     e.preventDefault();
     const entityType = seedReleaseCard.dataset.entityType || '';
     const entityName = seedReleaseCard.dataset.name || '';
@@ -10916,7 +10913,7 @@ function renderGenReality() {
 }
 
 function spotifyExternalUrlFromUri(uri) {
-  const match = String(uri || '').match(/^spotify:(track|album|artist):([A-Za-z0-9]+)$/);
+  const match = String(uri || '').match(/^spotify:(track|album|artist|playlist):([A-Za-z0-9]+)$/);
   return match ? 'https://open.spotify.com/' + match[1] + '/' + match[2] : '';
 }
 
@@ -10924,7 +10921,7 @@ function spotifyUriFromExternalUrl(link) {
   try {
     const url = new URL(String(link || '').trim());
     if (url.hostname !== 'open.spotify.com') return '';
-    const match = url.pathname.match(/^\/(track|album|artist)\/([A-Za-z0-9]+)/);
+    const match = url.pathname.match(/^\/(track|album|artist|playlist)\/([A-Za-z0-9]+)/);
     return match ? 'spotify:' + match[1] + ':' + match[2] : '';
   } catch {
     return '';
@@ -10934,12 +10931,12 @@ function spotifyUriFromExternalUrl(link) {
 function normalizeSpotifyManualLink(value, expectedType) {
   const link = String(value || '').trim();
   if (!link) return '';
-  const uriMatch = link.match(/^spotify:(track|album|artist):[A-Za-z0-9]+$/);
+  const uriMatch = link.match(/^spotify:(track|album|artist|playlist):[A-Za-z0-9]+$/);
   if (uriMatch) return expectedType && uriMatch[1] !== expectedType ? '' : link;
   try {
     const url = new URL(link);
     if (url.hostname !== 'open.spotify.com') return '';
-    const pathMatch = url.pathname.match(/^\/(track|album|artist)\/[A-Za-z0-9]+/);
+    const pathMatch = url.pathname.match(/^\/(track|album|artist|playlist)\/[A-Za-z0-9]+/);
     if (!pathMatch || (expectedType && pathMatch[1] !== expectedType)) return '';
     return url.origin + url.pathname;
   } catch (err) {
@@ -11000,13 +10997,22 @@ async function resolveSpotifyEntityLink(type, name, artist) {
 
 function openSpotifyLink(link) {
   const normalized = normalizeSpotifyManualLink(link) || link;
+  const webUrl = /^spotify:/.test(normalized) ? spotifyExternalUrlFromUri(normalized) : normalized;
   if (/^spotify:/.test(normalized)) {
-    window.location.href = normalized;
+    window.location.assign(normalized);
+    if (webUrl) {
+      setTimeout(() => {
+        if (document.visibilityState === 'visible') window.open(webUrl, '_blank', 'noopener');
+      }, 900);
+    }
     return;
   }
   const spotifyUri = spotifyUriFromExternalUrl(normalized);
   if (spotifyUri) {
-    window.location.href = spotifyUri;
+    window.location.assign(spotifyUri);
+    setTimeout(() => {
+      if (document.visibilityState === 'visible') window.open(normalized, '_blank', 'noopener');
+    }, 900);
     return;
   }
   window.open(normalized, '_blank', 'noopener');
