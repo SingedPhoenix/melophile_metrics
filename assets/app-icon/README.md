@@ -10,3 +10,9 @@ Regenerate the icon assets from a square source image:
 swift scripts/generate-app-icon.swift source.png assets/app-icon/melophile-metrics.png /tmp/melophile.iconset
 python3 scripts/png-iconset-to-icns.py /tmp/melophile.iconset assets/app-icon/melophile-metrics.icns
 ```
+
+Build the local macOS app bundle after updating the icon:
+
+```sh
+npm run build:mac
+```

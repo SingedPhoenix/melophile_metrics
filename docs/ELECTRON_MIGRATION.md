@@ -46,6 +46,14 @@ npm install
 npm start
 ```
 
+Development mode still launches through Electron's generic app bundle on macOS. To build and open the named local app bundle:
+
+```sh
+npm run start:mac
+```
+
+That creates `dist/melophile metrics.app` with the app name, bundle id, and icon applied.
+
 The existing static local server remains valid:
 
 ```sh
