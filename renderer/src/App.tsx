@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import DashboardScreen from './features/dashboard/DashboardScreen';
 import GemMinesScreen from './features/gem-mines/GemMinesScreen';
+import GhostedScreen from './features/ghosted/GhostedScreen';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
 import PulseScreen from './features/pulse/PulseScreen';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
@@ -49,7 +50,9 @@ function App() {
         </button>
       )}
 
-      {activeSection === 'gem-mines' ? (
+      {activeSection === 'ghosted' ? (
+        <GhostedScreen />
+      ) : activeSection === 'gem-mines' ? (
         <GemMinesScreen />
       ) : activeSection === 'dashboard' ? (
         <DashboardScreen />
@@ -107,7 +110,7 @@ function App() {
 }
 
 function isMigratedSection(section: SectionKey) {
-  return section === 'dashboard' || section === 'gem-mines' || section === 'past-tense' || section === 'pulse';
+  return section === 'dashboard' || section === 'gem-mines' || section === 'ghosted' || section === 'past-tense' || section === 'pulse';
 }
 
 export default App;

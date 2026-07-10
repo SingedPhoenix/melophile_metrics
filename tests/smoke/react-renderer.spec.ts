@@ -272,3 +272,59 @@ test('react renderer opens migrated Gem Mines slice', async ({ page }) => {
   await expect(page.locator('.gem-list-panel').getByText('endless summer')).toBeVisible();
   await expect(page.locator('.gem-list-panel').getByText('1,024')).toBeVisible();
 });
+
+test('react renderer opens migrated Ghosted slice', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => null,
+      databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
+      importLastfmScrobbles: async () => ({}),
+      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      yearlyListeningRollups: async () => ({
+        years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
+        topYears: [{ year: 2020, listens: 25468, rank: 1 }]
+      }),
+      listeningRollups: async () => ({
+        topArtists: [{ rank: 1, artist: 'the midnight', listens: 2048 }],
+        topTracks: [{ rank: 1, artist: 'health', track: 'you died', listens: 512 }],
+        topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024 }],
+        months: [{ month: '2026-01', listens: 900 }]
+      }),
+      recentListening: async () => ({
+        scrobbles: [{
+          playedAtUts: 1783468800,
+          playedAtIso: '2026-07-07T00:00:00.000Z',
+          artist: 'health',
+          track: 'you died',
+          album: 'rat wars'
+        }]
+      }),
+      ghostedTracks: async options => ({
+        minListens: options?.minListens || 5,
+        tracks: [{
+          rank: 1,
+          artist: 'tears for fears',
+          track: 'head over heels',
+          album: 'songs from the big chair',
+          listens: 15,
+          firstPlayedUts: 1609459200,
+          lastPlayedUts: 1640995200,
+          daysSinceLastPlayed: 1286
+        }]
+      })
+    };
+  });
+  await page.goto('/dist/renderer/index.html');
+
+  await page.getByRole('button', { name: /ghosted/i }).click();
+
+  await expect(page.getByRole('heading', { name: 'ghosted' })).toBeVisible();
+  await expect(page.locator('.ghosted-list-panel').getByText('head over heels')).toBeVisible();
+  await expect(page.locator('.ghosted-list-panel').getByText('tears for fears · songs from the big chair')).toBeVisible();
+  await expect(page.locator('.ghosted-list-panel').getByText('1,286 days')).toBeVisible();
+  await page.getByRole('button', { name: '10+' }).click();
+  await expect(page.getByRole('button', { name: '10+' })).toHaveClass(/active/);
+  await expect(page.getByText('tracks with at least 10 listens')).toBeVisible();
+});

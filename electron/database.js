@@ -204,6 +204,33 @@ function recentListening(limit = 50) {
   return { scrobbles };
 }
 
+function ghostedTracks(options = {}) {
+  const openedDb = requireDb();
+  const safeLimit = Math.max(1, Math.min(Number.parseInt(options.limit, 10) || 50, 200));
+  const minListens = Math.max(1, Math.min(Number.parseInt(options.minListens, 10) || 5, 1000));
+  const nowUts = Math.floor(Date.now() / 1000);
+  const tracks = openedDb.prepare(`
+    SELECT artist, track, album, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY artist, track
+    HAVING listens >= ?
+    ORDER BY last_played_uts ASC, listens DESC, artist ASC, track ASC
+    LIMIT ?
+  `).all(minListens, safeLimit).map((row, index) => ({
+    rank: index + 1,
+    artist: row.artist,
+    track: row.track,
+    album: row.album || '',
+    listens: Number(row.listens || 0),
+    firstPlayedUts: Number(row.first_played_uts || 0),
+    lastPlayedUts: Number(row.last_played_uts || 0),
+    daysSinceLastPlayed: Math.max(0, Math.floor((nowUts - Number(row.last_played_uts || nowUts)) / 86400))
+  }));
+
+  return { tracks, minListens };
+}
+
 function trackPlayCounts(trackRefs = []) {
   const openedDb = requireDb();
   const refs = Array.isArray(trackRefs) ? trackRefs.map(normalizeTrackRef).filter(Boolean) : [];
@@ -426,6 +453,7 @@ function requireDb() {
 module.exports = {
   closeMelophileDatabase,
   databaseStatus,
+  ghostedTracks,
   importLastfmScrobbles,
   listeningRollups,
   openMelophileDatabase,

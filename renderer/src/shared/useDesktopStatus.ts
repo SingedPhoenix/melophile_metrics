@@ -76,6 +76,22 @@ export type RecentListening = {
   scrobbles: RecentScrobble[];
 };
 
+export type GhostedTrack = {
+  rank: number;
+  artist: string;
+  track: string;
+  album: string;
+  listens: number;
+  firstPlayedUts: number;
+  lastPlayedUts: number;
+  daysSinceLastPlayed: number;
+};
+
+export type GhostedTracks = {
+  tracks: GhostedTrack[];
+  minListens: number;
+};
+
 export function useDesktopStatus() {
   return useQuery({
     queryKey: ['desktop', 'database-status'],
@@ -115,6 +131,17 @@ export function useListeningRollups() {
     queryFn: async (): Promise<ListeningRollups | null> => {
       if (!window.melophileDesktop?.listeningRollups) return null;
       return window.melophileDesktop.listeningRollups();
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useGhostedTracks(limit = 50, minListens = 5) {
+  return useQuery({
+    queryKey: ['desktop', 'ghosted-tracks', limit, minListens],
+    queryFn: async (): Promise<GhostedTracks | null> => {
+      if (!window.melophileDesktop?.ghostedTracks) return null;
+      return window.melophileDesktop.ghostedTracks({ limit, minListens });
     },
     staleTime: 60_000
   });

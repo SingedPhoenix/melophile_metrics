@@ -9,5 +9,6 @@ contextBridge.exposeInMainWorld('melophileDesktop', {
   trackPlayCounts: tracks => ipcRenderer.invoke('melophile:track-play-counts', { tracks }),
   yearlyListeningRollups: () => ipcRenderer.invoke('melophile:yearly-listening-rollups'),
   listeningRollups: () => ipcRenderer.invoke('melophile:listening-rollups'),
-  recentListening: limit => ipcRenderer.invoke('melophile:recent-listening', { limit })
+  recentListening: limit => ipcRenderer.invoke('melophile:recent-listening', { limit }),
+  ghostedTracks: options => ipcRenderer.invoke('melophile:ghosted-tracks', options)
 });

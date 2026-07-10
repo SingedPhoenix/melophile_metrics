@@ -6,6 +6,7 @@ const { pathToFileURL } = require('node:url');
 const {
   closeMelophileDatabase,
   databaseStatus,
+  ghostedTracks,
   importLastfmScrobbles,
   listeningRollups,
   openMelophileDatabase,
@@ -123,6 +124,8 @@ function registerDesktopHandlers() {
   ipcMain.handle('melophile:recent-listening', async (_event, payload = {}) => {
     return recentListening(payload.limit);
   });
+
+  ipcMain.handle('melophile:ghosted-tracks', async (_event, payload = {}) => ghostedTracks(payload));
 }
 
 async function findLocalConfigPath() {
