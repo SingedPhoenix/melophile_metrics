@@ -95,9 +95,9 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
         '6h8yLdFD25fBxgXuiIxqzm': {
           total: 3,
           tracks: [
-            { name: 'one', artists: [{ name: 'cached artist' }] },
-            { name: 'two', artists: [{ name: 'cached artist' }] },
-            { name: 'three', artists: [{ name: 'cached artist' }] }
+            { name: 'one', uri: 'spotify:track:one', duration_ms: 181000, artists: [{ name: 'cached artist' }], album: { name: 'first album' } },
+            { name: 'two', duration_ms: 182000, artists: [{ name: 'cached artist' }], album: { name: 'first album' } },
+            { name: 'three', duration_ms: 183000, artists: [{ name: 'other cached artist' }], album: { name: 'second album' } }
           ]
         },
         '3jHRYkH2s0sRFtlj0sZzrX': {
@@ -172,8 +172,19 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await expect(page.getByText('low match one · cached artist')).toBeVisible();
   await page.getByRole('button', { name: 'low match one · cached artist' }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:search:low%20match%20one%20cached%20artist');
-  await page.getByRole('link', { name: /Vol\. 1970 cached test on Spotify/ }).click();
+  await page.getByRole('button', { name: 'open Vol. 1970 cached test details' }).click();
+  await expect(page.getByRole('heading', { name: 'Vol. 1970 cached test' })).toBeVisible();
+  await expect(page.getByText('3 cached tracks from 1970')).toBeVisible();
+  await expect(page.getByText('top artists of 1970')).toBeVisible();
+  await expect(page.getByText('playlist tracks')).toBeVisible();
+  await expect(page.getByText('one')).toBeVisible();
+  await expect(page.locator('.past-tense-track-list li').first().getByText('cached artist · first album')).toBeVisible();
+  await page.getByRole('button', { name: 'open playlist in spotify' }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm');
+  await page.getByText('one').click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:track:one');
+  await page.getByRole('button', { name: 'back to years' }).click();
+  await expect(page.getByRole('heading', { name: 'release-year volumes' })).toBeVisible();
 
   await page.getByRole('button', { name: 'scrobbles' }).click();
   await expect(page.getByRole('button', { name: 'scrobbles' })).toHaveClass(/active/);

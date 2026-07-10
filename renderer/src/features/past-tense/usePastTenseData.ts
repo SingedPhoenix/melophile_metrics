@@ -62,6 +62,7 @@ export function usePastTenseData() {
     isLoadingScrobbles: trackCountQuery.isFetching,
     matchStats,
     playlists,
-    snapshot
+    snapshot,
+    trackPlayCounts: trackCountQuery.data?.trackCounts || {}
   };
 }

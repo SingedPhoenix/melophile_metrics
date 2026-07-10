@@ -40,14 +40,22 @@ type CachedSpotifyPlaylist = {
   tracks?: { total?: number };
 };
 
-type CachedTrack = {
+export type PastTenseCachedTrack = {
+  id?: string;
   name?: string;
-  artists?: Array<{ name?: string }>;
+  uri?: string;
+  external_urls?: { spotify?: string };
+  artists?: Array<{ id?: string; name?: string }>;
+  album?: {
+    name?: string;
+    images?: Array<{ url?: string }>;
+  };
+  duration_ms?: number;
 };
 
 type CachedTrackStore = {
   updatedAtMs?: number;
-  playlists?: Record<string, { total?: number; tracks?: CachedTrack[]; updatedAtMs?: number }>;
+  playlists?: Record<string, { total?: number; tracks?: PastTenseCachedTrack[]; updatedAtMs?: number }>;
 };
 
 export type PastTenseTrackRef = {
@@ -242,6 +250,12 @@ export function readPastTenseTrackRefs(): PastTenseTrackRef[] {
       };
     })
   );
+}
+
+export function readPastTensePlaylistTracks(playlistId: string): PastTenseCachedTrack[] {
+  const trackStore = readJson<CachedTrackStore>(trackCacheKey, { playlists: {} });
+  const tracks = trackStore.playlists?.[playlistId]?.tracks;
+  return Array.isArray(tracks) ? tracks : [];
 }
 
 export function applyTrackPlayCounts(

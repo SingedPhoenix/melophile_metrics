@@ -1130,12 +1130,16 @@ h1 {
 }
 
 .playlist-card {
+  appearance: none;
   display: block;
   min-width: 0;
   padding: 9px;
   border: 1px solid rgba(204, 204, 204, 0.1);
   border-radius: 12px;
   background: rgba(204, 204, 204, 0.035);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
 }
 
 .playlist-cover {
@@ -1182,6 +1186,182 @@ img.playlist-cover {
   color: rgba(204, 204, 204, 0.42);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.past-tense-detail-screen {
+  display: grid;
+  gap: 18px;
+}
+
+.detail-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.past-tense-detail-hero {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: stretch;
+  padding: 20px;
+  border: 1px solid rgba(204, 204, 204, 0.1);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(205, 164, 198, 0.07), rgba(151, 164, 137, 0.045)),
+    rgba(204, 204, 204, 0.032);
+  box-shadow: inset 0 1px 0 rgba(238, 238, 238, 0.04);
+}
+
+.past-tense-detail-cover {
+  width: 100%;
+  aspect-ratio: 1;
+  margin: 0;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.past-tense-detail-main {
+  display: grid;
+  align-content: center;
+  min-width: 0;
+}
+
+.past-tense-detail-main h1 {
+  max-width: none;
+}
+
+.past-tense-detail-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.past-tense-detail-metric {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(204, 204, 204, 0.09);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.past-tense-detail-metric small,
+.past-tense-detail-metric strong,
+.past-tense-artist-grid span,
+.past-tense-track-list small,
+.track-duration {
+  font-family: "SF Mono", ui-monospace, monospace;
+}
+
+.past-tense-detail-metric small {
+  display: block;
+  overflow: hidden;
+  color: rgba(204, 204, 204, 0.42);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.past-tense-detail-metric strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 9px;
+  font-size: 20px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.past-tense-artist-panel,
+.past-tense-track-panel {
+  min-width: 0;
+}
+
+.past-tense-artist-grid,
+.past-tense-track-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.past-tense-artist-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.past-tense-artist-grid li {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.past-tense-artist-grid strong,
+.past-tense-artist-grid span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.past-tense-artist-grid strong {
+  margin: 16px 0 8px;
+  font-size: 19px;
+  line-height: 1.05;
+}
+
+.past-tense-artist-grid span {
+  color: rgba(204, 204, 204, 0.44);
+  font-size: 12px;
+}
+
+.past-tense-track-list li {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) minmax(110px, auto) 68px;
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(204, 204, 204, 0.06);
+}
+
+.past-tense-track-list li:last-child {
+  border-bottom: none;
+}
+
+.track-title-block {
+  min-width: 0;
+}
+
+.track-title-block strong,
+.track-title-block small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.track-title-block strong {
+  font-size: 19px;
+  line-height: 1.05;
+}
+
+.track-title-block small {
+  margin-top: 5px;
+  color: rgba(204, 204, 204, 0.42);
+  font-size: 12px;
+}
+
+.track-duration {
+  color: rgba(204, 204, 204, 0.42);
+  font-size: 12px;
+  text-align: right;
 }
 
 .pulse-layout {
@@ -1704,6 +1884,9 @@ img.playlist-cover {
   .frisson-summary,
   .ghosted-summary,
   .match-watchlist-grid,
+  .past-tense-artist-grid,
+  .past-tense-detail-hero,
+  .past-tense-detail-metrics,
   .past-tense-stats,
   .pulse-layout,
   .settings-data-grid,
@@ -1741,6 +1924,15 @@ img.playlist-cover {
   }
 
   .pulse-list .metric-value {
+    display: none;
+  }
+
+  .past-tense-track-list li {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .past-tense-track-list .metric-value,
+  .track-duration {
     display: none;
   }
 
