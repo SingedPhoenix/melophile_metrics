@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
 import { openSpotifySearch } from '../../shared/spotifyLinks';
+import StatusPanel from '../../shared/StatusPanel';
 import { FrissonTrack, useFrissonOverview } from '../../shared/useDesktopStatus';
 
 type FrissonMode = 'repeats' | 'enduring' | 'recent';
@@ -68,11 +69,19 @@ function FrissonScreen() {
           </div>
           <MetricToggle label="Frisson ranking mode" value={mode} options={modes} onChange={setMode} />
         </div>
-        <ol className="frisson-list">
-          {activeTracks.map(track => (
-            <FrissonRow key={`${track.rank}-${track.artist}-${track.track}`} maxListens={maxListens} track={track} />
-          ))}
-        </ol>
+        {activeTracks.length ? (
+          <ol className="frisson-list">
+            {activeTracks.map(track => (
+              <FrissonRow key={`${track.rank}-${track.artist}-${track.track}`} maxListens={maxListens} track={track} />
+            ))}
+          </ol>
+        ) : (
+          <StatusPanel
+            detail="Frisson rankings need repeated-track patterns from the local listening archive."
+            title={overview.isFetching ? 'measuring song attachment' : 'no frisson signals yet'}
+            variant={overview.isFetching ? 'loading' : 'empty'}
+          />
+        )}
       </article>
     </section>
   );

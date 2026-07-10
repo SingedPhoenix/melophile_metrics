@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
 import { openSpotifySearch, SpotifyEntityType } from '../../shared/spotifyLinks';
+import StatusPanel from '../../shared/StatusPanel';
 import { useListeningRollups } from '../../shared/useDesktopStatus';
 
 type GemMode = 'tracks' | 'artists' | 'albums';
@@ -96,35 +97,43 @@ function GemMinesScreen() {
           <MetricToggle label="gem mine mode" value={mode} options={gemModes} onChange={setMode} />
         </div>
 
-        <ol className="gem-list">
-          {rows.map(row => (
-            <li
-              className="spotify-open-row"
-              key={row.key}
-              role="button"
-              tabIndex={0}
-              title={`open ${row.spotifyType} in spotify`}
-              onClick={() => openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist)}
-              onKeyDown={event => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist);
-                }
-              }}
-            >
-              <span className="rank">#{row.rank}</span>
-              <span className="gem-title-block">
-                <strong>{row.title}</strong>
-                <small>{row.subtitle}</small>
-              </span>
-              <span className="gem-bar-track">
-                <span className="gem-bar-fill" style={{ width: `${Math.max(6, Math.round((row.listens / maxListens) * 100))}%` }}>
-                  <span>{row.listens.toLocaleString()}</span>
+        {rows.length ? (
+          <ol className="gem-list">
+            {rows.map(row => (
+              <li
+                className="spotify-open-row"
+                key={row.key}
+                role="button"
+                tabIndex={0}
+                title={`open ${row.spotifyType} in spotify`}
+                onClick={() => openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist);
+                  }
+                }}
+              >
+                <span className="rank">#{row.rank}</span>
+                <span className="gem-title-block">
+                  <strong>{row.title}</strong>
+                  <small>{row.subtitle}</small>
                 </span>
-              </span>
-            </li>
-          ))}
-        </ol>
+                <span className="gem-bar-track">
+                  <span className="gem-bar-fill" style={{ width: `${Math.max(6, Math.round((row.listens / maxListens) * 100))}%` }}>
+                    <span>{row.listens.toLocaleString()}</span>
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <StatusPanel
+            detail="Ranked gems appear after the local database has enough listening rollups for this mode."
+            title={rollups.isFetching ? `loading top ${mode}` : `no ${mode} rankings yet`}
+            variant={rollups.isFetching ? 'loading' : 'empty'}
+          />
+        )}
       </section>
     </section>
   );

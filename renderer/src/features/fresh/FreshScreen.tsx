@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import StatusPanel from '../../shared/StatusPanel';
 import { useFreshOverview, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
 
 function FreshScreen() {
@@ -50,15 +51,23 @@ function FreshScreen() {
               <p>top listening years</p>
             </div>
           </div>
-          <ol className="fresh-year-list">
-            {yearRows.slice(0, 6).map(row => (
-              <li className={row.year === currentYear ? 'is-current' : ''} key={row.year}>
-                <span className="rank">#{row.rank}</span>
-                <strong>{row.year}{row.year === currentYear ? ' · current year' : ''}</strong>
-                <span>{row.listens.toLocaleString()} listens</span>
-              </li>
-            ))}
-          </ol>
+          {yearRows.length ? (
+            <ol className="fresh-year-list">
+              {yearRows.slice(0, 6).map(row => (
+                <li className={row.year === currentYear ? 'is-current' : ''} key={row.year}>
+                  <span className="rank">#{row.rank}</span>
+                  <strong>{row.year}{row.year === currentYear ? ' · current year' : ''}</strong>
+                  <span>{row.listens.toLocaleString()} listens</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <StatusPanel
+              detail="Yearly listening rollups will appear after the local database has scrobble history."
+              title={yearly.isFetching ? 'loading annual rankings' : 'no annual rankings yet'}
+              variant={yearly.isFetching ? 'loading' : 'empty'}
+            />
+          )}
         </article>
       </section>
 
@@ -70,18 +79,26 @@ function FreshScreen() {
               <p>high-listen artists missing from recent rotation</p>
             </div>
           </div>
-          <ol className="fresh-signal-list">
-            {quietArtists.map(artist => (
-              <li key={artist.artist}>
-                <span className="rank">#{artist.rank}</span>
-                <span>
-                  <strong>{artist.artist}</strong>
-                  <small>{artist.daysSinceLastPlayed.toLocaleString()} days quiet</small>
-                </span>
-                <em>{artist.listens.toLocaleString()}</em>
-              </li>
-            ))}
-          </ol>
+          {quietArtists.length ? (
+            <ol className="fresh-signal-list">
+              {quietArtists.map(artist => (
+                <li key={artist.artist}>
+                  <span className="rank">#{artist.rank}</span>
+                  <span>
+                    <strong>{artist.artist}</strong>
+                    <small>{artist.daysSinceLastPlayed.toLocaleString()} days quiet</small>
+                  </span>
+                  <em>{artist.listens.toLocaleString()}</em>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <StatusPanel
+              detail="Quiet favorites appear once the database can compare lifetime listens against recent play history."
+              title={fresh.isFetching ? 'checking quiet favorites' : 'no quiet favorites yet'}
+              variant={fresh.isFetching ? 'loading' : 'empty'}
+            />
+          )}
         </article>
 
         <article className="stats-panel">
@@ -91,18 +108,26 @@ function FreshScreen() {
               <p>first appeared in the last 18 months</p>
             </div>
           </div>
-          <ol className="fresh-signal-list">
-            {recentArtists.map(artist => (
-              <li key={artist.artist}>
-                <span className="rank">#{artist.rank}</span>
-                <span>
-                  <strong>{artist.artist}</strong>
-                  <small>first logged {formatDate(artist.firstPlayedUts)}</small>
-                </span>
-                <em>{artist.listens.toLocaleString()}</em>
-              </li>
-            ))}
-          </ol>
+          {recentArtists.length ? (
+            <ol className="fresh-signal-list">
+              {recentArtists.map(artist => (
+                <li key={artist.artist}>
+                  <span className="rank">#{artist.rank}</span>
+                  <span>
+                    <strong>{artist.artist}</strong>
+                    <small>first logged {formatDate(artist.firstPlayedUts)}</small>
+                  </span>
+                  <em>{artist.listens.toLocaleString()}</em>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <StatusPanel
+              detail="Recent discoveries need first-play dates from the local listening archive."
+              title={fresh.isFetching ? 'checking recent discoveries' : 'no recent discoveries yet'}
+              variant={fresh.isFetching ? 'loading' : 'empty'}
+            />
+          )}
         </article>
       </section>
 
@@ -113,16 +138,24 @@ function FreshScreen() {
             <p>top albums from local scrobble history</p>
           </div>
         </div>
-        <div className="fresh-album-orbit">
-          {topAlbums.map(album => (
-            <section className="fresh-album-tile" key={`${album.artist}-${album.album}`}>
-              <div className="fresh-album-art" aria-hidden="true">#{album.rank}</div>
-              <strong>{album.album}</strong>
-              <small>{album.artist}</small>
-              <span>{album.listens.toLocaleString()} plays</span>
-            </section>
-          ))}
-        </div>
+        {topAlbums.length ? (
+          <div className="fresh-album-orbit">
+            {topAlbums.map(album => (
+              <section className="fresh-album-tile" key={`${album.artist}-${album.album}`}>
+                <div className="fresh-album-art" aria-hidden="true">#{album.rank}</div>
+                <strong>{album.album}</strong>
+                <small>{album.artist}</small>
+                <span>{album.listens.toLocaleString()} plays</span>
+              </section>
+            ))}
+          </div>
+        ) : (
+          <StatusPanel
+            detail="Album rankings appear after album names are present in local scrobble history."
+            title={fresh.isFetching ? 'loading album orbit' : 'no album rankings yet'}
+            variant={fresh.isFetching ? 'loading' : 'empty'}
+          />
+        )}
       </article>
     </section>
   );

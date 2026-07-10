@@ -336,6 +336,75 @@ h1 {
   padding: 20px;
 }
 
+.status-panel {
+  display: grid;
+  place-items: center;
+  min-height: 150px;
+  padding: 22px;
+  border: 1px dashed rgba(204, 204, 204, 0.13);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.12);
+  text-align: center;
+}
+
+.status-panel-kicker,
+.status-panel p {
+  color: rgba(204, 204, 204, 0.46);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.status-panel-kicker {
+  text-transform: lowercase;
+}
+
+.status-panel strong {
+  display: block;
+  margin-top: 10px;
+  color: rgba(238, 238, 238, 0.82);
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+.status-panel p {
+  max-width: 520px;
+  margin: 10px auto 0;
+  line-height: 1.5;
+}
+
+.status-panel button {
+  min-height: 34px;
+  margin-top: 16px;
+  padding: 0 13px;
+  border: 1px solid rgba(205, 164, 198, 0.28);
+  border-radius: 999px;
+  background: rgba(205, 164, 198, 0.09);
+  color: rgba(238, 238, 238, 0.82);
+  cursor: pointer;
+}
+
+.status-panel.loading {
+  border-style: solid;
+  background:
+    linear-gradient(90deg, rgba(204, 204, 204, 0.02), rgba(204, 204, 204, 0.06), rgba(204, 204, 204, 0.02)),
+    rgba(0, 0, 0, 0.12);
+  background-size: 220% 100%;
+  animation: status-panel-pulse 1.8s ease-in-out infinite;
+}
+
+.status-panel.error {
+  border-color: rgba(205, 164, 198, 0.28);
+}
+
+@keyframes status-panel-pulse {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 .settings-tab-row {
   display: flex;
   justify-content: center;

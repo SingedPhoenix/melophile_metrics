@@ -498,6 +498,34 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByText('endless summer')).toBeVisible();
 });
 
+test('react renderer shows shared empty states for missing rollups', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => null,
+      databaseStatus: async () => ({ scrobbles: 0, revisions: 0, schemaVersion: 1 }),
+      importLastfmScrobbles: async () => ({}),
+      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      yearlyListeningRollups: async () => ({ years: [], topYears: [] }),
+      listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
+      recentListening: async () => ({ scrobbles: [] }),
+      ghostedTracks: async () => ({ minListens: 5, tracks: [] }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] }),
+      frissonOverview: async () => ({ repeatedTracks: [], enduringTracks: [], recentAnchors: [] })
+    };
+  });
+  await page.goto('/dist/renderer/index.html#/fresh');
+
+  await expect(page.getByRole('heading', { name: 'fresh' })).toBeVisible();
+  await expect(page.getByText('no annual rankings yet')).toBeVisible();
+  await expect(page.getByText('no quiet favorites yet')).toBeVisible();
+  await expect(page.getByText('no album rankings yet')).toBeVisible();
+
+  await page.getByRole('button', { name: 'gem mines' }).click();
+  await expect(page.getByText('no tracks rankings yet')).toBeVisible();
+});
+
 test('react renderer opens migrated Frisson slice', async ({ page }) => {
   await page.addInitScript(() => {
     window.melophileDesktop = {

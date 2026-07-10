@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { openSpotifySearch } from '../../shared/spotifyLinks';
+import StatusPanel from '../../shared/StatusPanel';
 import { useGhostedTracks } from '../../shared/useDesktopStatus';
 
 const thresholds = [3, 5, 10, 25];
@@ -68,39 +69,47 @@ function GhostedScreen() {
             <p>oldest last-played tracks first</p>
           </div>
         </div>
-        <ol className="ghosted-list">
-          {visibleTracks.map(track => {
-            const width = Math.max(8, Math.round((track.daysSinceLastPlayed / maxDays) * 100));
-            return (
-              <li
-                className="spotify-open-row"
-                key={`${track.rank}-${track.artist}-${track.track}`}
-                role="button"
-                tabIndex={0}
-                title="open track in spotify"
-                onClick={() => openSpotifySearch('track', track.track, track.artist)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openSpotifySearch('track', track.track, track.artist);
-                  }
-                }}
-              >
-                <span className="rank">#{track.rank}</span>
-                <span className="ghosted-title-block">
-                  <strong>{track.track}</strong>
-                  <small>{track.artist}{track.album ? ` · ${track.album}` : ''}</small>
-                </span>
-                <span className="ghosted-listens">{track.listens.toLocaleString()} listens</span>
-                <span className="ghosted-silence-track">
-                  <span className="ghosted-silence-fill" style={{ width: `${width}%` }}>
-                    <span>{track.daysSinceLastPlayed.toLocaleString()} days</span>
+        {visibleTracks.length ? (
+          <ol className="ghosted-list">
+            {visibleTracks.map(track => {
+              const width = Math.max(8, Math.round((track.daysSinceLastPlayed / maxDays) * 100));
+              return (
+                <li
+                  className="spotify-open-row"
+                  key={`${track.rank}-${track.artist}-${track.track}`}
+                  role="button"
+                  tabIndex={0}
+                  title="open track in spotify"
+                  onClick={() => openSpotifySearch('track', track.track, track.artist)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openSpotifySearch('track', track.track, track.artist);
+                    }
+                  }}
+                >
+                  <span className="rank">#{track.rank}</span>
+                  <span className="ghosted-title-block">
+                    <strong>{track.track}</strong>
+                    <small>{track.artist}{track.album ? ` · ${track.album}` : ''}</small>
                   </span>
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+                  <span className="ghosted-listens">{track.listens.toLocaleString()} listens</span>
+                  <span className="ghosted-silence-track">
+                    <span className="ghosted-silence-fill" style={{ width: `${width}%` }}>
+                      <span>{track.daysSinceLastPlayed.toLocaleString()} days</span>
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
+          <StatusPanel
+            detail={`Try a lower listen threshold, or import more scrobble history so quiet favorites can be detected.`}
+            title={ghosted.isFetching ? 'building rediscovery queue' : 'no quiet favorites found'}
+            variant={ghosted.isFetching ? 'loading' : 'empty'}
+          />
+        )}
       </article>
     </section>
   );
