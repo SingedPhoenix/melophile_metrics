@@ -13,6 +13,7 @@
     "build:mac": "scripts/build-macos-app.sh",
     "start:mac": "scripts/build-macos-app.sh && open \"dist/melophile metrics.app\"",
     "start:web": "python3 -m http.server 8767",
+    "test:smoke": "npm run build:renderer && playwright test",
     "check:js": "node --check electron/main.js && node --check electron/preload.js && node --check electron/database.js",
     "check": "npm run check:js && npm run check:renderer"
   },
@@ -24,6 +25,7 @@
     }
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",

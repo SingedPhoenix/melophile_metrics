@@ -16,5 +16,7 @@ __pycache__/
 dist/
 build/
 coverage/
+playwright-report/
+test-results/
 tmp/
 temp/
