@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
+import RankedBarList from '../../shared/RankedBarList';
 import { openSpotifySearch, SpotifyEntityType } from '../../shared/spotifyLinks';
 import StatusPanel from '../../shared/StatusPanel';
 import { useListeningRollups } from '../../shared/useDesktopStatus';
@@ -98,35 +99,19 @@ function GemMinesScreen() {
         </div>
 
         {rows.length ? (
-          <ol className="gem-list">
-            {rows.map(row => (
-              <li
-                className="spotify-open-row"
-                key={row.key}
-                role="button"
-                tabIndex={0}
-                title={`open ${row.spotifyType} in spotify`}
-                onClick={() => openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist)}
-                onKeyDown={event => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist);
-                  }
-                }}
-              >
-                <span className="rank">#{row.rank}</span>
-                <span className="gem-title-block">
-                  <strong>{row.title}</strong>
-                  <small>{row.subtitle}</small>
-                </span>
-                <span className="gem-bar-track">
-                  <span className="gem-bar-fill" style={{ width: `${Math.max(6, Math.round((row.listens / maxListens) * 100))}%` }}>
-                    <span>{row.listens.toLocaleString()}</span>
-                  </span>
-                </span>
-              </li>
-            ))}
-          </ol>
+          <RankedBarList
+            ariaLabel={`Top ${mode}`}
+            maxValue={maxListens}
+            rows={rows.map(row => ({
+              barLabel: row.listens.toLocaleString(),
+              key: row.key,
+              onOpen: () => openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist),
+              rank: row.rank,
+              subtitle: row.subtitle,
+              title: row.title,
+              value: row.listens
+            }))}
+          />
         ) : (
           <StatusPanel
             detail="Ranked gems appear after the local database has enough listening rollups for this mode."
