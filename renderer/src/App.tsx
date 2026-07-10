@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import DashboardScreen from './features/dashboard/DashboardScreen';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
 import PulseScreen from './features/pulse/PulseScreen';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
@@ -47,7 +48,9 @@ function App() {
         </button>
       )}
 
-      {activeSection === 'pulse' ? (
+      {activeSection === 'dashboard' ? (
+        <DashboardScreen />
+      ) : activeSection === 'pulse' ? (
         <PulseScreen />
       ) : activeSection === 'past-tense' ? (
         <PastTenseScreen />
@@ -90,7 +93,7 @@ function App() {
               <button className="section-card" key={section.name} type="button" onClick={() => setActiveSection(section.key)}>
                 <h2>{section.name}</h2>
                 <p>{section.description}</p>
-                <span>{section.key === 'past-tense' || section.key === 'pulse' ? 'open migrated slice' : 'queued for migration'}</span>
+                <span>{isMigratedSection(section.key) ? 'open migrated slice' : 'queued for migration'}</span>
               </button>
             ))}
           </section>
@@ -98,6 +101,10 @@ function App() {
       )}
     </main>
   );
+}
+
+function isMigratedSection(section: SectionKey) {
+  return section === 'dashboard' || section === 'past-tense' || section === 'pulse';
 }
 
 export default App;

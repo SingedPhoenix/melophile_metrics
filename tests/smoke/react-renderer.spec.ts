@@ -166,3 +166,64 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
   await expect(page.locator('.pulse-recent-panel').getByText('health · rat wars')).toBeVisible();
   await expect(page.getByText('the midnight')).toBeVisible();
 });
+
+test('react renderer opens migrated Dashboard slice', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => null,
+      databaseStatus: async () => ({
+        scrobbles: 173971,
+        revisions: 16619,
+        schemaVersion: 1,
+        lastSync: {
+          source: 'lastfm',
+          mode: 'lastfm-cache',
+          finished_at: '2026-07-09T22:00:00.000Z',
+          rows_seen: 173971,
+          rows_inserted: 0,
+          rows_updated: 12,
+          rows_unchanged: 173959,
+          status: 'complete',
+          message: 'last.fm scrobbles imported'
+        }
+      }),
+      importLastfmScrobbles: async () => ({}),
+      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      yearlyListeningRollups: async () => ({
+        years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
+        topYears: [{ year: 2020, listens: 25468, rank: 1 }]
+      }),
+      listeningRollups: async () => ({
+        topArtists: [{ rank: 1, artist: 'the midnight', listens: 2048 }],
+        topTracks: [{ rank: 1, artist: 'health', track: 'you died', listens: 512 }],
+        topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024 }],
+        months: [
+          { month: '2026-01', listens: 900 },
+          { month: '2026-02', listens: 1200 }
+        ]
+      }),
+      recentListening: async () => ({
+        scrobbles: [{
+          playedAtUts: 1783468800,
+          playedAtIso: '2026-07-07T00:00:00.000Z',
+          artist: 'health',
+          track: 'you died',
+          album: 'rat wars'
+        }]
+      })
+    };
+  });
+  await page.goto('/dist/renderer/index.html');
+
+  await page.getByRole('button', { name: /dashboard/i }).click();
+
+  await expect(page.getByRole('heading', { name: 'dashboard' })).toBeVisible();
+  await expect(page.getByText('stored scrobbles')).toBeVisible();
+  await expect(page.locator('.dashboard-metrics').getByText('173,971')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'listening leaders' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'last database sync' })).toBeVisible();
+  await expect(page.getByText('monthly listening contour')).toBeVisible();
+  await expect(page.getByText('endless summer')).toBeVisible();
+});
