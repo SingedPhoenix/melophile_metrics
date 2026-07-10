@@ -1,8 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import StatusPanel from '../../shared/StatusPanel';
 import { useFreshOverview, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
 
+type FreshPath = 'hub' | 'seed' | 'harvest';
+
 function FreshScreen() {
+  const [activePath, setActivePath] = useState<FreshPath>('hub');
   const fresh = useFreshOverview(16, 12);
   const yearly = useYearlyListeningRollups();
   const overview = fresh.data;
@@ -29,6 +32,38 @@ function FreshScreen() {
           {fresh.isFetching || yearly.isFetching ? 'refreshing local discovery signals' : 'sqlite-backed listening orbit'}
         </p>
       </div>
+
+      <section className="fresh-gate-grid" aria-label="fresh section paths">
+        <button
+          className={`fresh-gate-card ${activePath === 'seed' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setActivePath('seed')}
+        >
+          <img className="fresh-gate-icon" src="/assets/icons/seed.svg" alt="" aria-hidden="true" />
+          <span>seed</span>
+          <small>new releases and first-growth discoveries</small>
+        </button>
+        <button
+          className={`fresh-gate-card ${activePath === 'harvest' ? 'active' : ''}`}
+          type="button"
+          onClick={() => setActivePath('harvest')}
+        >
+          <img className="fresh-gate-icon" src="/assets/icons/harvest.svg" alt="" aria-hidden="true" />
+          <span>harvest</span>
+          <small>survivors from discovery into rotation</small>
+        </button>
+      </section>
+
+      {activePath !== 'hub' && (
+        <FreshPathPanel
+          activePath={activePath}
+          freshIsFetching={fresh.isFetching}
+          quietArtists={quietArtists}
+          recentArtists={recentArtists}
+          topAlbums={topAlbums}
+          onBack={() => setActivePath('hub')}
+        />
+      )}
 
       <section className="fresh-summary-grid">
         <article className="stats-panel fresh-year-card">
@@ -157,6 +192,110 @@ function FreshScreen() {
           />
         )}
       </article>
+    </section>
+  );
+}
+
+function FreshPathPanel({
+  activePath,
+  freshIsFetching,
+  quietArtists,
+  recentArtists,
+  topAlbums,
+  onBack
+}: {
+  activePath: Exclude<FreshPath, 'hub'>;
+  freshIsFetching: boolean;
+  quietArtists: { rank: number; artist: string; listens: number; daysSinceLastPlayed: number }[];
+  recentArtists: { rank: number; artist: string; listens: number; firstPlayedUts: number }[];
+  topAlbums: { rank: number; artist: string; album: string; listens: number }[];
+  onBack: () => void;
+}) {
+  const isSeed = activePath === 'seed';
+  const pathItems = isSeed
+    ? recentArtists.slice(0, 8).map(artist => ({
+        key: artist.artist,
+        rank: artist.rank,
+        title: artist.artist,
+        meta: `first logged ${formatDate(artist.firstPlayedUts)}`,
+        value: artist.listens
+      }))
+    : quietArtists.slice(0, 8).map(artist => ({
+        key: artist.artist,
+        rank: artist.rank,
+        title: artist.artist,
+        meta: `${artist.daysSinceLastPlayed.toLocaleString()} days quiet`,
+        value: artist.listens
+      }));
+
+  return (
+    <section className="fresh-path-panel">
+      <div className="panel-head">
+        <div>
+          <h2>{isSeed ? 'seed playlists' : 'harvest playlists'}</h2>
+          <p>{isSeed ? 'new-to-you discovery candidates' : 'longer-tail return candidates'}</p>
+        </div>
+        <button className="status-chip is-button" type="button" onClick={onBack}>fresh home</button>
+      </div>
+      <div className="fresh-path-grid">
+        <article className="stats-panel fresh-path-list-panel">
+          <div className="panel-head">
+            <div>
+              <h3>{isSeed ? 'recent discovery queue' : 'expansion watchlist'}</h3>
+              <p>{isSeed ? 'artists first found inside the recent window' : 'favorite artists outside recent rotation'}</p>
+            </div>
+          </div>
+          {pathItems.length ? (
+            <ol className="fresh-signal-list">
+              {pathItems.map(item => (
+                <li key={item.key}>
+                  <span className="rank">#{item.rank}</span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{item.meta}</small>
+                  </span>
+                  <em>{item.value.toLocaleString()}</em>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <StatusPanel
+              detail={isSeed ? 'Recent discovery signals need first-play dates from the local archive.' : 'Quiet favorites appear when lifetime listens can be compared with recent plays.'}
+              title={freshIsFetching ? 'loading fresh path' : isSeed ? 'no seed queue yet' : 'no harvest queue yet'}
+              variant={freshIsFetching ? 'loading' : 'empty'}
+            />
+          )}
+        </article>
+
+        <article className="stats-panel fresh-path-list-panel">
+          <div className="panel-head">
+            <div>
+              <h3>{isSeed ? 'album starts' : 'album returns'}</h3>
+              <p>{isSeed ? 'albums with enough signal to inspect next' : 'albums with durable listen weight'}</p>
+            </div>
+          </div>
+          {topAlbums.length ? (
+            <ol className="fresh-signal-list">
+              {topAlbums.slice(0, 8).map(album => (
+                <li key={`${album.artist}-${album.album}`}>
+                  <span className="rank">#{album.rank}</span>
+                  <span>
+                    <strong>{album.album}</strong>
+                    <small>{album.artist}</small>
+                  </span>
+                  <em>{album.listens.toLocaleString()}</em>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <StatusPanel
+              detail="Album path signals appear after album names are available in local scrobble history."
+              title={freshIsFetching ? 'loading album signals' : 'no album path yet'}
+              variant={freshIsFetching ? 'loading' : 'empty'}
+            />
+          )}
+        </article>
+      </div>
     </section>
   );
 }

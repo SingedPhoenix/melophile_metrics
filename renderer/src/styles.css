@@ -510,6 +510,90 @@ h1 {
   margin-bottom: 16px;
 }
 
+.fresh-gate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fresh-gate-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  min-height: 140px;
+  padding: 18px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 14% 18%, rgba(238, 238, 238, 0.12), transparent 34%),
+    linear-gradient(145deg, rgba(151, 164, 137, 0.14), rgba(205, 164, 198, 0.08)),
+    rgba(0, 0, 0, 0.12);
+  color: inherit;
+  text-align: left;
+}
+
+.fresh-gate-card:hover,
+.fresh-gate-card.active {
+  border-color: rgba(238, 238, 238, 0.18);
+  background:
+    radial-gradient(circle at 14% 18%, rgba(238, 238, 238, 0.18), transparent 34%),
+    linear-gradient(145deg, rgba(151, 164, 137, 0.22), rgba(205, 164, 198, 0.14)),
+    rgba(0, 0, 0, 0.14);
+}
+
+.fresh-gate-card span,
+.fresh-gate-card small {
+  display: block;
+  min-width: 0;
+}
+
+.fresh-gate-card span {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.fresh-gate-card small {
+  margin-top: 7px;
+  color: rgba(204, 204, 204, 0.48);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fresh-gate-icon {
+  width: 72px;
+  height: 72px;
+  padding: 14px;
+  border: 1px solid rgba(238, 238, 238, 0.12);
+  border-radius: 18px;
+  background: rgba(238, 238, 238, 0.08);
+  object-fit: contain;
+}
+
+.fresh-path-panel {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 18px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 18px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.fresh-path-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.fresh-path-list-panel h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
 .fresh-summary-grid {
   grid-template-columns: minmax(280px, 0.42fr) minmax(0, 1fr);
 }
@@ -1989,7 +2073,9 @@ img.playlist-cover {
   .dashboard-grid,
   .dashboard-metrics,
   .fresh-album-orbit,
+  .fresh-gate-grid,
   .fresh-panel-grid,
+  .fresh-path-grid,
   .fresh-summary-grid,
   .frisson-summary,
   .ghosted-summary,

@@ -55,7 +55,7 @@ Recommended migration order:
 
 ## Broader Legacy Areas To Inventory Next
 
-- Fresh: release discovery shelves, seed/harvest playlist families, pruning/decision workflow, scheduled scanning.
+- Fresh: seed/harvest gateway restored in React with SQLite-backed path panels. Still recover Spotify playlist family loading, release discovery shelves, pruning/decision workflow, harvest rankings, and scheduled scanning.
 - Pulse: current-year, last-period, momentous, and recent-listening ranking modes.
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: not-heard queues, thresholds, skip controls, Spotify playback.
