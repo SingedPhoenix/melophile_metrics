@@ -33,21 +33,24 @@ export function usePastTenseData() {
   }, [queryClient]);
 
   const snapshot = snapshotQuery.data;
+  const trackRefs = useMemo(
+    () => readPastTenseTrackRefs(),
+    [snapshot.stats.cachedTracks, snapshot.stats.updatedAtMs]
+  );
   const trackCountQuery = useQuery({
     queryKey: pastTenseTrackCountsQueryKey(snapshot.stats.cachedTracks, snapshot.stats.updatedAtMs),
     enabled: Boolean(window.melophileDesktop?.trackPlayCounts && snapshot.stats.cachedTracks),
     queryFn: async (): Promise<TrackPlayCountResult | null> => {
       const bridge = window.melophileDesktop;
       if (!bridge?.trackPlayCounts) return null;
-      const trackRefs = readPastTenseTrackRefs();
       if (!trackRefs.length) return null;
       return bridge.trackPlayCounts(trackRefs);
     }
   });
 
   const playlists = useMemo(
-    () => applyTrackPlayCounts(snapshot.playlists, trackCountQuery.data),
-    [snapshot.playlists, trackCountQuery.data]
+    () => applyTrackPlayCounts(snapshot.playlists, trackCountQuery.data, trackRefs),
+    [snapshot.playlists, trackCountQuery.data, trackRefs]
   );
   const matchStats = useMemo(
     () => summarizeTrackMatches(snapshot, trackCountQuery.data),

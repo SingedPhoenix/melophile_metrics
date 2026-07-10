@@ -12,6 +12,7 @@ export type PastTensePlaylist = {
   songCountSource: 'cached-tracks' | 'spotify-playlist' | 'fallback';
   sqliteMatchedTracks?: number;
   sqliteMatchTrackTotal?: number;
+  sqliteUnmatchedSamples?: string[];
 };
 
 export type PastTenseCacheStats = {
@@ -237,16 +238,22 @@ export function readPastTenseTrackRefs(): PastTenseTrackRef[] {
   );
 }
 
-export function applyTrackPlayCounts(playlists: PastTensePlaylist[], result: TrackPlayCountResult | null | undefined) {
+export function applyTrackPlayCounts(
+  playlists: PastTensePlaylist[],
+  result: TrackPlayCountResult | null | undefined,
+  trackRefs: PastTenseTrackRef[] = []
+) {
   const playlistCounts = result?.playlistCounts || {};
   const matchCounts = playlistTrackMatchCounts(result?.trackCounts || {});
+  const unmatchedSamples = playlistUnmatchedSamples(result?.trackCounts || {}, trackRefs);
   return playlists.map(playlist => {
     const count = Number(playlistCounts[playlist.id]);
     const matchCount = matchCounts[playlist.id];
     const matchFields = matchCount
       ? {
           sqliteMatchedTracks: matchCount.matched,
-          sqliteMatchTrackTotal: matchCount.total
+          sqliteMatchTrackTotal: matchCount.total,
+          sqliteUnmatchedSamples: unmatchedSamples[playlist.id] || []
         }
       : {};
     if (!Number.isFinite(count) || count <= 0) return { ...playlist, ...matchFields };
@@ -279,6 +286,17 @@ function playlistTrackMatchCounts(trackCounts: Record<string, number>) {
     if (Number(value) > 0) current.matched += 1;
     counts[playlistId] = current;
     return counts;
+  }, {});
+}
+
+function playlistUnmatchedSamples(trackCounts: Record<string, number>, trackRefs: PastTenseTrackRef[]) {
+  return trackRefs.reduce<Record<string, string[]>>((samples, ref) => {
+    if (Number(trackCounts[ref.key]) > 0) return samples;
+    const current = samples[ref.playlistId] || [];
+    if (current.length >= 3) return samples;
+    current.push(`${ref.trackName} · ${ref.artists.join(', ')}`);
+    samples[ref.playlistId] = current;
+    return samples;
   }, {});
 }
 

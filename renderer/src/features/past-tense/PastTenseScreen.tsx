@@ -168,6 +168,11 @@ function MatchWatchlistPanel({ playlists }: { playlists: PastTensePlaylist[] }) 
                 <span style={{ width: `${Math.max(4, percent)}%` }} />
               </span>
               <span className="metric-value">{matched}/{total} · {percent}%</span>
+              {Boolean(playlist.sqliteUnmatchedSamples?.length) && (
+                <span className="match-samples">
+                  {playlist.sqliteUnmatchedSamples?.join(' / ')}
+                </span>
+              )}
             </li>
           );
         })}

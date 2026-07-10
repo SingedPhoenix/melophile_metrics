@@ -949,6 +949,17 @@ h1 {
   background: linear-gradient(90deg, rgba(151, 164, 137, 0.74), rgba(205, 164, 198, 0.9));
 }
 
+.match-samples {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: rgba(204, 204, 204, 0.4);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .playlist-family {
   padding: 18px;
 }
