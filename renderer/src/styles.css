@@ -1829,6 +1829,7 @@ img.playlist-cover {
   }
 
   .gem-hero,
+  .ranked-bar-row,
   .gem-list li {
     grid-template-columns: 1fr;
   }
@@ -1852,6 +1853,10 @@ img.playlist-cover {
   }
 
   .ghosted-listens {
+    justify-self: start;
+  }
+
+  .ranked-row-meta {
     justify-self: start;
   }
 }
