@@ -4148,6 +4148,39 @@
     color: rgba(204,204,204,0.34);
   }
 
+  body.display-horizontal .past-tense-family {
+    max-width: min(1760px, calc(100vw - 96px));
+  }
+
+  body.display-horizontal .past-tense-grid {
+    grid-template-columns: repeat(10, minmax(118px, 1fr));
+    gap: 10px;
+    padding: 18px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  body.display-horizontal .past-tense-card {
+    border-radius: 12px;
+    padding: 9px;
+  }
+
+  body.display-horizontal .past-tense-cover {
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 18px;
+  }
+
+  body.display-horizontal .past-tense-name {
+    font-size: 15px;
+  }
+
+  body.display-horizontal .past-tense-meta {
+    margin-top: 4px;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
   .past-tense-detail-wrap {
     width: 100%;
     max-width: 1180px;
