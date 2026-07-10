@@ -417,13 +417,21 @@ h1 {
 }
 
 .status-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
   padding: 8px 12px;
   border: 1px solid rgba(204, 204, 204, 0.12);
   border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
   color: rgba(204, 204, 204, 0.48);
   font-family: "SF Mono", ui-monospace, monospace;
   font-size: 12px;
   white-space: nowrap;
+}
+
+.status-chip.is-button {
+  cursor: pointer;
 }
 
 .playlist-grid {
@@ -444,6 +452,7 @@ h1 {
 .playlist-cover {
   display: grid;
   place-items: center;
+  width: 100%;
   aspect-ratio: 1;
   margin-bottom: 9px;
   border-radius: 10px;
@@ -453,6 +462,12 @@ h1 {
   font-weight: 800;
   line-height: 1;
   text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.36);
+}
+
+img.playlist-cover {
+  display: block;
+  object-fit: cover;
+  text-shadow: none;
 }
 
 .playlist-cover.decade-7 { background: #a95f18; }

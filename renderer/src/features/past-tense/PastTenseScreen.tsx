@@ -1,6 +1,13 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
-import { labelForMetric, pastTensePlaylists, PastTenseMetric, PastTensePlaylist, valueForMetric } from './pastTenseData';
+import {
+  labelForMetric,
+  PastTenseCacheStats,
+  PastTenseMetric,
+  PastTensePlaylist,
+  readPastTenseLiveSnapshot,
+  valueForMetric
+} from './pastTenseData';
 
 const currentYear = new Date().getFullYear();
 const metricOptions = [
@@ -10,11 +17,19 @@ const metricOptions = [
 
 function PastTenseScreen() {
   const [metric, setMetric] = useState<PastTenseMetric>('songs');
+  const [snapshot, setSnapshot] = useState(() => readPastTenseLiveSnapshot());
+  const playlists = snapshot.playlists;
   const label = labelForMetric(metric);
   const ranked = useMemo(
-    () => [...pastTensePlaylists].sort((a, b) => valueForMetric(b, metric) - valueForMetric(a, metric)).slice(0, 10),
-    [metric]
+    () => [...playlists].sort((a, b) => valueForMetric(b, metric) - valueForMetric(a, metric)).slice(0, 10),
+    [metric, playlists]
   );
+
+  useEffect(() => {
+    const refreshSnapshot = () => setSnapshot(readPastTenseLiveSnapshot());
+    window.addEventListener('storage', refreshSnapshot);
+    return () => window.removeEventListener('storage', refreshSnapshot);
+  }, []);
 
   return (
     <section className="past-tense-screen" aria-labelledby="past-tense-title">
@@ -25,19 +40,19 @@ function PastTenseScreen() {
 
       <div className="past-tense-stats">
         <TopYearsPanel label={label} metric={metric} playlists={ranked} />
-        <TrendPanel label={label} metric={metric} onMetricChange={setMetric} />
+        <TrendPanel label={label} metric={metric} playlists={playlists} onMetricChange={setMetric} />
       </div>
 
       <section className="playlist-family" aria-labelledby="release-year-volumes">
         <div className="section-heading">
           <div>
             <h2 id="release-year-volumes">release-year volumes</h2>
-            <p>{pastTensePlaylists.length} release-year playlists mapped for migration</p>
+            <p>{playlists.length} release-year playlists mapped for migration</p>
           </div>
-          <span className="status-chip">10-per-row grid target</span>
+          <CacheStatus stats={snapshot.stats} onRefresh={() => setSnapshot(readPastTenseLiveSnapshot())} />
         </div>
         <div className="playlist-grid">
-          {pastTensePlaylists.map(playlist => (
+          {playlists.map(playlist => (
             <PlaylistCard key={playlist.year} playlist={playlist} />
           ))}
         </div>
@@ -50,6 +65,18 @@ type MetricPanelProps = {
   label: string;
   metric: PastTenseMetric;
 };
+
+function CacheStatus({ stats, onRefresh }: { stats: PastTenseCacheStats; onRefresh: () => void }) {
+  const cacheLabel = stats.cachedPlaylists
+    ? `${stats.cachedPlaylists} playlists · ${stats.cachedTracks.toLocaleString()} cached tracks`
+    : `${stats.playlistDetails} playlist records · cache pending`;
+
+  return (
+    <button className="status-chip is-button" type="button" onClick={onRefresh}>
+      {cacheLabel}
+    </button>
+  );
+}
 
 function TopYearsPanel({ label, metric, playlists }: MetricPanelProps & { playlists: PastTensePlaylist[] }) {
   return (
@@ -76,9 +103,14 @@ function TopYearsPanel({ label, metric, playlists }: MetricPanelProps & { playli
   );
 }
 
-function TrendPanel({ label, metric, onMetricChange }: MetricPanelProps & { onMetricChange: (metric: PastTenseMetric) => void }) {
-  const max = Math.max(...pastTensePlaylists.map(playlist => valueForMetric(playlist, metric)));
-  const visibleTicks = pastTensePlaylists.filter(playlist => playlist.year % 5 === 0 || playlist.year === currentYear);
+function TrendPanel({
+  label,
+  metric,
+  playlists,
+  onMetricChange
+}: MetricPanelProps & { playlists: PastTensePlaylist[]; onMetricChange: (metric: PastTenseMetric) => void }) {
+  const max = Math.max(...playlists.map(playlist => valueForMetric(playlist, metric)));
+  const visibleTicks = playlists.filter(playlist => playlist.year % 5 === 0 || playlist.year === currentYear);
 
   return (
     <article className="stats-panel trend-panel">
@@ -90,7 +122,7 @@ function TrendPanel({ label, metric, onMetricChange }: MetricPanelProps & { onMe
         <MetricToggle label="past tense metric" value={metric} options={metricOptions} onChange={onMetricChange} />
       </div>
       <div className="trend-chart" aria-label={`Past Tense ${label} trend`}>
-        {pastTensePlaylists.map(playlist => {
+        {playlists.map(playlist => {
           const value = valueForMetric(playlist, metric);
           const height = Math.max(6, Math.round((value / max) * 100));
           return (
@@ -113,16 +145,23 @@ function TrendPanel({ label, metric, onMetricChange }: MetricPanelProps & { onMe
 
 function PlaylistCard({ playlist }: { playlist: PastTensePlaylist }) {
   const decadeClass = `decade-${Math.floor((playlist.year % 100) / 10)}`;
+  const cover = playlist.imageUrl
+    ? <img className="playlist-cover" src={playlist.imageUrl} alt="" />
+    : <div className={`playlist-cover ${decadeClass}`} aria-hidden="true">'{String(playlist.year).slice(2)}</div>;
 
   return (
     <a className="playlist-card" href={playlist.url} aria-label={`${playlist.name} on Spotify`}>
-      <div className={`playlist-cover ${decadeClass}`} aria-hidden="true">
-        '{String(playlist.year).slice(2)}
-      </div>
+      {cover}
       <strong>{playlist.name}</strong>
-      <span>{playlist.year} · {playlist.songCount.toLocaleString()} tracks</span>
+      <span>{playlist.year} · {playlist.songCount.toLocaleString()} tracks · {songCountSourceLabel(playlist.songCountSource)}</span>
     </a>
   );
+}
+
+function songCountSourceLabel(source: PastTensePlaylist['songCountSource']) {
+  if (source === 'cached-tracks') return 'track cache';
+  if (source === 'spotify-playlist') return 'spotify total';
+  return 'fallback';
 }
 
 export default PastTenseScreen;

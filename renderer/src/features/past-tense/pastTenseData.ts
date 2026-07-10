@@ -5,9 +5,38 @@ export type PastTensePlaylist = {
   name: string;
   id: string;
   url: string;
+  imageUrl?: string;
   songCount: number;
   scrobbleCount: number;
+  songCountSource: 'cached-tracks' | 'spotify-playlist' | 'fallback';
 };
+
+export type PastTenseCacheStats = {
+  playlistDetails: number;
+  cachedPlaylists: number;
+  cachedTracks: number;
+  updatedAtMs: number;
+};
+
+export type PastTenseLiveSnapshot = {
+  playlists: PastTensePlaylist[];
+  stats: PastTenseCacheStats;
+};
+
+type CachedSpotifyPlaylist = {
+  name?: string;
+  url?: string;
+  images?: Array<{ url?: string }>;
+  tracks?: { total?: number };
+};
+
+type CachedTrackStore = {
+  updatedAtMs?: number;
+  playlists?: Record<string, { total?: number; tracks?: unknown[]; updatedAtMs?: number }>;
+};
+
+const playlistCacheKey = 'melophile.pastTense.playlists.v2';
+const trackCacheKey = 'melophile.pastTense.tracks.v1';
 
 const playlistIds: Record<number, string> = {
   1970: '6h8yLdFD25fBxgXuiIxqzm',
@@ -108,9 +137,60 @@ export const pastTensePlaylists: PastTensePlaylist[] = Object.entries(playlistId
     name: `Vol. ${year}`,
     url: `https://open.spotify.com/playlist/${id}`,
     songCount,
-    scrobbleCount: estimatedScrobbles(year, songCount)
+    scrobbleCount: estimatedScrobbles(year, songCount),
+    songCountSource: 'fallback'
   };
 });
+
+function readJson<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    return JSON.parse(window.localStorage.getItem(key) || '') as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export function readPastTenseLiveSnapshot(): PastTenseLiveSnapshot {
+  const playlistCache = readJson<Record<string, CachedSpotifyPlaylist>>(playlistCacheKey, {});
+  const trackStore = readJson<CachedTrackStore>(trackCacheKey, { playlists: {} });
+  const cachedTracks = trackStore.playlists || {};
+
+  const playlists = pastTensePlaylists.map(playlist => {
+    const cachedPlaylist = playlistCache[playlist.id];
+    const cachedTrackEntry = cachedTracks[playlist.id];
+    const cachedTrackCount = Array.isArray(cachedTrackEntry?.tracks)
+      ? cachedTrackEntry.tracks.length
+      : Number(cachedTrackEntry?.total) || 0;
+    const spotifyPlaylistCount = Number(cachedPlaylist?.tracks?.total) || 0;
+    const songCountSource: PastTensePlaylist['songCountSource'] = cachedTrackCount
+      ? 'cached-tracks'
+      : spotifyPlaylistCount
+        ? 'spotify-playlist'
+        : 'fallback';
+
+    return {
+      ...playlist,
+      name: cachedPlaylist?.name || playlist.name,
+      url: cachedPlaylist?.url || playlist.url,
+      imageUrl: cachedPlaylist?.images?.find(image => image.url)?.url,
+      songCount: cachedTrackCount || spotifyPlaylistCount || playlist.songCount,
+      songCountSource
+    };
+  });
+
+  const cachedPlaylistIds = Object.keys(cachedTracks).filter(id => Array.isArray(cachedTracks[id]?.tracks));
+
+  return {
+    playlists,
+    stats: {
+      playlistDetails: Object.keys(playlistCache).length,
+      cachedPlaylists: cachedPlaylistIds.length,
+      cachedTracks: cachedPlaylistIds.reduce((sum, id) => sum + (cachedTracks[id]?.tracks?.length || 0), 0),
+      updatedAtMs: Number(trackStore.updatedAtMs) || 0
+    }
+  };
+}
 
 export function valueForMetric(playlist: PastTensePlaylist, metric: PastTenseMetric) {
   return metric === 'scrobbles' ? playlist.scrobbleCount : playlist.songCount;

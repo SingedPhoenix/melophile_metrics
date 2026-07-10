@@ -11,6 +11,26 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
 });
 
 test('react renderer opens migrated Past Tense slice', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('melophile.pastTense.playlists.v2', JSON.stringify({
+      '6h8yLdFD25fBxgXuiIxqzm': {
+        name: 'Vol. 1970 cached test',
+        url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm',
+        images: [],
+        tracks: { total: 77 }
+      }
+    }));
+    localStorage.setItem('melophile.pastTense.tracks.v1', JSON.stringify({
+      version: 2,
+      updatedAtMs: Date.now(),
+      playlists: {
+        '6h8yLdFD25fBxgXuiIxqzm': {
+          total: 3,
+          tracks: [{ name: 'one' }, { name: 'two' }, { name: 'three' }]
+        }
+      }
+    }));
+  });
   await page.goto('/dist/renderer/index.html');
 
   await page.getByRole('button', { name: /past tense/i }).click();
@@ -20,6 +40,9 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'annual preference trend' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'songs' })).toHaveClass(/active/);
   await expect(page.locator('.playlist-grid .playlist-card')).toHaveCount(57);
+  await expect(page.getByText('1 playlists · 3 cached tracks')).toBeVisible();
+  await expect(page.getByText('Vol. 1970 cached test')).toBeVisible();
+  await expect(page.getByText('1970 · 3 tracks · track cache')).toBeVisible();
 
   await page.getByRole('button', { name: 'scrobbles' }).click();
   await expect(page.getByRole('button', { name: 'scrobbles' })).toHaveClass(/active/);
