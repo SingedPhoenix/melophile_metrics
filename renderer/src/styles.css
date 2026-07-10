@@ -192,9 +192,20 @@ h1 {
 .pill:hover,
 .pill:focus-visible,
 .playlist-card:hover,
-.playlist-card:focus-visible {
+.playlist-card:focus-visible,
+.spotify-open-row:hover,
+.spotify-open-row:focus-visible {
   border-color: rgba(238, 238, 238, 0.22);
   background: rgba(204, 204, 204, 0.055);
+}
+
+.spotify-open-row {
+  cursor: pointer;
+}
+
+.spotify-open-row:focus-visible {
+  outline: 2px solid rgba(205, 164, 198, 0.58);
+  outline-offset: -2px;
 }
 
 .section-card:hover {

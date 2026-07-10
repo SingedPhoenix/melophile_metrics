@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { openSpotifySearch } from '../../shared/spotifyLinks';
 import { useGhostedTracks } from '../../shared/useDesktopStatus';
 
 const thresholds = [3, 5, 10, 25];
@@ -71,7 +72,20 @@ function GhostedScreen() {
           {visibleTracks.map(track => {
             const width = Math.max(8, Math.round((track.daysSinceLastPlayed / maxDays) * 100));
             return (
-              <li key={`${track.rank}-${track.artist}-${track.track}`}>
+              <li
+                className="spotify-open-row"
+                key={`${track.rank}-${track.artist}-${track.track}`}
+                role="button"
+                tabIndex={0}
+                title="open track in spotify"
+                onClick={() => openSpotifySearch('track', track.track, track.artist)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    openSpotifySearch('track', track.track, track.artist);
+                  }
+                }}
+              >
                 <span className="rank">#{track.rank}</span>
                 <span className="ghosted-title-block">
                   <strong>{track.track}</strong>

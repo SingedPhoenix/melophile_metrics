@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
+import { openSpotifySearch } from '../../shared/spotifyLinks';
 import { FrissonTrack, useFrissonOverview } from '../../shared/useDesktopStatus';
 
 type FrissonMode = 'repeats' | 'enduring' | 'recent';
@@ -80,7 +81,19 @@ function FrissonScreen() {
 function FrissonRow({ track, maxListens }: { track: FrissonTrack; maxListens: number }) {
   const width = Math.max(8, Math.round((track.listens / maxListens) * 100));
   return (
-    <li>
+    <li
+      className="spotify-open-row"
+      role="button"
+      tabIndex={0}
+      title="open track in spotify"
+      onClick={() => openSpotifySearch('track', track.track, track.artist)}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openSpotifySearch('track', track.track, track.artist);
+        }
+      }}
+    >
       <span className="rank">#{track.rank}</span>
       <span className="frisson-title-block">
         <strong>{track.track}</strong>

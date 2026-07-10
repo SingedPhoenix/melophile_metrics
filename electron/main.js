@@ -25,6 +25,7 @@ const USER_DATA_DIR_NAME = 'melophile-metrics';
 const PRELOAD = path.join(__dirname, 'preload.js');
 const LOCAL_PORT = 8767;
 const SPOTIFY_EXTERNAL_RE = /^(spotify:|https:\/\/open\.spotify\.com\/)/i;
+const SPOTIFY_URI_RE = /^spotify:(track|album|artist|playlist|search):/i;
 
 app.setName(APP_NAME);
 app.setPath('userData', path.join(app.getPath('appData'), USER_DATA_DIR_NAME));
@@ -64,7 +65,8 @@ async function createWindow() {
 
 function openExternalUrl(url) {
   if (!url) return;
-  shell.openExternal(url).catch(() => {});
+  const externalUrl = spotifyAppUrl(url) || url;
+  shell.openExternal(externalUrl).catch(() => {});
 }
 
 app.whenReady().then(() => {
@@ -132,6 +134,27 @@ function registerDesktopHandlers() {
   ipcMain.handle('melophile:fresh-overview', async (_event, payload = {}) => freshOverview(payload));
 
   ipcMain.handle('melophile:frisson-overview', async (_event, payload = {}) => frissonOverview(payload));
+
+  ipcMain.handle('melophile:open-spotify', async (_event, payload = {}) => {
+    const url = typeof payload.url === 'string' ? payload.url : '';
+    const externalUrl = spotifyAppUrl(url);
+    if (!externalUrl) return { opened: false, url: '' };
+    await shell.openExternal(externalUrl);
+    return { opened: true, url: externalUrl };
+  });
+}
+
+function spotifyAppUrl(url) {
+  const value = String(url || '').trim();
+  if (SPOTIFY_URI_RE.test(value)) return value;
+  try {
+    const parsed = new URL(value);
+    if (parsed.hostname !== 'open.spotify.com') return '';
+    const match = parsed.pathname.match(/^\/(track|album|artist|playlist)\/([A-Za-z0-9]+)/);
+    return match ? `spotify:${match[1]}:${match[2]}` : '';
+  } catch {
+    return '';
+  }
 }
 
 async function findLocalConfigPath() {

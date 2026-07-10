@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
+import { openSpotifySearch, SpotifyEntityType } from '../../shared/spotifyLinks';
 import { useListeningRollups } from '../../shared/useDesktopStatus';
 
 type GemMode = 'tracks' | 'artists' | 'albums';
@@ -16,12 +17,15 @@ type GemRow = {
   title: string;
   subtitle: string;
   listens: number;
+  spotifyType: SpotifyEntityType;
+  spotifyName: string;
+  spotifyArtist?: string;
 };
 
 function GemMinesScreen() {
   const [mode, setMode] = useState<GemMode>('tracks');
   const rollups = useListeningRollups();
-  const rows = useMemo(() => {
+  const rows = useMemo<GemRow[]>(() => {
     const data = rollups.data;
     if (!data) return [];
     if (mode === 'artists') {
@@ -30,7 +34,9 @@ function GemMinesScreen() {
         rank: artist.rank,
         title: artist.artist,
         subtitle: 'artist',
-        listens: artist.listens
+        listens: artist.listens,
+        spotifyType: 'artist',
+        spotifyName: artist.artist
       }));
     }
     if (mode === 'albums') {
@@ -39,7 +45,10 @@ function GemMinesScreen() {
         rank: album.rank,
         title: album.album,
         subtitle: album.artist,
-        listens: album.listens
+        listens: album.listens,
+        spotifyType: 'album',
+        spotifyName: album.album,
+        spotifyArtist: album.artist
       }));
     }
     return data.topTracks.slice(0, 24).map(track => ({
@@ -47,7 +56,10 @@ function GemMinesScreen() {
       rank: track.rank,
       title: track.track,
       subtitle: track.artist,
-      listens: track.listens
+      listens: track.listens,
+      spotifyType: 'track',
+      spotifyName: track.track,
+      spotifyArtist: track.artist
     }));
   }, [mode, rollups.data]);
   const maxListens = Math.max(...rows.map(row => row.listens), 1);
@@ -86,7 +98,20 @@ function GemMinesScreen() {
 
         <ol className="gem-list">
           {rows.map(row => (
-            <li key={row.key}>
+            <li
+              className="spotify-open-row"
+              key={row.key}
+              role="button"
+              tabIndex={0}
+              title={`open ${row.spotifyType} in spotify`}
+              onClick={() => openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist)}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openSpotifySearch(row.spotifyType, row.spotifyName, row.spotifyArtist);
+                }
+              }}
+            >
               <span className="rank">#{row.rank}</span>
               <span className="gem-title-block">
                 <strong>{row.title}</strong>

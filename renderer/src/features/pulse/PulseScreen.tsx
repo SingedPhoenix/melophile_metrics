@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { openSpotifySearch } from '../../shared/spotifyLinks';
 import { RecentScrobble, useListeningRollups, useRecentListening } from '../../shared/useDesktopStatus';
 
 function PulseScreen() {
@@ -48,7 +49,20 @@ function PulseScreen() {
             </div>
             <ol className="pulse-list compact">
               {topTracks.map(track => (
-                <li key={`${track.rank}-${track.artist}-${track.track}`}>
+                <li
+                  className="spotify-open-row"
+                  key={`${track.rank}-${track.artist}-${track.track}`}
+                  role="button"
+                  tabIndex={0}
+                  title="open track in spotify"
+                  onClick={() => openSpotifySearch('track', track.track, track.artist)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openSpotifySearch('track', track.track, track.artist);
+                    }
+                  }}
+                >
                   <span className="rank">#{track.rank}</span>
                   <span>
                     <strong>{track.track}</strong>
@@ -69,7 +83,20 @@ function PulseScreen() {
             </div>
             <ol className="pulse-list compact">
               {topArtists.map(artist => (
-                <li key={`${artist.rank}-${artist.artist}`}>
+                <li
+                  className="spotify-open-row"
+                  key={`${artist.rank}-${artist.artist}`}
+                  role="button"
+                  tabIndex={0}
+                  title="open artist in spotify"
+                  onClick={() => openSpotifySearch('artist', artist.artist)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openSpotifySearch('artist', artist.artist);
+                    }
+                  }}
+                >
                   <span className="rank">#{artist.rank}</span>
                   <span>
                     <strong>{artist.artist}</strong>
@@ -114,7 +141,19 @@ function RecentListenItem({ scrobble }: { scrobble: RecentScrobble }) {
     : playedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
-    <li>
+    <li
+      className="spotify-open-row"
+      role="button"
+      tabIndex={0}
+      title="open track in spotify"
+      onClick={() => openSpotifySearch('track', scrobble.track, scrobble.artist)}
+      onKeyDown={event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openSpotifySearch('track', scrobble.track, scrobble.artist);
+        }
+      }}
+    >
       <span className="rank">{dateLabel}</span>
       <span>
         <strong>{scrobble.track}</strong>

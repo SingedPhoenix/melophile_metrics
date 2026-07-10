@@ -27,6 +27,7 @@ declare global {
       ghostedTracks: (options?: { limit?: number; minListens?: number }) => Promise<GhostedTracks>;
       freshOverview: (options?: { albumLimit?: number; artistLimit?: number }) => Promise<FreshOverview>;
       frissonOverview: (options?: { limit?: number }) => Promise<FrissonOverview>;
+      openSpotify: (url: string) => Promise<{ opened: boolean; url: string }>;
     };
   }
 }

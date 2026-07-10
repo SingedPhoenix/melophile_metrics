@@ -107,7 +107,11 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
           album: 'rat wars'
         }]
       }),
-      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] }),
+      openSpotify: async url => {
+        window.__lastSpotifyUrl = url;
+        return { opened: true, url };
+      }
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -162,7 +166,11 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
           album: 'rat wars'
         }]
       }),
-      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] }),
+      openSpotify: async url => {
+        window.__lastSpotifyUrl = url;
+        return { opened: true, url };
+      }
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -224,7 +232,11 @@ test('react renderer opens migrated Dashboard slice', async ({ page }) => {
           album: 'rat wars'
         }]
       }),
-      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] }),
+      openSpotify: async url => {
+        window.__lastSpotifyUrl = url;
+        return { opened: true, url };
+      }
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -268,7 +280,11 @@ test('react renderer opens migrated Gem Mines slice', async ({ page }) => {
           album: 'rat wars'
         }]
       }),
-      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] }),
+      openSpotify: async url => {
+        window.__lastSpotifyUrl = url;
+        return { opened: true, url };
+      }
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -279,6 +295,8 @@ test('react renderer opens migrated Gem Mines slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'ranked gems' })).toBeVisible();
   await expect(page.locator('.gem-list-panel').getByText('you died')).toBeVisible();
   await expect(page.locator('.gem-list-panel').getByText('512')).toBeVisible();
+  await page.locator('.gem-list-panel .spotify-open-row').first().click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toContain('spotify:search:you%20died%20health');
 
   await page.getByRole('button', { name: 'albums' }).click();
   await expect(page.getByRole('button', { name: 'albums' })).toHaveClass(/active/);
