@@ -1943,6 +1943,16 @@
     cursor: pointer;
   }
 
+  .rankings-table tr.spotify-row-playable {
+    cursor: pointer;
+  }
+
+  .rankings-table tr.spotify-row-playable:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--silver) 44%, transparent);
+    outline-offset: -2px;
+    background: rgba(204,204,204,0.045);
+  }
+
   .rankings-table td {
     padding: 18px 4px;
     vertical-align: middle;
@@ -4957,8 +4967,8 @@
 
         <div class="spotify-panel" id="spotifyPanel">
           <div>
-            <div class="spotify-title">spotify read access</div>
-            <div class="spotify-sub">connect read-only playlist access so melophile metrics can inventory playlist families, mood shelves, and genre shelves.</div>
+            <div class="spotify-title">spotify access</div>
+            <div class="spotify-sub">connect playlist access and playback control so melophile metrics can inventory playlists and open ranked music in spotify.</div>
             <div class="spotify-status" id="spotifyStatus">not connected</div>
           </div>
           <div class="spotify-controls">
@@ -7277,14 +7287,15 @@ document.addEventListener('click', e => {
     return;
   }
 
-  const harvestSpotifyRow = e.target.closest('[data-harvest-spotify]');
-  if (harvestSpotifyRow) {
-    const entityType = harvestSpotifyRow.dataset.harvestSpotify || '';
-    const entityName = harvestSpotifyRow.dataset.name || '';
-    const entityArtist = harvestSpotifyRow.dataset.artist || '';
+  const spotifyRow = e.target.closest('[data-spotify-row]');
+  if (spotifyRow) {
+    if (e.target.closest('button, a, input, textarea, select, [role="button"]:not([data-spotify-row])')) return;
+    const entityType = spotifyRow.dataset.entityType || '';
+    const entityName = spotifyRow.dataset.name || '';
+    const entityArtist = spotifyRow.dataset.artist || '';
     if (entityType && entityName) {
-      showCopyToast('opening ' + entityType + ' in spotify');
-      openSpotifyEntity(entityType, entityName, entityArtist);
+      showCopyToast(entityType === 'artist' ? 'opening artist in spotify' : 'opening and playing in spotify');
+      openSpotifyEntity(entityType, entityName, entityArtist, { autoplay: entityType !== 'artist' });
       return;
     }
   }
@@ -7304,6 +7315,19 @@ document.addEventListener('click', e => {
   if (!name) return;
   const copyText = name.dataset.copy || name.textContent.trim();
   if (copyText) copyToClipboard(copyText);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const spotifyRow = e.target.closest('[data-spotify-row]');
+  if (!spotifyRow || e.target !== spotifyRow) return;
+  e.preventDefault();
+  const entityType = spotifyRow.dataset.entityType || '';
+  const entityName = spotifyRow.dataset.name || '';
+  const entityArtist = spotifyRow.dataset.artist || '';
+  if (!entityType || !entityName) return;
+  showCopyToast(entityType === 'artist' ? 'opening artist in spotify' : 'opening and playing in spotify');
+  openSpotifyEntity(entityType, entityName, entityArtist, { autoplay: entityType !== 'artist' });
 });
 
 function buildArtistSpotlightPrompt(artist) {
@@ -8539,7 +8563,8 @@ function renderYearReviewList(entries, color) {
     const nameCell = entry.artist
       ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
       : '<div class="r-name">' + esc(entry.name) + '</div>';
-    return '<tr>' +
+    const rowAttrs = entry.isLog ? '' : spotifyPlayableRowAttrs(yearReviewMode, entry.name, entry.artist || '');
+    return '<tr' + rowAttrs + '>' +
       '<td class="r-rank">' + (pageStart+i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td>' + renderRankDataBar(entry.isLog ? esc(entry.count) : entry.count.toLocaleString(), barW, 'background:linear-gradient(90deg,' + color + ',rgba(10,10,10,0.2));') + '</td>' +
@@ -9247,7 +9272,7 @@ function renderRankings() {
       : '<div class="r-name">' + esc(entry.name) + '</div>';
     // Gem color dot next to rank number
     const gemDot = '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;margin-right:8px;vertical-align:middle"><span style="width:10px;height:10px;border-radius:50%;background:' + color + ';display:block;opacity:0.85"></span></span>';
-    return '<tr>' +
+    return '<tr' + spotifyPlayableRowAttrs(rankType, entry.name, entry.artist || '') + '>' +
       '<td class="r-rank">' + (i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td>' + renderRankDataBar(gemDot + entry.count.toLocaleString(), barW, 'background:linear-gradient(90deg,' + color + ',rgba(10,10,10,0.2));') + '</td>' +
@@ -9473,7 +9498,7 @@ function renderLastList() {
         ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
         : '<div class="r-name">' + esc(entry.name) + '</div>';
     }
-    return '<tr>' +
+    return '<tr' + spotifyPlayableRowAttrs(lastType, entry.name, entry.artist || '') + '>' +
       '<td class="r-rank">' + (pageStart+i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW) + '</td>' +
@@ -9556,7 +9581,7 @@ function renderLastCurrentYear() {
           '</div>' +
         '</div>';
     }
-    return '<tr>' +
+    return '<tr' + spotifyPlayableRowAttrs(currentYearType, name, artist || '') + '>' +
       '<td class="r-rank">' + (pageStart + index + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td>' + renderRankDataBar(count.toLocaleString(), barW) + '</td>' +
@@ -9692,7 +9717,7 @@ function renderMomentousList() {
     const nameCell = entry.artist
       ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + '</div>'
       : '<div class="r-name">' + esc(entry.name) + '</div>';
-    return '<tr>' +
+    return '<tr' + spotifyPlayableRowAttrs(momentousType, entry.name, entry.artist || '') + '>' +
       '<td class="r-rank">' + (pageStart + i + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW) + '</td>' +
@@ -10661,6 +10686,13 @@ function spotifyEntityTypeFromListType(type) {
   return '';
 }
 
+function spotifyPlayableRowAttrs(listType, name, artist = '') {
+  const entityType = spotifyEntityTypeFromListType(listType);
+  if (!entityType || !name) return '';
+  const action = entityType === 'artist' ? 'open artist in spotify' : 'play ' + entityType + ' in spotify';
+  return ' class="spotify-row-playable" role="button" tabindex="0" data-spotify-row="true" data-entity-type="' + esc(entityType) + '" data-name="' + esc(name) + '" data-artist="' + esc(artist || '') + '" title="' + esc(action) + '"';
+}
+
 function normalizeEntityText(value) {
   return String(value || '')
     .toLowerCase()
@@ -11543,7 +11575,7 @@ async function openSpotifyReleaseCard(link, entityType, name, artist) {
   await openSpotifyEntity(entityType, name, artist || '');
 }
 
-async function openSpotifyEntity(type, name, artist) {
+async function openSpotifyEntity(type, name, artist, options = {}) {
   try {
     const link = await resolveSpotifyEntityLink(type, name, artist);
     if (!link) {
@@ -11551,6 +11583,19 @@ async function openSpotifyEntity(type, name, artist) {
       return;
     }
     openSpotifyLink(link);
+    if (options.autoplay && (type === 'track' || type === 'album')) {
+      setTimeout(async () => {
+        try {
+          await playSpotifyEntity(type, link);
+          showCopyToast('playing in spotify');
+        } catch (err) {
+          const message = err && err.message ? err.message : '';
+          if (message.includes('scope')) showCopyToast('reconnect spotify to enable autoplay');
+          else if (message.includes('device')) showCopyToast('spotify opened · press play or retry after app is active');
+          else showCopyToast('spotify opened · autoplay unavailable');
+        }
+      }, 1000);
+    }
   } catch (err) {
     showCopyToast('spotify search unavailable · correct it in settings');
   }
@@ -11786,7 +11831,7 @@ function renderMetallurgyLab() {
       : '<div><div class="r-name">' + esc(entry.name) + '</div></div>';
     const nameCell = '<div class="r-name-actions">' + renderSpotifyEntityActions(metallurgyType, entry.name, entry.artist || '') + nameTitle + '</div>';
     const gemDot = '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;flex-shrink:0;margin-right:8px;vertical-align:middle"><span style="width:10px;height:10px;border-radius:50%;background:' + entry.color + ';display:block;opacity:0.85"></span></span>';
-    return '<tr>' +
+    return '<tr' + spotifyPlayableRowAttrs(metallurgyType, entry.name, entry.artist || '') + '>' +
       '<td class="r-rank">' + entry.rank.toLocaleString() + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td>' + renderRankDataBar(gemDot + entry.count.toLocaleString(), barW, 'background:linear-gradient(90deg,' + entry.color + ',rgba(10,10,10,0.2));') + '</td>' +
@@ -11901,7 +11946,7 @@ function renderGhostedList() {
     const nameCell = entry.artist
       ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + ' · ' + ghostNote + '</div>'
       : '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + ghostNote + '</div>';
-    return '<tr>' +
+    return '<tr' + spotifyPlayableRowAttrs(ghostedType, entry.name, entry.artist || '') + '>' +
       '<td class="r-rank">' + (i+1) + '</td>' +
       '<td>' + nameCell + '</td>' +
       '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW, 'background:var(--bar-gradient-soft);') + '</td>' +
@@ -11992,7 +12037,7 @@ function renderApotheosis() {
     const barW = entry.count / maxVal * 100;
     const monthsAgo = Math.max(0, Math.floor((latestScrobbleMs - entry.newestTrackUts * 1000) / 2629800000));
     const note = 'newest track logged ' + (monthsAgo ? monthsAgo.toLocaleString() + ' months ago' : 'recently') + ' · ' + entry.newestTrack;
-    return '<tr>' +
+    return '<tr' + spotifyPlayableRowAttrs('artists', entry.name, '') + '>' +
       '<td class="r-rank">' + (i+1) + '</td>' +
       '<td><div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(note) + '</div></td>' +
       '<td>' + renderRankDataBar(entry.count.toLocaleString(), barW, 'background:var(--bar-gradient-soft);') + '</td>' +
@@ -12986,10 +13031,7 @@ function renderHarvestRankings() {
     const nameCell = harvestRankType === 'artists'
       ? '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">first logged · ' + esc(firstSeen) + '</div>'
       : '<div class="r-name">' + esc(entry.name) + '</div><div class="r-artist">' + esc(entry.artist) + ' · first logged ' + esc(firstSeen) + '</div>';
-    const spotifyType = harvestRankType === 'artists'
-      ? 'artist'
-      : (harvestRankType === 'albums' ? 'album' : 'track');
-    const playableAttrs = ' class="harvest-spotify-playable" data-harvest-spotify="' + spotifyType + '" data-name="' + esc(entry.name) + '" data-artist="' + esc(entry.artist || '') + '" title="open ' + spotifyType + ' in spotify"';
+    const playableAttrs = spotifyPlayableRowAttrs(harvestRankType, entry.name, entry.artist || '').replace('class="', 'class="harvest-spotify-playable ');
     return '<tr' + playableAttrs + '>' +
       '<td class="r-rank">' + (index + 1) + '</td>' +
       '<td>' + nameCell + '</td>' +
@@ -13935,12 +13977,12 @@ function hasHeardRelease(artist, releaseName) {
   );
 }
 
-// ── Spotify read-only playlist access ────────────────────────────────
+// ── Spotify playlist and playback access ─────────────────────────────
 const SPOTIFY_CLIENT_ID_KEY = 'melophile.spotify.clientId';
 const SPOTIFY_TOKEN_KEY = 'melophile.spotify.token';
 const SPOTIFY_AUTH_KEY = 'melophile.spotify.auth';
 const SPOTIFY_AUTH_NOTICE_KEY = 'melophile.spotify.authNotice';
-const SPOTIFY_SCOPES = ['playlist-read-private', 'playlist-read-collaborative'];
+const SPOTIFY_SCOPES = ['playlist-read-private', 'playlist-read-collaborative', 'user-modify-playback-state'];
 let spotifyProfile = null;
 let spotifyPlaylists = [];
 let spotifySelectedPlaylistId = null;
@@ -14070,11 +14112,11 @@ function renderSpotifyPanel() {
   } else if (token && spotifyProfile) {
     status.textContent = 'connected as ' + (spotifyProfile.display_name || spotifyProfile.id || 'spotify user');
     meta.textContent = spotifyPlaylists.length
-      ? spotifyPlaylists.length.toLocaleString() + ' playlists loaded · read-only'
+      ? spotifyPlaylists.length.toLocaleString() + ' playlists loaded · playback enabled'
       : 'connected · playlists not loaded yet';
   } else if (token) {
     status.textContent = 'connected · ready to load playlists';
-    meta.textContent = 'read-only scopes: ' + SPOTIFY_SCOPES.join(', ');
+    meta.textContent = 'spotify scopes: ' + SPOTIFY_SCOPES.join(', ');
   } else if (refreshableToken && clientId) {
     status.textContent = 'connection saved · will refresh when playlists load';
     meta.textContent = 'client id saved · spotify refresh token stored in this browser';
@@ -14372,6 +14414,46 @@ async function spotifyFetch(pathOrUrl, attempt = 0) {
   }
   if (!response.ok) throw new Error('spotify request failed');
   return response.json();
+}
+
+async function spotifyRequest(pathOrUrl, options = {}, attempt = 0) {
+  const token = await getValidSpotifyToken();
+  if (!token) throw new Error('spotify token missing');
+  const url = pathOrUrl.startsWith('http') ? pathOrUrl : 'https://api.spotify.com' + pathOrUrl;
+  const response = await fetchWithTimeout(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: 'Bearer ' + token.access_token
+    }
+  });
+  if (response.status === 429 && attempt < 2) {
+    const retryAfter = Number(response.headers.get('Retry-After') || '2');
+    await sleep(Math.max(1, retryAfter) * 1000);
+    return spotifyRequest(pathOrUrl, options, attempt + 1);
+  }
+  if (response.status === 401) {
+    markSpotifyAuthorizationExpired();
+    throw new Error('spotify authorization expired');
+  }
+  return response;
+}
+
+async function playSpotifyEntity(type, link) {
+  const uri = /^spotify:/.test(link) ? link : spotifyUriFromExternalUrl(link);
+  if (!uri || (type !== 'track' && type !== 'album')) return false;
+  const body = type === 'album'
+    ? { context_uri: uri }
+    : { uris: [uri] };
+  const response = await spotifyRequest('/v1/me/player/play', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (response.status === 204 || response.status === 202) return true;
+  if (response.status === 403) throw new Error('spotify playback scope missing');
+  if (response.status === 404) throw new Error('spotify playback device missing');
+  throw new Error('spotify playback failed');
 }
 
 function renderSpotifyPlaylists() {
