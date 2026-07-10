@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import DashboardScreen from './features/dashboard/DashboardScreen';
 import FreshScreen from './features/fresh/FreshScreen';
 import FrissonScreen from './features/frisson/FrissonScreen';
@@ -22,9 +22,26 @@ const sections = [
 ] as const;
 
 type SectionKey = (typeof sections)[number]['key'];
+type ActiveSection = SectionKey | 'home';
+
+const sectionKeys = new Set<SectionKey>(sections.map(section => section.key));
+
+function sectionFromHash(): ActiveSection {
+  const raw = window.location.hash.replace(/^#\/?/, '').trim();
+  return sectionKeys.has(raw as SectionKey) ? raw as SectionKey : 'home';
+}
+
+function routeForSection(section: ActiveSection) {
+  return section === 'home' ? '#/' : `#/${section}`;
+}
 
 function App() {
-  const [activeSection, setActiveSection] = useState<SectionKey | 'home'>('home');
+  const [activeSection, setActiveSection] = useState<ActiveSection>(() => sectionFromHash());
+  const navigateToSection = useCallback((section: ActiveSection) => {
+    setActiveSection(section);
+    const nextRoute = routeForSection(section);
+    if (window.location.hash !== nextRoute) window.location.hash = nextRoute;
+  }, []);
   const desktopStatus = useDesktopStatus();
   const yearlyRollups = useYearlyListeningRollups();
   const listeningRollups = useListeningRollups();
@@ -39,6 +56,12 @@ function App() {
       ? 'checking sqlite'
       : 'browser fallback';
 
+  useEffect(() => {
+    const syncSectionFromHash = () => setActiveSection(sectionFromHash());
+    window.addEventListener('hashchange', syncSectionFromHash);
+    return () => window.removeEventListener('hashchange', syncSectionFromHash);
+  }, []);
+
   return (
     <main className="app-shell">
       <header className="brand-header">
@@ -48,7 +71,7 @@ function App() {
       </header>
 
       {activeSection !== 'home' && (
-        <button className="back-button" type="button" onClick={() => setActiveSection('home')}>
+        <button className="back-button" type="button" onClick={() => navigateToSection('home')}>
           sections
         </button>
       )}
@@ -104,7 +127,7 @@ function App() {
 
           <section className="section-grid" aria-label="App sections">
             {sections.map(section => (
-              <button className="section-card" key={section.name} type="button" onClick={() => setActiveSection(section.key)}>
+              <button className="section-card" key={section.name} type="button" onClick={() => navigateToSection(section.key)}>
                 <span className="section-icon-wrap">
                   <img src={section.icon} alt="" aria-hidden="true" />
                 </span>

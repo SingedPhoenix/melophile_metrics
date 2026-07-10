@@ -52,6 +52,22 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
 });
 
+test('react renderer supports section hash routes', async ({ page }) => {
+  await page.goto('/dist/renderer/index.html#/past-tense');
+
+  await expect(page.getByRole('heading', { name: 'past tense' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/past-tense');
+
+  await page.getByRole('button', { name: 'sections' }).click();
+  await expect(page.getByRole('heading', { name: 'choose a listening lens' })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/');
+
+  await page.evaluate(() => {
+    window.location.hash = '#/settings';
+  });
+  await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
+});
+
 test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('melophile.pastTense.playlists.v2', JSON.stringify({
