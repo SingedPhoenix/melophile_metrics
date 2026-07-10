@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
+import RankedBarList from '../../shared/RankedBarList';
 import { openSpotifySearch } from '../../shared/spotifyLinks';
 import StatusPanel from '../../shared/StatusPanel';
-import { FrissonTrack, useFrissonOverview } from '../../shared/useDesktopStatus';
+import { useFrissonOverview } from '../../shared/useDesktopStatus';
 
 type FrissonMode = 'repeats' | 'enduring' | 'recent';
 
@@ -70,11 +71,20 @@ function FrissonScreen() {
           <MetricToggle label="Frisson ranking mode" value={mode} options={modes} onChange={setMode} />
         </div>
         {activeTracks.length ? (
-          <ol className="frisson-list">
-            {activeTracks.map(track => (
-              <FrissonRow key={`${track.rank}-${track.artist}-${track.track}`} maxListens={maxListens} track={track} />
-            ))}
-          </ol>
+          <RankedBarList
+            ariaLabel={modeTitle(mode)}
+            maxValue={maxListens}
+            rows={activeTracks.map(track => ({
+              barLabel: track.listens.toLocaleString(),
+              key: `${track.rank}-${track.artist}-${track.track}`,
+              meta: `${formatDays(track.spanDays)} span · ${track.daysSinceLastPlayed.toLocaleString()} days quiet`,
+              onOpen: () => openSpotifySearch('track', track.track, track.artist),
+              rank: track.rank,
+              subtitle: `${track.artist}${track.album ? ` · ${track.album}` : ''}`,
+              title: track.track,
+              value: track.listens
+            }))}
+          />
         ) : (
           <StatusPanel
             detail="Frisson rankings need repeated-track patterns from the local listening archive."
@@ -84,39 +94,6 @@ function FrissonScreen() {
         )}
       </article>
     </section>
-  );
-}
-
-function FrissonRow({ track, maxListens }: { track: FrissonTrack; maxListens: number }) {
-  const width = Math.max(8, Math.round((track.listens / maxListens) * 100));
-  return (
-    <li
-      className="spotify-open-row"
-      role="button"
-      tabIndex={0}
-      title="open track in spotify"
-      onClick={() => openSpotifySearch('track', track.track, track.artist)}
-      onKeyDown={event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          openSpotifySearch('track', track.track, track.artist);
-        }
-      }}
-    >
-      <span className="rank">#{track.rank}</span>
-      <span className="frisson-title-block">
-        <strong>{track.track}</strong>
-        <small>{track.artist}{track.album ? ` · ${track.album}` : ''}</small>
-      </span>
-      <span className="frisson-context">
-        {formatDays(track.spanDays)} span · {track.daysSinceLastPlayed.toLocaleString()} days quiet
-      </span>
-      <span className="frisson-bar-track">
-        <span className="frisson-bar-fill" style={{ width: `${width}%` }}>
-          <span>{track.listens.toLocaleString()}</span>
-        </span>
-      </span>
-    </li>
   );
 }
 
