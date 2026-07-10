@@ -1,5 +1,5 @@
 import type { PastTenseTrackRef, TrackPlayCountResult } from './features/past-tense/pastTenseData';
-import type { DesktopDatabaseStatus, ListeningRollups, YearlyListeningRollups } from './shared/useDesktopStatus';
+import type { DesktopDatabaseStatus, ListeningRollups, RecentListening, YearlyListeningRollups } from './shared/useDesktopStatus';
 
 export {};
 
@@ -14,6 +14,7 @@ declare global {
       trackPlayCounts: (tracks: PastTenseTrackRef[]) => Promise<TrackPlayCountResult>;
       yearlyListeningRollups: () => Promise<YearlyListeningRollups>;
       listeningRollups: () => Promise<ListeningRollups>;
+      recentListening: (limit?: number) => Promise<RecentListening>;
     };
   }
 }

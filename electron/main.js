@@ -9,6 +9,7 @@ const {
   importLastfmScrobbles,
   listeningRollups,
   openMelophileDatabase,
+  recentListening,
   trackPlayCounts,
   yearlyListeningRollups
 } = require('./database');
@@ -118,6 +119,10 @@ function registerDesktopHandlers() {
   ipcMain.handle('melophile:yearly-listening-rollups', async () => yearlyListeningRollups());
 
   ipcMain.handle('melophile:listening-rollups', async () => listeningRollups());
+
+  ipcMain.handle('melophile:recent-listening', async (_event, payload = {}) => {
+    return recentListening(payload.limit);
+  });
 }
 
 async function findLocalConfigPath() {

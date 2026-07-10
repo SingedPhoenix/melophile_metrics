@@ -64,6 +64,18 @@ export type ListeningRollups = {
   months: MonthlyListeningRollup[];
 };
 
+export type RecentScrobble = {
+  playedAtUts: number;
+  playedAtIso: string;
+  artist: string;
+  track: string;
+  album: string;
+};
+
+export type RecentListening = {
+  scrobbles: RecentScrobble[];
+};
+
 export function useDesktopStatus() {
   return useQuery({
     queryKey: ['desktop', 'database-status'],
@@ -83,6 +95,17 @@ export function useYearlyListeningRollups() {
       return window.melophileDesktop.yearlyListeningRollups();
     },
     staleTime: 60_000
+  });
+}
+
+export function useRecentListening(limit = 25) {
+  return useQuery({
+    queryKey: ['desktop', 'recent-listening', limit],
+    queryFn: async (): Promise<RecentListening | null> => {
+      if (!window.melophileDesktop?.recentListening) return null;
+      return window.melophileDesktop.recentListening(limit);
+    },
+    staleTime: 30_000
   });
 }
 

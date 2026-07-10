@@ -18,6 +18,15 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
         topTracks: [{ rank: 1, artist: 'the midnight', track: 'los angeles', listens: 512 }],
         topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024 }],
         months: [{ month: '2020-01', listens: 1200 }]
+      }),
+      recentListening: async () => ({
+        scrobbles: [{
+          playedAtUts: 1783468800,
+          playedAtIso: '2026-07-07T00:00:00.000Z',
+          artist: 'health',
+          track: 'you died',
+          album: 'rat wars'
+        }]
       })
     };
   });
@@ -29,6 +38,7 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
   await expect(page.getByText('173,971 sqlite scrobbles')).toBeVisible();
   await expect(page.getByText('top year 2020 · 25,468 listens')).toBeVisible();
   await expect(page.getByText('top artist the midnight · 2,048 listens')).toBeVisible();
+  await expect(page.getByText('latest you died · health')).toBeVisible();
   await expect(page.getByRole('button', { name: /past tense/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
 });
@@ -78,6 +88,15 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
         topTracks: [{ rank: 1, artist: 'the midnight', track: 'los angeles', listens: 512 }],
         topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024 }],
         months: [{ month: '2020-01', listens: 1200 }]
+      }),
+      recentListening: async () => ({
+        scrobbles: [{
+          playedAtUts: 1783468800,
+          playedAtIso: '2026-07-07T00:00:00.000Z',
+          artist: 'health',
+          track: 'you died',
+          album: 'rat wars'
+        }]
       })
     };
   });

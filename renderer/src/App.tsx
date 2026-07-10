@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
-import { useDesktopStatus, useListeningRollups, useYearlyListeningRollups } from './shared/useDesktopStatus';
+import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
 
 const sections = [
@@ -21,9 +21,11 @@ function App() {
   const desktopStatus = useDesktopStatus();
   const yearlyRollups = useYearlyListeningRollups();
   const listeningRollups = useListeningRollups();
+  const recentListening = useRecentListening(1);
   const scrobbleCount = desktopStatus.data?.scrobbles;
   const topListeningYear = yearlyRollups.data?.topYears?.[0];
   const topArtist = listeningRollups.data?.topArtists?.[0];
+  const latestListen = recentListening.data?.scrobbles?.[0];
   const statusLabel = typeof scrobbleCount === 'number'
     ? `${scrobbleCount.toLocaleString()} sqlite scrobbles`
     : desktopStatus.isFetching
@@ -70,6 +72,11 @@ function App() {
               {topArtist && (
                 <span className="status-detail data-status">
                   top artist {topArtist.artist} · {topArtist.listens.toLocaleString()} listens
+                </span>
+              )}
+              {latestListen && (
+                <span className="status-detail data-status">
+                  latest {latestListen.track} · {latestListen.artist}
                 </span>
               )}
             </div>
