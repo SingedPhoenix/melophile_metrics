@@ -215,6 +215,7 @@ h1 {
 }
 
 .dashboard-screen,
+.fresh-screen,
 .gem-mines-screen,
 .ghosted-screen,
 .past-tense-screen,
@@ -270,6 +271,173 @@ h1 {
 .settings-panel {
   max-width: 1080px;
   margin: 0 auto;
+}
+
+.fresh-summary-grid,
+.fresh-panel-grid {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fresh-summary-grid {
+  grid-template-columns: minmax(280px, 0.42fr) minmax(0, 1fr);
+}
+
+.fresh-panel-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fresh-year-card {
+  display: grid;
+  align-content: end;
+  min-height: 270px;
+}
+
+.fresh-year-card span,
+.fresh-year-card small,
+.fresh-year-card p,
+.fresh-signal-list small,
+.fresh-signal-list em,
+.fresh-album-tile span,
+.fresh-album-tile small,
+.fresh-year-list span {
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: rgba(204, 204, 204, 0.44);
+}
+
+.fresh-year-card strong {
+  margin: 18px 0 10px;
+  font-size: clamp(64px, 9vw, 112px);
+  line-height: 0.86;
+}
+
+.fresh-year-card p {
+  margin: 26px 0 0;
+  color: rgba(205, 164, 198, 0.72);
+}
+
+.fresh-year-list,
+.fresh-signal-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fresh-year-list li,
+.fresh-signal-list li {
+  display: grid;
+  align-items: center;
+  gap: 14px;
+  min-height: 58px;
+  border-bottom: 1px solid rgba(204, 204, 204, 0.06);
+}
+
+.fresh-year-list li {
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+}
+
+.fresh-signal-list li {
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  min-height: 64px;
+}
+
+.fresh-year-list li:last-child,
+.fresh-signal-list li:last-child {
+  border-bottom: none;
+}
+
+.fresh-year-list li.is-current {
+  margin: 0 -10px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(204, 204, 204, 0.055);
+}
+
+.fresh-year-list strong,
+.fresh-signal-list strong,
+.fresh-signal-list small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fresh-year-list strong {
+  font-size: 22px;
+}
+
+.fresh-signal-list strong {
+  font-size: 20px;
+  line-height: 1.05;
+}
+
+.fresh-signal-list small {
+  margin-top: 5px;
+}
+
+.fresh-signal-list em {
+  font-style: normal;
+  font-weight: 700;
+  color: rgba(238, 238, 238, 0.72);
+}
+
+.fresh-album-orbit {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fresh-album-tile {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(205, 164, 198, 0.08), rgba(151, 164, 137, 0.08)),
+    rgba(0, 0, 0, 0.14);
+}
+
+.fresh-album-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  margin-bottom: 10px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(238, 238, 238, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(205, 164, 198, 0.24), rgba(151, 164, 137, 0.2));
+  color: rgba(238, 238, 238, 0.8);
+  font-size: clamp(28px, 4vw, 50px);
+  font-weight: 800;
+}
+
+.fresh-album-tile strong,
+.fresh-album-tile small,
+.fresh-album-tile span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fresh-album-tile strong {
+  font-size: 18px;
+  line-height: 1.08;
+}
+
+.fresh-album-tile small {
+  margin-top: 5px;
+}
+
+.fresh-album-tile span {
+  margin-top: 8px;
+  color: rgba(205, 164, 198, 0.7);
 }
 
 .settings-service-grid,
@@ -1154,6 +1322,9 @@ img.playlist-cover {
   .section-grid,
   .dashboard-grid,
   .dashboard-metrics,
+  .fresh-album-orbit,
+  .fresh-panel-grid,
+  .fresh-summary-grid,
   .ghosted-summary,
   .past-tense-stats,
   .pulse-layout,

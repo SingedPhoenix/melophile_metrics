@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import DashboardScreen from './features/dashboard/DashboardScreen';
+import FreshScreen from './features/fresh/FreshScreen';
 import GemMinesScreen from './features/gem-mines/GemMinesScreen';
 import GhostedScreen from './features/ghosted/GhostedScreen';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
@@ -51,7 +52,9 @@ function App() {
         </button>
       )}
 
-      {activeSection === 'settings' ? (
+      {activeSection === 'fresh' ? (
+        <FreshScreen />
+      ) : activeSection === 'settings' ? (
         <SettingsScreen />
       ) : activeSection === 'ghosted' ? (
         <GhostedScreen />
@@ -114,6 +117,7 @@ function App() {
 
 function isMigratedSection(section: SectionKey) {
   return section === 'dashboard'
+    || section === 'fresh'
     || section === 'gem-mines'
     || section === 'ghosted'
     || section === 'past-tense'

@@ -31,6 +31,11 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
           track: 'you died',
           album: 'rat wars'
         }]
+      }),
+      freshOverview: async () => ({
+        topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024, lastPlayedUts: 1783468800 }],
+        quietArtists: [{ rank: 1, artist: 'jay-z', listens: 422, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
+        recentArtists: [{ rank: 1, artist: 'magdalena bay', listens: 96, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
       })
     };
   });
@@ -101,7 +106,8 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
           track: 'you died',
           album: 'rat wars'
         }]
-      })
+      }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -155,7 +161,8 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
           track: 'you died',
           album: 'rat wars'
         }]
-      })
+      }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -216,7 +223,8 @@ test('react renderer opens migrated Dashboard slice', async ({ page }) => {
           track: 'you died',
           album: 'rat wars'
         }]
-      })
+      }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -259,7 +267,8 @@ test('react renderer opens migrated Gem Mines slice', async ({ page }) => {
           track: 'you died',
           album: 'rat wars'
         }]
-      })
+      }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -317,7 +326,8 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
           lastPlayedUts: 1640995200,
           daysSinceLastPlayed: 1286
         }]
-      })
+      }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -365,7 +375,8 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
       yearlyListeningRollups: async () => ({ years: [], topYears: [] }),
       listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
       recentListening: async () => ({ scrobbles: [] }),
-      ghostedTracks: async () => ({ minListens: 5, tracks: [] })
+      ghostedTracks: async () => ({ minListens: 5, tracks: [] }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -381,4 +392,43 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await page.getByRole('button', { name: 'appearance' }).click();
   await expect(page.getByRole('heading', { name: 'appearance' })).toBeVisible();
   await expect(page.getByText('amethyst dusk')).toBeVisible();
+});
+
+test('react renderer opens migrated Fresh slice', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => null,
+      databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
+      importLastfmScrobbles: async () => ({}),
+      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      yearlyListeningRollups: async () => ({
+        years: [
+          { year: 2020, listens: 25468 },
+          { year: 2026, listens: 7314 }
+        ],
+        topYears: [{ year: 2020, listens: 25468, rank: 1 }]
+      }),
+      listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
+      recentListening: async () => ({ scrobbles: [] }),
+      ghostedTracks: async () => ({ minListens: 5, tracks: [] }),
+      freshOverview: async () => ({
+        topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024, lastPlayedUts: 1783468800 }],
+        quietArtists: [{ rank: 1, artist: 'jay-z', listens: 422, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
+        recentArtists: [{ rank: 1, artist: 'magdalena bay', listens: 96, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
+      })
+    };
+  });
+  await page.goto('/dist/renderer/index.html');
+
+  await page.getByRole('button', { name: /fresh/i }).click();
+
+  await expect(page.getByRole('heading', { name: 'fresh' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'quiet favorite artists' })).toBeVisible();
+  await expect(page.getByText('jay-z')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'recently discovered artists' })).toBeVisible();
+  await expect(page.getByText('magdalena bay')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'all-time album orbit' })).toBeVisible();
+  await expect(page.getByText('endless summer')).toBeVisible();
 });

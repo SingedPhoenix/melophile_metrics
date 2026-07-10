@@ -92,6 +92,36 @@ export type GhostedTracks = {
   minListens: number;
 };
 
+export type FreshAlbum = {
+  rank: number;
+  artist: string;
+  album: string;
+  listens: number;
+  lastPlayedUts: number;
+};
+
+export type FreshQuietArtist = {
+  rank: number;
+  artist: string;
+  listens: number;
+  lastPlayedUts: number;
+  daysSinceLastPlayed: number;
+};
+
+export type FreshRecentArtist = {
+  rank: number;
+  artist: string;
+  listens: number;
+  firstPlayedUts: number;
+  lastPlayedUts: number;
+};
+
+export type FreshOverview = {
+  topAlbums: FreshAlbum[];
+  quietArtists: FreshQuietArtist[];
+  recentArtists: FreshRecentArtist[];
+};
+
 export type LocalServiceConfig = {
   lastfm?: {
     username?: string;
@@ -173,6 +203,17 @@ export function useGhostedTracks(limit = 50, minListens = 5) {
     queryFn: async (): Promise<GhostedTracks | null> => {
       if (!window.melophileDesktop?.ghostedTracks) return null;
       return window.melophileDesktop.ghostedTracks({ limit, minListens });
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useFreshOverview(albumLimit = 16, artistLimit = 12) {
+  return useQuery({
+    queryKey: ['desktop', 'fresh-overview', albumLimit, artistLimit],
+    queryFn: async (): Promise<FreshOverview | null> => {
+      if (!window.melophileDesktop?.freshOverview) return null;
+      return window.melophileDesktop.freshOverview({ albumLimit, artistLimit });
     },
     staleTime: 60_000
   });

@@ -231,6 +231,61 @@ function ghostedTracks(options = {}) {
   return { tracks, minListens };
 }
 
+function freshOverview(options = {}) {
+  const openedDb = requireDb();
+  const albumLimit = Math.max(1, Math.min(Number.parseInt(options.albumLimit, 10) || 16, 50));
+  const artistLimit = Math.max(1, Math.min(Number.parseInt(options.artistLimit, 10) || 12, 50));
+  const nowUts = Math.floor(Date.now() / 1000);
+  const quietCutoff = nowUts - 180 * 86400;
+  const recentCutoff = nowUts - 548 * 86400;
+
+  const topAlbums = rankRows(openedDb.prepare(`
+    SELECT artist, album, COUNT(*) AS listens, MAX(played_at_uts) AS last_played_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0 AND trim(album) <> ''
+    GROUP BY artist, album
+    ORDER BY listens DESC, artist ASC, album ASC
+    LIMIT ?
+  `).all(albumLimit).map(row => ({
+    artist: row.artist,
+    album: row.album,
+    listens: Number(row.listens || 0),
+    lastPlayedUts: Number(row.last_played_uts || 0)
+  })));
+
+  const quietArtists = rankRows(openedDb.prepare(`
+    SELECT artist, COUNT(*) AS listens, MAX(played_at_uts) AS last_played_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY artist
+    HAVING listens >= 25 AND last_played_uts < ?
+    ORDER BY listens DESC, last_played_uts ASC, artist ASC
+    LIMIT ?
+  `).all(quietCutoff, artistLimit).map(row => ({
+    artist: row.artist,
+    listens: Number(row.listens || 0),
+    lastPlayedUts: Number(row.last_played_uts || 0),
+    daysSinceLastPlayed: Math.max(0, Math.floor((nowUts - Number(row.last_played_uts || nowUts)) / 86400))
+  })));
+
+  const recentArtists = rankRows(openedDb.prepare(`
+    SELECT artist, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY artist
+    HAVING listens >= 6 AND first_played_uts >= ?
+    ORDER BY listens DESC, last_played_uts DESC, artist ASC
+    LIMIT ?
+  `).all(recentCutoff, artistLimit).map(row => ({
+    artist: row.artist,
+    listens: Number(row.listens || 0),
+    firstPlayedUts: Number(row.first_played_uts || 0),
+    lastPlayedUts: Number(row.last_played_uts || 0)
+  })));
+
+  return { topAlbums, quietArtists, recentArtists };
+}
+
 function trackPlayCounts(trackRefs = []) {
   const openedDb = requireDb();
   const refs = Array.isArray(trackRefs) ? trackRefs.map(normalizeTrackRef).filter(Boolean) : [];
@@ -453,6 +508,7 @@ function requireDb() {
 module.exports = {
   closeMelophileDatabase,
   databaseStatus,
+  freshOverview,
   ghostedTracks,
   importLastfmScrobbles,
   listeningRollups,

@@ -1,6 +1,7 @@
 import type { PastTenseTrackRef, TrackPlayCountResult } from './features/past-tense/pastTenseData';
 import type {
   DesktopDatabaseStatus,
+  FreshOverview,
   GhostedTracks,
   ListeningRollups,
   LocalServiceConfig,
@@ -23,6 +24,7 @@ declare global {
       listeningRollups: () => Promise<ListeningRollups>;
       recentListening: (limit?: number) => Promise<RecentListening>;
       ghostedTracks: (options?: { limit?: number; minListens?: number }) => Promise<GhostedTracks>;
+      freshOverview: (options?: { albumLimit?: number; artistLimit?: number }) => Promise<FreshOverview>;
     };
   }
 }
