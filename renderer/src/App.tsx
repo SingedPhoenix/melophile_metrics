@@ -7,6 +7,7 @@ import GhostedScreen from './features/ghosted/GhostedScreen';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
 import PulseScreen from './features/pulse/PulseScreen';
 import SettingsScreen from './features/settings/SettingsScreen';
+import AppShell from './shared/AppShell';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
 
@@ -62,21 +63,7 @@ function App() {
     return () => window.removeEventListener('hashchange', syncSectionFromHash);
   }, []);
 
-  return (
-    <main className="app-shell">
-      <header className="brand-header">
-        <p className="brand-name">melophile metrics</p>
-        <p className="brand-subtitle">your listening, quantified</p>
-        <p className="brand-note">desktop listening archive</p>
-      </header>
-
-      {activeSection !== 'home' && (
-        <button className="back-button" type="button" onClick={() => navigateToSection('home')}>
-          sections
-        </button>
-      )}
-
-      {activeSection === 'fresh' ? (
+  const screen = activeSection === 'fresh' ? (
         <FreshScreen />
       ) : activeSection === 'frisson' ? (
         <FrissonScreen />
@@ -93,53 +80,84 @@ function App() {
       ) : activeSection === 'past-tense' ? (
         <PastTenseScreen />
       ) : (
-        <>
-          <section className="home-overview" aria-labelledby="home-title">
-            <div>
-              <p className="eyebrow">listening command center</p>
-              <h1 id="home-title">choose a listening lens</h1>
-              <p className="intro">
-                Browse your local scrobble history, release-year playlists, Spotify-linked rankings, and data settings
-                from one desktop workspace.
-              </p>
-            </div>
-            <div className="home-status-card">
-              <span className="status-label">local archive</span>
-              <strong>{typeof scrobbleCount === 'number' ? scrobbleCount.toLocaleString() : 'checking'}</strong>
-              <span className="status-detail data-status">{statusLabel}</span>
-              {topListeningYear && (
-                <span className="status-detail data-status">
-                  top year {topListeningYear.year} · {topListeningYear.listens.toLocaleString()} listens
-                </span>
-              )}
-              {topArtist && (
-                <span className="status-detail data-status">
-                  top artist {topArtist.artist} · {topArtist.listens.toLocaleString()} listens
-                </span>
-              )}
-              {latestListen && (
-                <span className="status-detail data-status">
-                  latest {latestListen.track} · {latestListen.artist}
-                </span>
-              )}
-            </div>
-          </section>
+        <HomeScreen
+          latestListen={latestListen}
+          scrobbleCount={scrobbleCount}
+          statusLabel={statusLabel}
+          topArtist={topArtist}
+          topListeningYear={topListeningYear}
+          onNavigate={navigateToSection}
+        />
+      );
 
-          <section className="section-grid" aria-label="App sections">
-            {sections.map(section => (
-              <button className="section-card" key={section.name} type="button" onClick={() => navigateToSection(section.key)}>
-                <span className="section-icon-wrap">
-                  <img src={section.icon} alt="" aria-hidden="true" />
-                </span>
-                <h2>{section.name}</h2>
-                <p>{section.description}</p>
-                <span className="section-card-action">open</span>
-              </button>
-            ))}
-          </section>
-        </>
-      )}
-    </main>
+  return (
+    <AppShell activeSection={activeSection} sections={sections} onNavigate={navigateToSection}>
+      {screen}
+    </AppShell>
+  );
+}
+
+function HomeScreen({
+  latestListen,
+  scrobbleCount,
+  statusLabel,
+  topArtist,
+  topListeningYear,
+  onNavigate
+}: {
+  latestListen?: { track: string; artist: string };
+  scrobbleCount?: number;
+  statusLabel: string;
+  topArtist?: { artist: string; listens: number };
+  topListeningYear?: { year: number; listens: number };
+  onNavigate: (section: ActiveSection) => void;
+}) {
+  return (
+    <>
+      <section className="home-overview" aria-labelledby="home-title">
+        <div>
+          <p className="eyebrow">listening command center</p>
+          <h1 id="home-title">choose a listening lens</h1>
+          <p className="intro">
+            Browse your local scrobble history, release-year playlists, Spotify-linked rankings, and data settings
+            from one desktop workspace.
+          </p>
+        </div>
+        <div className="home-status-card">
+          <span className="status-label">local archive</span>
+          <strong>{typeof scrobbleCount === 'number' ? scrobbleCount.toLocaleString() : 'checking'}</strong>
+          <span className="status-detail data-status">{statusLabel}</span>
+          {topListeningYear && (
+            <span className="status-detail data-status">
+              top year {topListeningYear.year} · {topListeningYear.listens.toLocaleString()} listens
+            </span>
+          )}
+          {topArtist && (
+            <span className="status-detail data-status">
+              top artist {topArtist.artist} · {topArtist.listens.toLocaleString()} listens
+            </span>
+          )}
+          {latestListen && (
+            <span className="status-detail data-status">
+              latest {latestListen.track} · {latestListen.artist}
+            </span>
+          )}
+        </div>
+      </section>
+
+      <section className="section-grid" aria-label="App sections">
+        {sections.map(section => (
+          <button className="section-card" key={section.name} type="button" onClick={() => onNavigate(section.key)}>
+            <span className="section-icon-wrap">
+              <img src={section.icon} alt="" aria-hidden="true" />
+            </span>
+            <h2>{section.name}</h2>
+            <p>{section.description}</p>
+            <span className="section-card-action">open</span>
+          </button>
+        ))}
+      </section>
+    </>
   );
 }
 
