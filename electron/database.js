@@ -344,7 +344,9 @@ function attachTrackMetrics(row, nowUts) {
 function trackPlayCounts(trackRefs = []) {
   const openedDb = requireDb();
   const refs = Array.isArray(trackRefs) ? trackRefs.map(normalizeTrackRef).filter(Boolean) : [];
-  const uniqueKeys = new Set(refs.flatMap(ref => ref.artistKeys.map(artistKey => artistKey + '|||' + ref.trackKey)));
+  const uniqueKeys = new Set(refs.flatMap(ref =>
+    ref.artistKeys.flatMap(artistKey => ref.trackKeys.map(trackKey => artistKey + '|||' + trackKey))
+  ));
   if (!uniqueKeys.size) return { trackCounts: {}, playlistCounts: {} };
 
   const rows = openedDb.prepare(`
@@ -356,16 +358,22 @@ function trackPlayCounts(trackRefs = []) {
 
   const sourceCounts = new Map();
   rows.forEach(row => {
-    const key = normalizeText(row.artist) + '|||' + normalizeText(row.track);
-    if (!uniqueKeys.has(key)) return;
-    sourceCounts.set(key, (sourceCounts.get(key) || 0) + Number(row.count || 0));
+    const artistKey = normalizeText(row.artist);
+    normalizeTrackKeys(row.track).forEach(trackKey => {
+      const key = artistKey + '|||' + trackKey;
+      if (!uniqueKeys.has(key)) return;
+      sourceCounts.set(key, (sourceCounts.get(key) || 0) + Number(row.count || 0));
+    });
   });
 
   const trackCounts = {};
   const playlistCounts = {};
   refs.forEach(ref => {
-    const count = ref.artistKeys.reduce((sum, artistKey) =>
-      sum + (sourceCounts.get(artistKey + '|||' + ref.trackKey) || 0), 0);
+    const count = ref.artistKeys.reduce((sum, artistKey) => {
+      const bestTrackCount = ref.trackKeys.reduce((best, trackKey) =>
+        Math.max(best, sourceCounts.get(artistKey + '|||' + trackKey) || 0), 0);
+      return sum + bestTrackCount;
+    }, 0);
     trackCounts[ref.key] = count;
     playlistCounts[ref.playlistId] = (playlistCounts[ref.playlistId] || 0) + count;
   });
@@ -521,14 +529,14 @@ function normalizeTrackRef(ref) {
   const artistKeys = (Array.isArray(ref.artists) ? ref.artists : [])
     .map(artist => normalizeText(typeof artist === 'string' ? artist : artist && artist.name))
     .filter(Boolean);
-  const trackKey = normalizeText(ref.trackName);
-  if (!artistKeys.length || !trackKey) return null;
-  const key = String(ref.key || `${ref.playlistId}|||${artistKeys.join('|')}|||${trackKey}`);
+  const trackKeys = normalizeTrackKeys(ref.trackName);
+  if (!artistKeys.length || !trackKeys.length) return null;
+  const key = String(ref.key || `${ref.playlistId}|||${artistKeys.join('|')}|||${trackKeys[0]}`);
   return {
     key,
     playlistId: String(ref.playlistId),
     artistKeys,
-    trackKey
+    trackKeys
   };
 }
 
@@ -546,6 +554,21 @@ function normalizeText(value) {
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
     .replace(/\s+/g, ' ');
+}
+
+function normalizeTrackKeys(value) {
+  const base = normalizeText(value);
+  if (!base) return [];
+  const aliases = new Set([base]);
+  const stripped = base
+    .replace(/\b(feat|featuring|ft|with)\b.*$/g, '')
+    .replace(/\b(remaster|remastered|remix|radio edit|single version|album version|deluxe edition|bonus track)\b.*$/g, '')
+    .replace(/\b\d{4}\s+remaster(ed)?\b.*$/g, '')
+    .replace(/\s+-\s+.*$/g, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+  if (stripped) aliases.add(stripped);
+  return [...aliases];
 }
 
 function hashParts(parts) {
