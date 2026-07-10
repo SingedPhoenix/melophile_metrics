@@ -7,6 +7,7 @@ const {
   closeMelophileDatabase,
   databaseStatus,
   importLastfmScrobbles,
+  listeningRollups,
   openMelophileDatabase,
   trackPlayCounts,
   yearlyListeningRollups
@@ -115,6 +116,8 @@ function registerDesktopHandlers() {
   });
 
   ipcMain.handle('melophile:yearly-listening-rollups', async () => yearlyListeningRollups());
+
+  ipcMain.handle('melophile:listening-rollups', async () => listeningRollups());
 }
 
 async function findLocalConfigPath() {

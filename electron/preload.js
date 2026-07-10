@@ -7,5 +7,6 @@ contextBridge.exposeInMainWorld('melophileDesktop', {
   databaseStatus: () => ipcRenderer.invoke('melophile:database-status'),
   importLastfmScrobbles: rows => ipcRenderer.invoke('melophile:import-lastfm-scrobbles', { rows, mode: 'lastfm-cache' }),
   trackPlayCounts: tracks => ipcRenderer.invoke('melophile:track-play-counts', { tracks }),
-  yearlyListeningRollups: () => ipcRenderer.invoke('melophile:yearly-listening-rollups')
+  yearlyListeningRollups: () => ipcRenderer.invoke('melophile:yearly-listening-rollups'),
+  listeningRollups: () => ipcRenderer.invoke('melophile:listening-rollups')
 });

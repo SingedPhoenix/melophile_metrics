@@ -1,5 +1,5 @@
 import type { PastTenseTrackRef, TrackPlayCountResult } from './features/past-tense/pastTenseData';
-import type { DesktopDatabaseStatus, YearlyListeningRollups } from './shared/useDesktopStatus';
+import type { DesktopDatabaseStatus, ListeningRollups, YearlyListeningRollups } from './shared/useDesktopStatus';
 
 export {};
 
@@ -13,6 +13,7 @@ declare global {
       importLastfmScrobbles: (rows: unknown[]) => Promise<unknown>;
       trackPlayCounts: (tracks: PastTenseTrackRef[]) => Promise<TrackPlayCountResult>;
       yearlyListeningRollups: () => Promise<YearlyListeningRollups>;
+      listeningRollups: () => Promise<ListeningRollups>;
     };
   }
 }

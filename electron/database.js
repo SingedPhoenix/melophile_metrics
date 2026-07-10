@@ -130,6 +130,60 @@ function yearlyListeningRollups() {
   return { years, topYears };
 }
 
+function listeningRollups() {
+  const openedDb = requireDb();
+  const topArtists = rankRows(openedDb.prepare(`
+    SELECT artist, COUNT(*) AS listens
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY artist
+    ORDER BY listens DESC, artist ASC
+    LIMIT 50
+  `).all().map(row => ({
+    artist: row.artist,
+    listens: Number(row.listens || 0)
+  })));
+
+  const topTracks = rankRows(openedDb.prepare(`
+    SELECT artist, track, COUNT(*) AS listens
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY artist, track
+    ORDER BY listens DESC, artist ASC, track ASC
+    LIMIT 50
+  `).all().map(row => ({
+    artist: row.artist,
+    track: row.track,
+    listens: Number(row.listens || 0)
+  })));
+
+  const topAlbums = rankRows(openedDb.prepare(`
+    SELECT artist, album, COUNT(*) AS listens
+    FROM scrobbles
+    WHERE missing_from_source = 0 AND trim(album) <> ''
+    GROUP BY artist, album
+    ORDER BY listens DESC, artist ASC, album ASC
+    LIMIT 50
+  `).all().map(row => ({
+    artist: row.artist,
+    album: row.album,
+    listens: Number(row.listens || 0)
+  })));
+
+  const months = openedDb.prepare(`
+    SELECT substr(played_at_iso, 1, 7) AS month, COUNT(*) AS listens
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY month
+    ORDER BY month ASC
+  `).all().map(row => ({
+    month: row.month,
+    listens: Number(row.listens || 0)
+  })).filter(row => row.month);
+
+  return { topArtists, topTracks, topAlbums, months };
+}
+
 function trackPlayCounts(trackRefs = []) {
   const openedDb = requireDb();
   const refs = Array.isArray(trackRefs) ? trackRefs.map(normalizeTrackRef).filter(Boolean) : [];
@@ -321,6 +375,10 @@ function normalizeTrackRef(ref) {
   };
 }
 
+function rankRows(rows) {
+  return rows.map((row, index) => ({ ...row, rank: index + 1 }));
+}
+
 function normalizeText(value) {
   return String(value || '')
     .normalize('NFKD')
@@ -349,6 +407,7 @@ module.exports = {
   closeMelophileDatabase,
   databaseStatus,
   importLastfmScrobbles,
+  listeningRollups,
   openMelophileDatabase,
   trackPlayCounts,
   yearlyListeningRollups

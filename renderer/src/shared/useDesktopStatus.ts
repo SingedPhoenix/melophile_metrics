@@ -32,6 +32,38 @@ export type YearlyListeningRollups = {
   topYears: RankedYearlyListeningRollup[];
 };
 
+export type RankedArtistRollup = {
+  rank: number;
+  artist: string;
+  listens: number;
+};
+
+export type RankedTrackRollup = {
+  rank: number;
+  artist: string;
+  track: string;
+  listens: number;
+};
+
+export type RankedAlbumRollup = {
+  rank: number;
+  artist: string;
+  album: string;
+  listens: number;
+};
+
+export type MonthlyListeningRollup = {
+  month: string;
+  listens: number;
+};
+
+export type ListeningRollups = {
+  topArtists: RankedArtistRollup[];
+  topTracks: RankedTrackRollup[];
+  topAlbums: RankedAlbumRollup[];
+  months: MonthlyListeningRollup[];
+};
+
 export function useDesktopStatus() {
   return useQuery({
     queryKey: ['desktop', 'database-status'],
@@ -49,6 +81,17 @@ export function useYearlyListeningRollups() {
     queryFn: async (): Promise<YearlyListeningRollups | null> => {
       if (!window.melophileDesktop?.yearlyListeningRollups) return null;
       return window.melophileDesktop.yearlyListeningRollups();
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useListeningRollups() {
+  return useQuery({
+    queryKey: ['desktop', 'listening-rollups'],
+    queryFn: async (): Promise<ListeningRollups | null> => {
+      if (!window.melophileDesktop?.listeningRollups) return null;
+      return window.melophileDesktop.listeningRollups();
     },
     staleTime: 60_000
   });
