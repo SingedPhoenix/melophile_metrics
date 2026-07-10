@@ -75,7 +75,7 @@ function PastTenseScreen() {
         <div className="section-heading">
           <div>
             <h2 id="release-year-volumes">release-year volumes</h2>
-            <p>{playlists.length} release-year playlists mapped for migration</p>
+            <p>{playlists.length} release-year playlists loaded</p>
           </div>
           <CacheStatus
             hasSqliteCounts={playlists.some(playlist => playlist.scrobbleCountSource === 'sqlite')}

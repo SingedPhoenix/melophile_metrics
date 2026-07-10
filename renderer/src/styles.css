@@ -45,7 +45,7 @@ a {
 }
 
 .brand-header {
-  padding-bottom: 28px;
+  padding-bottom: 22px;
   border-bottom: 1px solid rgba(204, 204, 204, 0.1);
   text-align: center;
 }
@@ -80,16 +80,18 @@ a {
   font-size: 12px;
 }
 
-.migration-panel {
+.home-overview {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 270px;
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: 22px;
   align-items: stretch;
-  margin: 34px 0 24px;
+  margin: 30px 0 20px;
   padding: 26px;
   border: 1px solid rgba(204, 204, 204, 0.11);
   border-radius: 16px;
-  background: rgba(204, 204, 204, 0.035);
+  background:
+    linear-gradient(135deg, rgba(205, 164, 198, 0.07), rgba(151, 164, 137, 0.045)),
+    rgba(204, 204, 204, 0.032);
   box-shadow: inset 0 1px 0 rgba(238, 238, 238, 0.04);
 }
 
@@ -114,7 +116,7 @@ h1 {
   line-height: 1.55;
 }
 
-.status-card {
+.home-status-card {
   display: grid;
   align-content: center;
   min-height: 180px;
@@ -124,10 +126,10 @@ h1 {
   background: rgba(0, 0, 0, 0.17);
 }
 
-.status-card strong {
+.home-status-card strong {
   display: block;
   margin: 10px 0;
-  font-size: 30px;
+  font-size: 38px;
   line-height: 1;
 }
 
@@ -138,7 +140,7 @@ h1 {
 
 .status-label,
 .status-detail,
-.section-card span,
+.section-card-action,
 .screen-title-block p,
 .section-heading p,
 .panel-head p,
@@ -169,13 +171,16 @@ h1 {
 
 .section-card {
   appearance: none;
-  display: block;
+  display: grid;
+  align-content: end;
   text-align: left;
-  min-height: 160px;
+  min-height: 230px;
   padding: 20px;
   border: 1px solid rgba(204, 204, 204, 0.09);
   border-radius: 14px;
-  background: rgba(204, 204, 204, 0.028);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(238, 238, 238, 0.055), transparent 34%),
+    rgba(204, 204, 204, 0.028);
   cursor: pointer;
   transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
@@ -196,6 +201,29 @@ h1 {
   transform: translateY(-2px);
 }
 
+.section-icon-wrap {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 28px;
+  border: 1px solid rgba(204, 204, 204, 0.1);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(205, 164, 198, 0.17), rgba(151, 164, 137, 0.12)),
+    rgba(0, 0, 0, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(238, 238, 238, 0.08),
+    0 14px 34px rgba(0, 0, 0, 0.18);
+}
+
+.section-icon-wrap img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+  opacity: 0.9;
+}
+
 .section-card h2 {
   margin: 0;
   font-size: 28px;
@@ -208,7 +236,7 @@ h1 {
   line-height: 1.4;
 }
 
-.section-card span {
+.section-card-action {
   display: block;
   margin-top: 18px;
   color: rgba(204, 204, 204, 0.42);
@@ -1453,7 +1481,7 @@ img.playlist-cover {
 }
 
 @media (max-width: 900px) {
-  .migration-panel,
+  .home-overview,
   .section-grid,
   .dashboard-grid,
   .dashboard-metrics,

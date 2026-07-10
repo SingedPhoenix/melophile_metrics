@@ -11,14 +11,14 @@ import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyLis
 import './styles.css';
 
 const sections = [
-  { key: 'fresh', name: 'fresh', description: 'new-release discovery and playlist harvesting' },
-  { key: 'pulse', name: 'pulse', description: 'rolling listening rankings and recent momentum' },
-  { key: 'gem-mines', name: 'gem mines', description: 'tiered favorites across tracks, artists, and albums' },
-  { key: 'past-tense', name: 'past tense', description: 'release-year playlist volumes and era analysis' },
-  { key: 'dashboard', name: 'dashboard', description: 'high-level listening health and visual summaries' },
-  { key: 'ghosted', name: 'ghosted', description: 'rediscovery queues for songs that fell quiet' },
-  { key: 'frisson', name: 'frisson', description: 'emotion-forward listening and song attachment' },
-  { key: 'settings', name: 'settings', description: 'connected accounts, local data, and appearance' }
+  { key: 'fresh', name: 'fresh', description: 'new-release discovery and playlist harvesting', icon: '/assets/icons/cherries.svg' },
+  { key: 'pulse', name: 'pulse', description: 'rolling listening rankings and recent momentum', icon: '/assets/icons/heartbeat-icon.svg' },
+  { key: 'gem-mines', name: 'gem mines', description: 'tiered favorites across tracks, artists, and albums', icon: '/assets/icons/diamond-gem-icon.svg' },
+  { key: 'past-tense', name: 'past tense', description: 'release-year playlist volumes and era analysis', icon: '/assets/icons/calendar-icon.svg' },
+  { key: 'dashboard', name: 'dashboard', description: 'high-level listening health and visual summaries', icon: '/assets/icons/stats.svg' },
+  { key: 'ghosted', name: 'ghosted', description: 'rediscovery queues for songs that fell quiet', icon: '/assets/icons/ghosted-clean.svg' },
+  { key: 'frisson', name: 'frisson', description: 'emotion-forward listening and song attachment', icon: '/assets/icons/emotions.svg' },
+  { key: 'settings', name: 'settings', description: 'connected accounts, local data, and appearance', icon: '/assets/icons/settings.svg' }
 ] as const;
 
 type SectionKey = (typeof sections)[number]['key'];
@@ -44,12 +44,12 @@ function App() {
       <header className="brand-header">
         <p className="brand-name">melophile metrics</p>
         <p className="brand-subtitle">your listening, quantified</p>
-        <p className="brand-note">react migration shell</p>
+        <p className="brand-note">desktop listening archive</p>
       </header>
 
       {activeSection !== 'home' && (
         <button className="back-button" type="button" onClick={() => setActiveSection('home')}>
-          back to sections
+          sections
         </button>
       )}
 
@@ -71,19 +71,18 @@ function App() {
         <PastTenseScreen />
       ) : (
         <>
-          <section className="migration-panel" aria-labelledby="migration-title">
+          <section className="home-overview" aria-labelledby="home-title">
             <div>
-              <p className="eyebrow">parallel renderer</p>
-              <h1 id="migration-title">the new architecture starts here</h1>
+              <p className="eyebrow">listening command center</p>
+              <h1 id="home-title">choose a listening lens</h1>
               <p className="intro">
-                This React/Vite renderer is intentionally separate from the current app. It gives us a safe place to
-                migrate screens into components while the vanilla HTML version remains available as the working fallback.
+                Browse your local scrobble history, release-year playlists, Spotify-linked rankings, and data settings
+                from one desktop workspace.
               </p>
             </div>
-            <div className="status-card">
-              <span className="status-label">current phase</span>
-              <strong>{activeSection === 'home' ? 'first slice' : activeSection}</strong>
-              <span className="status-detail">Past Tense is the first migrated component path</span>
+            <div className="home-status-card">
+              <span className="status-label">local archive</span>
+              <strong>{typeof scrobbleCount === 'number' ? scrobbleCount.toLocaleString() : 'checking'}</strong>
               <span className="status-detail data-status">{statusLabel}</span>
               {topListeningYear && (
                 <span className="status-detail data-status">
@@ -103,12 +102,15 @@ function App() {
             </div>
           </section>
 
-          <section className="section-grid" aria-label="Planned app sections">
+          <section className="section-grid" aria-label="App sections">
             {sections.map(section => (
               <button className="section-card" key={section.name} type="button" onClick={() => setActiveSection(section.key)}>
+                <span className="section-icon-wrap">
+                  <img src={section.icon} alt="" aria-hidden="true" />
+                </span>
                 <h2>{section.name}</h2>
                 <p>{section.description}</p>
-                <span>{isMigratedSection(section.key) ? 'open migrated slice' : 'queued for migration'}</span>
+                <span className="section-card-action">open</span>
               </button>
             ))}
           </section>
@@ -116,17 +118,6 @@ function App() {
       )}
     </main>
   );
-}
-
-function isMigratedSection(section: SectionKey) {
-  return section === 'dashboard'
-    || section === 'fresh'
-    || section === 'frisson'
-    || section === 'gem-mines'
-    || section === 'ghosted'
-    || section === 'past-tense'
-    || section === 'pulse'
-    || section === 'settings';
 }
 
 export default App;

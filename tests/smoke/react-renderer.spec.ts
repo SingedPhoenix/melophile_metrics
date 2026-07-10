@@ -42,8 +42,8 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
   await page.goto('/dist/renderer/index.html');
 
   await expect(page.getByText('melophile metrics')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'the new architecture starts here' })).toBeVisible();
-  await expect(page.getByText('react migration shell')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'choose a listening lens' })).toBeVisible();
+  await expect(page.getByText('desktop listening archive')).toBeVisible();
   await expect(page.getByText('173,971 sqlite scrobbles')).toBeVisible();
   await expect(page.getByText('top year 2020 · 25,468 listens')).toBeVisible();
   await expect(page.getByText('top artist the midnight · 2,048 listens')).toBeVisible();
