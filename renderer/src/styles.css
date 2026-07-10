@@ -894,6 +894,61 @@ h1 {
   color: rgba(204, 204, 204, 0.38);
 }
 
+.match-watchlist {
+  margin: 0 0 22px;
+}
+
+.match-watchlist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.match-watchlist-grid li {
+  display: grid;
+  grid-template-columns: minmax(96px, 0.72fr) minmax(90px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.match-watchlist-grid strong,
+.match-watchlist-grid small {
+  display: block;
+}
+
+.match-watchlist-grid small {
+  overflow: hidden;
+  margin-top: 3px;
+  color: rgba(204, 204, 204, 0.42);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.match-meter {
+  display: block;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(204, 204, 204, 0.08);
+}
+
+.match-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(151, 164, 137, 0.74), rgba(205, 164, 198, 0.9));
+}
+
 .playlist-family {
   padding: 18px;
 }
@@ -1501,6 +1556,7 @@ img.playlist-cover {
   .fresh-summary-grid,
   .frisson-summary,
   .ghosted-summary,
+  .match-watchlist-grid,
   .past-tense-stats,
   .pulse-layout,
   .settings-data-grid,

@@ -55,6 +55,13 @@ function PastTenseScreen() {
     () => [...metricRows].sort((a, b) => b.value - a.value || b.year - a.year).slice(0, 10),
     [metricRows]
   );
+  const weakMatches = useMemo(
+    () => playlists
+      .filter(playlist => Number(playlist.sqliteMatchTrackTotal || 0) > 0)
+      .sort((a, b) => matchRate(a) - matchRate(b) || b.year - a.year)
+      .slice(0, 6),
+    [playlists]
+  );
 
   return (
     <section className="past-tense-screen" aria-labelledby="past-tense-title">
@@ -72,6 +79,8 @@ function PastTenseScreen() {
         <TopYearsPanel label={label} metricSource={metricSource} rows={ranked} />
         <TrendPanel label={label} metricSource={metricSource} rows={metricRows} metric={metric} onMetricChange={setMetric} />
       </div>
+
+      {weakMatches.length > 0 && <MatchWatchlistPanel playlists={weakMatches} />}
 
       <section className="playlist-family" aria-labelledby="release-year-volumes">
         <div className="section-heading">
@@ -133,6 +142,43 @@ function sqliteMatchLabel(isLoadingScrobbles: boolean, hasSqliteCounts: boolean,
     return ` · ${matchStats.matchedTracks.toLocaleString()}/${matchStats.totalTracks.toLocaleString()} sqlite-matched tracks`;
   }
   return hasSqliteCounts ? ' · sqlite listens' : '';
+}
+
+function MatchWatchlistPanel({ playlists }: { playlists: PastTensePlaylist[] }) {
+  return (
+    <section className="stats-panel match-watchlist" aria-labelledby="match-watchlist-title">
+      <div className="panel-head">
+        <div>
+          <h2 id="match-watchlist-title">match watchlist</h2>
+          <p>lowest SQLite coverage among cached playlists</p>
+        </div>
+      </div>
+      <ol className="match-watchlist-grid">
+        {playlists.map(playlist => {
+          const matched = playlist.sqliteMatchedTracks || 0;
+          const total = playlist.sqliteMatchTrackTotal || 0;
+          const percent = total ? Math.round((matched / total) * 100) : 0;
+          return (
+            <li key={playlist.id}>
+              <span>
+                <strong>{playlist.year}</strong>
+                <small>{playlist.name}</small>
+              </span>
+              <span className="match-meter" aria-label={`${matched} of ${total} tracks matched`}>
+                <span style={{ width: `${Math.max(4, percent)}%` }} />
+              </span>
+              <span className="metric-value">{matched}/{total} · {percent}%</span>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function matchRate(playlist: PastTensePlaylist) {
+  const total = playlist.sqliteMatchTrackTotal || 0;
+  return total ? (playlist.sqliteMatchedTracks || 0) / total : 1;
 }
 
 function TopYearsPanel({ label, metricSource, rows }: MetricPanelProps & { rows: AnnualMetricRow[] }) {

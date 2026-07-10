@@ -60,6 +60,12 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
         url: 'https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm',
         images: [],
         tracks: { total: 77 }
+      },
+      '3jHRYkH2s0sRFtlj0sZzrX': {
+        name: 'Vol. 1971 cached test',
+        url: 'https://open.spotify.com/playlist/3jHRYkH2s0sRFtlj0sZzrX',
+        images: [],
+        tracks: { total: 64 }
       }
     }));
     localStorage.setItem('melophile.pastTense.tracks.v1', JSON.stringify({
@@ -72,6 +78,13 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
             { name: 'one', artists: [{ name: 'cached artist' }] },
             { name: 'two', artists: [{ name: 'cached artist' }] },
             { name: 'three', artists: [{ name: 'cached artist' }] }
+          ]
+        },
+        '3jHRYkH2s0sRFtlj0sZzrX': {
+          total: 2,
+          tracks: [
+            { name: 'low match one', artists: [{ name: 'cached artist' }] },
+            { name: 'low match two', artists: [{ name: 'cached artist' }] }
           ]
         }
       }
@@ -86,10 +99,13 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
         trackCounts: {
           '6h8yLdFD25fBxgXuiIxqzm|||0': 10,
           '6h8yLdFD25fBxgXuiIxqzm|||1': 20,
-          '6h8yLdFD25fBxgXuiIxqzm|||2': 30
+          '6h8yLdFD25fBxgXuiIxqzm|||2': 30,
+          '3jHRYkH2s0sRFtlj0sZzrX|||0': 0,
+          '3jHRYkH2s0sRFtlj0sZzrX|||1': 12
         },
         playlistCounts: {
-          '6h8yLdFD25fBxgXuiIxqzm': 30000
+          '6h8yLdFD25fBxgXuiIxqzm': 30000,
+          '3jHRYkH2s0sRFtlj0sZzrX': 12
         }
       }),
       yearlyListeningRollups: async () => ({
@@ -128,16 +144,18 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'annual preference trend' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'songs' })).toHaveClass(/active/);
   await expect(page.locator('.playlist-grid .playlist-card')).toHaveCount(57);
-  await expect(page.getByText('1 playlists · 3 cached tracks')).toBeVisible();
-  await expect(page.getByText('Vol. 1970 cached test')).toBeVisible();
+  await expect(page.getByText('2 playlists · 5 cached tracks')).toBeVisible();
+  await expect(page.locator('.playlist-grid').getByText('Vol. 1970 cached test')).toBeVisible();
   await expect(page.getByText('1970 · 3 tracks · track cache')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'match watchlist' })).toBeVisible();
+  await expect(page.getByText('1/2 · 50%')).toBeVisible();
   await page.getByRole('link', { name: /Vol\. 1970 cached test on Spotify/ }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm');
 
   await page.getByRole('button', { name: 'scrobbles' }).click();
   await expect(page.getByRole('button', { name: 'scrobbles' })).toHaveClass(/active/);
   await expect(page.getByText('ranked by annual listening scrobbles')).toBeVisible();
-  await expect(page.getByText('1 playlists · 3 cached tracks · 3/3 sqlite-matched tracks')).toBeVisible();
+  await expect(page.getByText('2 playlists · 5 cached tracks · 4/5 sqlite-matched tracks')).toBeVisible();
   await expect(page.getByText('25,468 scrobbles')).toBeVisible();
 });
 

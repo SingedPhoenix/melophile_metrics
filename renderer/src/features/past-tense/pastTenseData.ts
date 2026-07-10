@@ -10,6 +10,8 @@ export type PastTensePlaylist = {
   scrobbleCount: number;
   scrobbleCountSource: 'sqlite' | 'fallback';
   songCountSource: 'cached-tracks' | 'spotify-playlist' | 'fallback';
+  sqliteMatchedTracks?: number;
+  sqliteMatchTrackTotal?: number;
 };
 
 export type PastTenseCacheStats = {
@@ -237,11 +239,20 @@ export function readPastTenseTrackRefs(): PastTenseTrackRef[] {
 
 export function applyTrackPlayCounts(playlists: PastTensePlaylist[], result: TrackPlayCountResult | null | undefined) {
   const playlistCounts = result?.playlistCounts || {};
+  const matchCounts = playlistTrackMatchCounts(result?.trackCounts || {});
   return playlists.map(playlist => {
     const count = Number(playlistCounts[playlist.id]);
-    if (!Number.isFinite(count) || count <= 0) return playlist;
+    const matchCount = matchCounts[playlist.id];
+    const matchFields = matchCount
+      ? {
+          sqliteMatchedTracks: matchCount.matched,
+          sqliteMatchTrackTotal: matchCount.total
+        }
+      : {};
+    if (!Number.isFinite(count) || count <= 0) return { ...playlist, ...matchFields };
     return {
       ...playlist,
+      ...matchFields,
       scrobbleCount: count,
       scrobbleCountSource: 'sqlite' as const
     };
@@ -257,6 +268,18 @@ export function summarizeTrackMatches(snapshot: PastTenseLiveSnapshot, result: T
     totalPlaylists: snapshot.stats.cachedPlaylists,
     totalTracks: snapshot.stats.cachedTracks
   };
+}
+
+function playlistTrackMatchCounts(trackCounts: Record<string, number>) {
+  return Object.entries(trackCounts).reduce<Record<string, { matched: number; total: number }>>((counts, [key, value]) => {
+    const playlistId = key.split('|||')[0];
+    if (!playlistId) return counts;
+    const current = counts[playlistId] || { matched: 0, total: 0 };
+    current.total += 1;
+    if (Number(value) > 0) current.matched += 1;
+    counts[playlistId] = current;
+    return counts;
+  }, {});
 }
 
 export function valueForMetric(playlist: PastTensePlaylist, metric: PastTenseMetric) {
