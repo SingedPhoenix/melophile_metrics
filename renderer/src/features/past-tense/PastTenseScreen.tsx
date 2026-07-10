@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
 import {
+  applyTrackPlayCounts,
   labelForMetric,
   PastTenseCacheStats,
   PastTenseMetric,
   PastTensePlaylist,
   readPastTenseLiveSnapshot,
+  readPastTenseTrackRefs,
+  TrackPlayCountResult,
   valueForMetric
 } from './pastTenseData';
 
@@ -18,7 +21,11 @@ const metricOptions = [
 function PastTenseScreen() {
   const [metric, setMetric] = useState<PastTenseMetric>('songs');
   const [snapshot, setSnapshot] = useState(() => readPastTenseLiveSnapshot());
-  const playlists = snapshot.playlists;
+  const [trackPlayCounts, setTrackPlayCounts] = useState<TrackPlayCountResult | null>(null);
+  const playlists = useMemo(
+    () => applyTrackPlayCounts(snapshot.playlists, trackPlayCounts),
+    [snapshot.playlists, trackPlayCounts]
+  );
   const label = labelForMetric(metric);
   const ranked = useMemo(
     () => [...playlists].sort((a, b) => valueForMetric(b, metric) - valueForMetric(a, metric)).slice(0, 10),
@@ -26,10 +33,33 @@ function PastTenseScreen() {
   );
 
   useEffect(() => {
-    const refreshSnapshot = () => setSnapshot(readPastTenseLiveSnapshot());
+    const refreshSnapshot = () => {
+      setSnapshot(readPastTenseLiveSnapshot());
+      setTrackPlayCounts(null);
+    };
     window.addEventListener('storage', refreshSnapshot);
     return () => window.removeEventListener('storage', refreshSnapshot);
   }, []);
+
+  useEffect(() => {
+    const bridge = window.melophileDesktop;
+    if (!bridge?.trackPlayCounts) return;
+    const trackRefs = readPastTenseTrackRefs();
+    if (!trackRefs.length) return;
+
+    let canceled = false;
+    bridge.trackPlayCounts(trackRefs)
+      .then(result => {
+        if (!canceled) setTrackPlayCounts(result);
+      })
+      .catch(() => {
+        if (!canceled) setTrackPlayCounts(null);
+      });
+
+    return () => {
+      canceled = true;
+    };
+  }, [snapshot.stats.cachedTracks, snapshot.stats.updatedAtMs]);
 
   return (
     <section className="past-tense-screen" aria-labelledby="past-tense-title">
@@ -49,7 +79,14 @@ function PastTenseScreen() {
             <h2 id="release-year-volumes">release-year volumes</h2>
             <p>{playlists.length} release-year playlists mapped for migration</p>
           </div>
-          <CacheStatus stats={snapshot.stats} onRefresh={() => setSnapshot(readPastTenseLiveSnapshot())} />
+          <CacheStatus
+            hasSqliteCounts={playlists.some(playlist => playlist.scrobbleCountSource === 'sqlite')}
+            stats={snapshot.stats}
+            onRefresh={() => {
+              setSnapshot(readPastTenseLiveSnapshot());
+              setTrackPlayCounts(null);
+            }}
+          />
         </div>
         <div className="playlist-grid">
           {playlists.map(playlist => (
@@ -66,14 +103,22 @@ type MetricPanelProps = {
   metric: PastTenseMetric;
 };
 
-function CacheStatus({ stats, onRefresh }: { stats: PastTenseCacheStats; onRefresh: () => void }) {
+function CacheStatus({
+  hasSqliteCounts,
+  stats,
+  onRefresh
+}: {
+  hasSqliteCounts: boolean;
+  stats: PastTenseCacheStats;
+  onRefresh: () => void;
+}) {
   const cacheLabel = stats.cachedPlaylists
     ? `${stats.cachedPlaylists} playlists · ${stats.cachedTracks.toLocaleString()} cached tracks`
     : `${stats.playlistDetails} playlist records · cache pending`;
 
   return (
     <button className="status-chip is-button" type="button" onClick={onRefresh}>
-      {cacheLabel}
+      {cacheLabel}{hasSqliteCounts ? ' · sqlite listens' : ''}
     </button>
   );
 }

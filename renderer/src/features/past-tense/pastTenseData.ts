@@ -8,6 +8,7 @@ export type PastTensePlaylist = {
   imageUrl?: string;
   songCount: number;
   scrobbleCount: number;
+  scrobbleCountSource: 'sqlite' | 'fallback';
   songCountSource: 'cached-tracks' | 'spotify-playlist' | 'fallback';
 };
 
@@ -30,9 +31,26 @@ type CachedSpotifyPlaylist = {
   tracks?: { total?: number };
 };
 
+type CachedTrack = {
+  name?: string;
+  artists?: Array<{ name?: string }>;
+};
+
 type CachedTrackStore = {
   updatedAtMs?: number;
-  playlists?: Record<string, { total?: number; tracks?: unknown[]; updatedAtMs?: number }>;
+  playlists?: Record<string, { total?: number; tracks?: CachedTrack[]; updatedAtMs?: number }>;
+};
+
+export type PastTenseTrackRef = {
+  key: string;
+  playlistId: string;
+  trackName: string;
+  artists: string[];
+};
+
+export type TrackPlayCountResult = {
+  trackCounts?: Record<string, number>;
+  playlistCounts?: Record<string, number>;
 };
 
 const playlistCacheKey = 'melophile.pastTense.playlists.v2';
@@ -138,6 +156,7 @@ export const pastTensePlaylists: PastTensePlaylist[] = Object.entries(playlistId
     url: `https://open.spotify.com/playlist/${id}`,
     songCount,
     scrobbleCount: estimatedScrobbles(year, songCount),
+    scrobbleCountSource: 'fallback',
     songCountSource: 'fallback'
   };
 });
@@ -190,6 +209,36 @@ export function readPastTenseLiveSnapshot(): PastTenseLiveSnapshot {
       updatedAtMs: Number(trackStore.updatedAtMs) || 0
     }
   };
+}
+
+export function readPastTenseTrackRefs(): PastTenseTrackRef[] {
+  const trackStore = readJson<CachedTrackStore>(trackCacheKey, { playlists: {} });
+  return Object.entries(trackStore.playlists || {}).flatMap(([playlistId, entry]) =>
+    (entry.tracks || []).flatMap((track, index) => {
+      const trackName = String(track.name || '').trim();
+      const artists = (track.artists || []).map(artist => String(artist.name || '').trim()).filter(Boolean);
+      if (!trackName || !artists.length) return [];
+      return {
+        key: `${playlistId}|||${index}`,
+        playlistId,
+        trackName,
+        artists
+      };
+    })
+  );
+}
+
+export function applyTrackPlayCounts(playlists: PastTensePlaylist[], result: TrackPlayCountResult | null | undefined) {
+  const playlistCounts = result?.playlistCounts || {};
+  return playlists.map(playlist => {
+    const count = Number(playlistCounts[playlist.id]);
+    if (!Number.isFinite(count) || count <= 0) return playlist;
+    return {
+      ...playlist,
+      scrobbleCount: count,
+      scrobbleCountSource: 'sqlite' as const
+    };
+  });
 }
 
 export function valueForMetric(playlist: PastTensePlaylist, metric: PastTenseMetric) {

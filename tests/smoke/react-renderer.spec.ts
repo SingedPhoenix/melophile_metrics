@@ -26,10 +26,27 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
       playlists: {
         '6h8yLdFD25fBxgXuiIxqzm': {
           total: 3,
-          tracks: [{ name: 'one' }, { name: 'two' }, { name: 'three' }]
+          tracks: [
+            { name: 'one', artists: [{ name: 'cached artist' }] },
+            { name: 'two', artists: [{ name: 'cached artist' }] },
+            { name: 'three', artists: [{ name: 'cached artist' }] }
+          ]
         }
       }
     }));
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => null,
+      databaseStatus: async () => ({}),
+      importLastfmScrobbles: async () => ({}),
+      trackPlayCounts: async () => ({
+        trackCounts: {},
+        playlistCounts: {
+          '6h8yLdFD25fBxgXuiIxqzm': 30000
+        }
+      })
+    };
   });
   await page.goto('/dist/renderer/index.html');
 
@@ -47,4 +64,6 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await page.getByRole('button', { name: 'scrobbles' }).click();
   await expect(page.getByRole('button', { name: 'scrobbles' })).toHaveClass(/active/);
   await expect(page.getByText('ranked by playlist scrobbles')).toBeVisible();
+  await expect(page.getByText('1 playlists · 3 cached tracks · sqlite listens')).toBeVisible();
+  await expect(page.getByText('30,000 scrobbles')).toBeVisible();
 });

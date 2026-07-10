@@ -108,6 +108,38 @@ function databaseStatus() {
   };
 }
 
+function trackPlayCounts(trackRefs = []) {
+  const openedDb = requireDb();
+  const refs = Array.isArray(trackRefs) ? trackRefs.map(normalizeTrackRef).filter(Boolean) : [];
+  const uniqueKeys = new Set(refs.flatMap(ref => ref.artistKeys.map(artistKey => artistKey + '|||' + ref.trackKey)));
+  if (!uniqueKeys.size) return { trackCounts: {}, playlistCounts: {} };
+
+  const rows = openedDb.prepare(`
+    SELECT artist, track, COUNT(*) AS count
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY artist, track
+  `).all();
+
+  const sourceCounts = new Map();
+  rows.forEach(row => {
+    const key = normalizeText(row.artist) + '|||' + normalizeText(row.track);
+    if (!uniqueKeys.has(key)) return;
+    sourceCounts.set(key, (sourceCounts.get(key) || 0) + Number(row.count || 0));
+  });
+
+  const trackCounts = {};
+  const playlistCounts = {};
+  refs.forEach(ref => {
+    const count = ref.artistKeys.reduce((sum, artistKey) =>
+      sum + (sourceCounts.get(artistKey + '|||' + ref.trackKey) || 0), 0);
+    trackCounts[ref.key] = count;
+    playlistCounts[ref.playlistId] = (playlistCounts[ref.playlistId] || 0) + count;
+  });
+
+  return { trackCounts, playlistCounts };
+}
+
 function importLastfmScrobbles(rows, mode = 'manual') {
   const openedDb = requireDb();
   const startedAt = new Date().toISOString();
@@ -251,6 +283,34 @@ function normalizeLastfmRow(row) {
   return { sourceKey, playedAtUts, playedAtIso, artist, track, album, sourceHash };
 }
 
+function normalizeTrackRef(ref) {
+  if (!ref || !ref.playlistId || !ref.trackName) return null;
+  const artistKeys = (Array.isArray(ref.artists) ? ref.artists : [])
+    .map(artist => normalizeText(typeof artist === 'string' ? artist : artist && artist.name))
+    .filter(Boolean);
+  const trackKey = normalizeText(ref.trackName);
+  if (!artistKeys.length || !trackKey) return null;
+  const key = String(ref.key || `${ref.playlistId}|||${artistKeys.join('|')}|||${trackKey}`);
+  return {
+    key,
+    playlistId: String(ref.playlistId),
+    artistKeys,
+    trackKey
+  };
+}
+
+function normalizeText(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
 function hashParts(parts) {
   return crypto
     .createHash('sha256')
@@ -267,5 +327,6 @@ module.exports = {
   closeMelophileDatabase,
   databaseStatus,
   importLastfmScrobbles,
-  openMelophileDatabase
+  openMelophileDatabase,
+  trackPlayCounts
 };

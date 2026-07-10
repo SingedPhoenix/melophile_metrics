@@ -7,7 +7,8 @@ const {
   closeMelophileDatabase,
   databaseStatus,
   importLastfmScrobbles,
-  openMelophileDatabase
+  openMelophileDatabase,
+  trackPlayCounts
 } = require('./database');
 
 const APP_ROOT = path.join(__dirname, '..');
@@ -105,6 +106,11 @@ function registerDesktopHandlers() {
     const rows = Array.isArray(payload.rows) ? payload.rows : [];
     const mode = typeof payload.mode === 'string' ? payload.mode : 'manual';
     return importLastfmScrobbles(rows, mode);
+  });
+
+  ipcMain.handle('melophile:track-play-counts', async (_event, payload = {}) => {
+    const tracks = Array.isArray(payload.tracks) ? payload.tracks : [];
+    return trackPlayCounts(tracks);
   });
 }
 
