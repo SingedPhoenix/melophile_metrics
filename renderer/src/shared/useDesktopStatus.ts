@@ -92,6 +92,26 @@ export type GhostedTracks = {
   minListens: number;
 };
 
+export type LocalServiceConfig = {
+  lastfm?: {
+    username?: string;
+    apiKey?: string;
+  };
+  spotify?: {
+    clientId?: string;
+    clientSecret?: string;
+    redirectUri?: string;
+    refreshToken?: string;
+  };
+  listenbrainz?: {
+    username?: string;
+    token?: string;
+  };
+  musicbrainz?: {
+    contact?: string;
+  };
+};
+
 export function useDesktopStatus() {
   return useQuery({
     queryKey: ['desktop', 'database-status'],
@@ -100,6 +120,17 @@ export function useDesktopStatus() {
       return window.melophileDesktop.databaseStatus();
     },
     staleTime: 15_000
+  });
+}
+
+export function useLocalServiceConfig() {
+  return useQuery({
+    queryKey: ['desktop', 'local-service-config'],
+    queryFn: async (): Promise<LocalServiceConfig | null> => {
+      if (!window.melophileDesktop?.readLocalConfig) return null;
+      return window.melophileDesktop.readLocalConfig();
+    },
+    staleTime: 60_000
   });
 }
 

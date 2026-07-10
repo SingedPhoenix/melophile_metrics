@@ -5,7 +5,11 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
     window.melophileDesktop = {
       platform: 'test',
       isElectron: true,
-      readLocalConfig: async () => null,
+      readLocalConfig: async () => ({
+        lastfm: { username: 'singedphoenix', apiKey: 'present' },
+        spotify: { clientId: 'present', refreshToken: 'present' },
+        musicbrainz: { contact: 'melophile@example.com' }
+      }),
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
       importLastfmScrobbles: async () => ({}),
       trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
@@ -327,4 +331,54 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
   await page.getByRole('button', { name: '10+' }).click();
   await expect(page.getByRole('button', { name: '10+' })).toHaveClass(/active/);
   await expect(page.getByText('tracks with at least 10 listens')).toBeVisible();
+});
+
+test('react renderer opens migrated Settings slice', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => ({
+        lastfm: { username: 'singedphoenix', apiKey: 'present' },
+        spotify: { clientId: 'present', refreshToken: 'present' },
+        listenbrainz: { username: 'singedphoenix' },
+        musicbrainz: { contact: 'melophile@example.com' }
+      }),
+      databaseStatus: async () => ({
+        scrobbles: 173971,
+        revisions: 16619,
+        schemaVersion: 1,
+        lastSync: {
+          source: 'lastfm',
+          mode: 'lastfm-cache',
+          finished_at: '2026-07-09T22:00:00.000Z',
+          rows_seen: 173971,
+          rows_inserted: 0,
+          rows_updated: 12,
+          rows_unchanged: 173959,
+          status: 'complete',
+          message: 'last.fm scrobbles imported'
+        }
+      }),
+      importLastfmScrobbles: async () => ({}),
+      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      yearlyListeningRollups: async () => ({ years: [], topYears: [] }),
+      listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
+      recentListening: async () => ({ scrobbles: [] }),
+      ghostedTracks: async () => ({ minListens: 5, tracks: [] })
+    };
+  });
+  await page.goto('/dist/renderer/index.html');
+
+  await page.getByRole('button', { name: /settings/i }).click();
+
+  await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'connected accounts' })).toBeVisible();
+  await expect(page.getByText('signed as singedphoenix')).toBeVisible();
+  await page.getByRole('button', { name: 'data' }).click();
+  await expect(page.getByRole('heading', { name: 'local sqlite database' })).toBeVisible();
+  await expect(page.locator('.settings-data-grid').getByText('173,971')).toBeVisible();
+  await page.getByRole('button', { name: 'appearance' }).click();
+  await expect(page.getByRole('heading', { name: 'appearance' })).toBeVisible();
+  await expect(page.getByText('amethyst dusk')).toBeVisible();
 });

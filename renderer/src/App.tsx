@@ -4,6 +4,7 @@ import GemMinesScreen from './features/gem-mines/GemMinesScreen';
 import GhostedScreen from './features/ghosted/GhostedScreen';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
 import PulseScreen from './features/pulse/PulseScreen';
+import SettingsScreen from './features/settings/SettingsScreen';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
 
@@ -50,7 +51,9 @@ function App() {
         </button>
       )}
 
-      {activeSection === 'ghosted' ? (
+      {activeSection === 'settings' ? (
+        <SettingsScreen />
+      ) : activeSection === 'ghosted' ? (
         <GhostedScreen />
       ) : activeSection === 'gem-mines' ? (
         <GemMinesScreen />
@@ -110,7 +113,12 @@ function App() {
 }
 
 function isMigratedSection(section: SectionKey) {
-  return section === 'dashboard' || section === 'gem-mines' || section === 'ghosted' || section === 'past-tense' || section === 'pulse';
+  return section === 'dashboard'
+    || section === 'gem-mines'
+    || section === 'ghosted'
+    || section === 'past-tense'
+    || section === 'pulse'
+    || section === 'settings';
 }
 
 export default App;
