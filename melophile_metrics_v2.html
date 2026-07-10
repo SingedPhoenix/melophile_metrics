@@ -4148,8 +4148,127 @@
     color: rgba(204,204,204,0.34);
   }
 
+  .past-tense-stats-band {
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto 24px;
+    display: grid;
+    grid-template-columns: minmax(280px, 0.72fr) minmax(420px, 1.55fr);
+    gap: 16px;
+  }
+
+  .past-tense-stat-panel {
+    border: 1px solid rgba(204,204,204,0.08);
+    border-radius: 16px;
+    background: rgba(204,204,204,0.022);
+    padding: 22px;
+    min-width: 0;
+  }
+
+  .past-tense-stat-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .past-tense-stat-title {
+    font-family: 'Afacad', sans-serif;
+    font-size: 27px;
+    font-weight: 700;
+    color: rgba(238,238,238,0.92);
+    line-height: 1.05;
+  }
+
+  .past-tense-stat-sub {
+    margin-top: 5px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: rgba(204,204,204,0.38);
+  }
+
+  .past-tense-stat-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+  }
+
+  .past-tense-rank-list {
+    display: grid;
+    gap: 0;
+  }
+
+  .past-tense-rank-row {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(204,204,204,0.055);
+  }
+
+  .past-tense-rank-row:last-child {
+    border-bottom: none;
+  }
+
+  .past-tense-rank-row.is-current {
+    margin: 0 -12px;
+    padding-left: 12px;
+    padding-right: 12px;
+    border-radius: 10px;
+    background: rgba(204,204,204,0.055);
+  }
+
+  .past-tense-rank-number {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+    color: rgba(204,204,204,0.34);
+  }
+
+  .past-tense-rank-year {
+    font-family: 'Afacad', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: rgba(238,238,238,0.94);
+    line-height: 1.05;
+  }
+
+  .past-tense-rank-note {
+    margin-top: 3px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: rgba(204,204,204,0.38);
+  }
+
+  .past-tense-rank-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: rgba(204,204,204,0.62);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .past-tense-chart-wrap {
+    height: 320px;
+    min-height: 260px;
+  }
+
+  .past-tense-chart-wrap canvas {
+    width: 100%;
+    height: 100%;
+  }
+
   body.display-horizontal .past-tense-family {
     max-width: min(1760px, calc(100vw - 96px));
+  }
+
+  body.display-horizontal .past-tense-stats-band {
+    max-width: min(1760px, calc(100vw - 96px));
+    grid-template-columns: minmax(360px, 0.72fr) minmax(680px, 1.75fr);
   }
 
   body.display-horizontal .past-tense-grid {
@@ -4362,6 +4481,19 @@
   }
 
   @media (max-width: 980px) {
+    .past-tense-stats-band {
+      grid-template-columns: 1fr;
+    }
+
+    .past-tense-stat-head {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .past-tense-chart-wrap {
+      height: 260px;
+    }
+
     .past-tense-grid {
       grid-template-columns: repeat(2, minmax(120px, 1fr));
     }
@@ -5642,6 +5774,34 @@
     <div class="detail-title">past tense</div>
     <div class="section-subtitle">release-date playlist family</div>
 
+    <div class="past-tense-stats-band">
+      <div class="past-tense-stat-panel">
+        <div class="past-tense-stat-head">
+          <div>
+            <div class="past-tense-stat-title">top release years</div>
+            <div class="past-tense-stat-sub" id="pastTenseRankSub">ranked by playlist songs</div>
+          </div>
+        </div>
+        <div class="past-tense-rank-list" id="pastTenseRankList"></div>
+      </div>
+
+      <div class="past-tense-stat-panel">
+        <div class="past-tense-stat-head">
+          <div>
+            <div class="past-tense-stat-title">annual preference trend</div>
+            <div class="past-tense-stat-sub" id="pastTenseChartSub">playlist song count by release year</div>
+          </div>
+          <div class="past-tense-stat-toggle" id="pastTenseMetricPills">
+            <button class="pill active" type="button" data-past-tense-metric="songs" onclick="setPastTenseStatsMetric('songs')">songs</button>
+            <button class="pill" type="button" data-past-tense-metric="scrobbles" onclick="setPastTenseStatsMetric('scrobbles')">scrobbles</button>
+          </div>
+        </div>
+        <div class="past-tense-chart-wrap">
+          <canvas id="pastTenseTrendChart" height="320"></canvas>
+        </div>
+      </div>
+    </div>
+
     <div class="past-tense-family">
       <div class="seed-section-head">
         <div>
@@ -6423,6 +6583,8 @@ function refreshVisibleThemedCharts() {
     renderMetallurgyLab();
   } else if (active.id === 'screenTimeframe') {
     renderTimeframeChart(currentTf);
+  } else if (active.id === 'screenYearsReview') {
+    renderPastTenseStats();
   }
 }
 
@@ -7856,6 +8018,8 @@ let pastTenseTracksRefreshing = false;
 let pastTenseGenresHydrating = false;
 let selectedPastTensePlaylistId = null;
 let pastTenseArtistMetric = 'songs';
+let pastTenseStatsMetric = 'songs';
+let pastTenseTrendChart = null;
 
 function availableReviewYears() {
   return [...new Set(allScrobbles.map(scrobble => scrobble.playedAt.getFullYear()))]
@@ -7982,6 +8146,142 @@ function pastTensePlaylistFromDirectory(entry) {
   };
 }
 
+function pastTensePlaylistSongCount(entry) {
+  const cached = cachedPastTensePlaylistTracks(entry.id);
+  if (cached && cached.length) return cached.length;
+  const playlist = pastTensePlaylistCache[entry.id] || pastTensePlaylistFromDirectory(entry);
+  return playlist && playlist.tracks && typeof playlist.tracks.total === 'number' ? playlist.tracks.total : 0;
+}
+
+function pastTensePlaylistScrobbleCount(entry) {
+  const cached = cachedPastTensePlaylistTracks(entry.id);
+  if (!cached || !cached.length) return 0;
+  return cached.reduce((sum, track) => sum + pastTenseTrackScrobbleCount(track), 0);
+}
+
+function pastTenseStatsRows() {
+  return PAST_TENSE_PLAYLISTS.map(entry => ({
+    ...entry,
+    songs: pastTensePlaylistSongCount(entry),
+    scrobbles: pastTensePlaylistScrobbleCount(entry)
+  }));
+}
+
+function pastTenseMetricLabel(metric = pastTenseStatsMetric) {
+  return metric === 'scrobbles' ? 'scrobbles' : 'songs';
+}
+
+function setPastTenseStatsMetric(metric) {
+  pastTenseStatsMetric = metric === 'scrobbles' ? 'scrobbles' : 'songs';
+  renderPastTenseStats();
+}
+
+function renderPastTenseStats() {
+  const rankTarget = document.getElementById('pastTenseRankList');
+  const rankSub = document.getElementById('pastTenseRankSub');
+  const chartSub = document.getElementById('pastTenseChartSub');
+  if (!rankTarget) return;
+
+  document.querySelectorAll('#pastTenseMetricPills .pill').forEach(pill => {
+    pill.classList.toggle('active', pill.dataset.pastTenseMetric === pastTenseStatsMetric);
+  });
+
+  const metric = pastTenseStatsMetric;
+  const label = pastTenseMetricLabel(metric);
+  const rows = pastTenseStatsRows();
+  const ranked = rows.slice()
+    .sort((a, b) => b[metric] - a[metric] || b.year - a.year)
+    .slice(0, 10);
+
+  if (rankSub) rankSub.textContent = 'ranked by playlist ' + label;
+  if (chartSub) chartSub.textContent = 'playlist ' + label + ' by release year';
+
+  rankTarget.innerHTML = ranked.map((row, index) => {
+    const isCurrent = row.year === CY;
+    return '<div class="past-tense-rank-row' + (isCurrent ? ' is-current' : '') + '">' +
+      '<div class="past-tense-rank-number">#' + (index + 1) + '</div>' +
+      '<div>' +
+        '<div class="past-tense-rank-year">' + row.year + (isCurrent ? ' · current year' : '') + '</div>' +
+        '<div class="past-tense-rank-note">Vol. ' + row.year + '</div>' +
+      '</div>' +
+      '<div class="past-tense-rank-value">' + row[metric].toLocaleString() + ' ' + label + '</div>' +
+    '</div>';
+  }).join('');
+
+  renderPastTenseTrendChart(rows, metric);
+}
+
+function renderPastTenseTrendChart(rows, metric) {
+  const canvas = document.getElementById('pastTenseTrendChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (pastTenseTrendChart) {
+    pastTenseTrendChart.destroy();
+    pastTenseTrendChart = null;
+  }
+
+  const theme = themeChartColors();
+  const ctx = canvas.getContext('2d');
+  const label = pastTenseMetricLabel(metric);
+  pastTenseTrendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: rows.map(row => String(row.year)),
+      datasets: [{
+        label: label,
+        data: rows.map(row => row[metric]),
+        borderColor: theme.primary90,
+        backgroundColor: theme.primary18,
+        pointBackgroundColor: rows.map(row => row.year === CY ? theme.secondary78 : theme.primary90),
+        pointBorderColor: cssVarRgba('--silver', 0.22),
+        pointRadius: rows.map(row => row.year === CY ? 4.5 : 2.5),
+        pointHoverRadius: 5,
+        borderWidth: 2,
+        tension: 0.34,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: rgbaFromHex(theme.background, 0.9),
+          borderColor: theme.gridStrong,
+          borderWidth: 1,
+          titleColor: theme.text,
+          bodyColor: theme.muted,
+          callbacks: {
+            label: context => ' ' + Number(context.parsed.y || 0).toLocaleString() + ' ' + label
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: cssVarRgba('--silver', 0.045) },
+          ticks: {
+            color: theme.label42,
+            font: { family: 'DM Mono', size: 10 },
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 12
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: cssVarRgba('--silver', 0.06) },
+          ticks: {
+            color: theme.label42,
+            font: { family: 'DM Mono', size: 10 },
+            callback: value => Number(value).toLocaleString()
+          }
+        }
+      }
+    }
+  });
+}
+
 function renderPastTensePlaylists() {
   const target = document.getElementById('pastTensePlaylistGrid');
   const status = document.getElementById('pastTensePlaylistStatus');
@@ -8006,6 +8306,7 @@ function renderPastTensePlaylists() {
       '</button>';
   }).join('');
 
+  renderPastTenseStats();
   hydratePastTensePlaylists();
 }
 
@@ -8189,10 +8490,12 @@ async function refreshPastTensePlaylistContents(options = {}) {
       if (status) status.textContent = 'refreshing past tense cache · ' + entry.name + ' · ' + (i + 1).toLocaleString() + ' of ' + PAST_TENSE_PLAYLISTS.length.toLocaleString();
       const tracks = await loadSpotifyPlaylistTracks(entry.id);
       cachePastTensePlaylistTracks(entry.id, tracks);
+      renderPastTenseStats();
       if (selectedPastTensePlaylistId === entry.id) {
         renderPastTensePlaylistDetail(playlist, { tracks });
       }
     }
+    renderPastTenseStats();
     renderSeedScanSettings();
     if (!quiet) showCopyToast('past tense cache refreshed');
   } catch {
@@ -8450,6 +8753,7 @@ function renderPastTensePlaylistDetail(playlist, state = {}) {
 
 function initYearsReview() {
   renderPastTensePlaylists();
+  renderPastTenseStats();
   scheduleScrollControlUpdate();
 }
 
