@@ -11536,22 +11536,13 @@ async function resolveSpotifyEntityLink(type, name, artist) {
 
 function openSpotifyLink(link) {
   const normalized = normalizeSpotifyManualLink(link) || link;
-  const webUrl = /^spotify:/.test(normalized) ? spotifyExternalUrlFromUri(normalized) : normalized;
   if (/^spotify:/.test(normalized)) {
     window.location.assign(normalized);
-    if (webUrl) {
-      setTimeout(() => {
-        if (document.visibilityState === 'visible') window.open(webUrl, '_blank', 'noopener');
-      }, 900);
-    }
     return;
   }
   const spotifyUri = spotifyUriFromExternalUrl(normalized);
   if (spotifyUri) {
     window.location.assign(spotifyUri);
-    setTimeout(() => {
-      if (document.visibilityState === 'visible') window.open(normalized, '_blank', 'noopener');
-    }, 900);
     return;
   }
   window.open(normalized, '_blank', 'noopener');
