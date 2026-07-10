@@ -122,6 +122,24 @@ export type FreshOverview = {
   recentArtists: FreshRecentArtist[];
 };
 
+export type FrissonTrack = {
+  rank: number;
+  artist: string;
+  track: string;
+  album: string;
+  listens: number;
+  firstPlayedUts: number;
+  lastPlayedUts: number;
+  spanDays: number;
+  daysSinceLastPlayed: number;
+};
+
+export type FrissonOverview = {
+  repeatedTracks: FrissonTrack[];
+  enduringTracks: FrissonTrack[];
+  recentAnchors: FrissonTrack[];
+};
+
 export type LocalServiceConfig = {
   lastfm?: {
     username?: string;
@@ -214,6 +232,17 @@ export function useFreshOverview(albumLimit = 16, artistLimit = 12) {
     queryFn: async (): Promise<FreshOverview | null> => {
       if (!window.melophileDesktop?.freshOverview) return null;
       return window.melophileDesktop.freshOverview({ albumLimit, artistLimit });
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useFrissonOverview(limit = 12) {
+  return useQuery({
+    queryKey: ['desktop', 'frisson-overview', limit],
+    queryFn: async (): Promise<FrissonOverview | null> => {
+      if (!window.melophileDesktop?.frissonOverview) return null;
+      return window.melophileDesktop.frissonOverview({ limit });
     },
     staleTime: 60_000
   });

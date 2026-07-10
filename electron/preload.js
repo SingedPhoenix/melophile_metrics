@@ -11,5 +11,6 @@ contextBridge.exposeInMainWorld('melophileDesktop', {
   listeningRollups: () => ipcRenderer.invoke('melophile:listening-rollups'),
   recentListening: limit => ipcRenderer.invoke('melophile:recent-listening', { limit }),
   ghostedTracks: options => ipcRenderer.invoke('melophile:ghosted-tracks', options),
-  freshOverview: options => ipcRenderer.invoke('melophile:fresh-overview', options)
+  freshOverview: options => ipcRenderer.invoke('melophile:fresh-overview', options),
+  frissonOverview: options => ipcRenderer.invoke('melophile:frisson-overview', options)
 });

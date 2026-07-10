@@ -216,6 +216,7 @@ h1 {
 
 .dashboard-screen,
 .fresh-screen,
+.frisson-screen,
 .gem-mines-screen,
 .ghosted-screen,
 .past-tense-screen,
@@ -438,6 +439,140 @@ h1 {
 .fresh-album-tile span {
   margin-top: 8px;
   color: rgba(205, 164, 198, 0.7);
+}
+
+.frisson-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.frisson-hero span,
+.frisson-hero small,
+.frisson-hero p,
+.frisson-context,
+.frisson-mini-stat span {
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  color: rgba(204, 204, 204, 0.44);
+}
+
+.frisson-hero h2 {
+  overflow: hidden;
+  margin: 16px 0 8px;
+  font-size: clamp(42px, 6vw, 84px);
+  line-height: 0.92;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frisson-hero p {
+  overflow: hidden;
+  margin: 0 0 34px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frisson-hero strong {
+  display: block;
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: clamp(40px, 5vw, 72px);
+  line-height: 0.95;
+}
+
+.frisson-stat-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.frisson-mini-stat {
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.frisson-mini-stat strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 24px;
+  line-height: 1;
+}
+
+.frisson-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.frisson-list li {
+  display: grid;
+  grid-template-columns: 52px minmax(220px, 0.75fr) 190px minmax(240px, 1fr);
+  align-items: center;
+  gap: 14px;
+  min-height: 68px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(204, 204, 204, 0.06);
+}
+
+.frisson-list li:last-child {
+  border-bottom: none;
+}
+
+.frisson-title-block {
+  min-width: 0;
+}
+
+.frisson-title-block strong,
+.frisson-title-block small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frisson-title-block strong {
+  font-size: 20px;
+  line-height: 1.05;
+}
+
+.frisson-title-block small {
+  margin-top: 5px;
+  color: rgba(204, 204, 204, 0.42);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.frisson-bar-track {
+  display: block;
+  height: 36px;
+  overflow: hidden;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 999px;
+  background: rgba(204, 204, 204, 0.055);
+}
+
+.frisson-bar-fill {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 58px;
+  height: 100%;
+  padding: 0 12px;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(151, 164, 137, 0.78), rgba(205, 164, 198, 0.92));
+  box-shadow: inset 0 1px 0 rgba(238, 238, 238, 0.14);
+}
+
+.frisson-bar-fill span {
+  color: rgba(238, 238, 238, 0.96);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .settings-service-grid,
@@ -1325,6 +1460,7 @@ img.playlist-cover {
   .fresh-album-orbit,
   .fresh-panel-grid,
   .fresh-summary-grid,
+  .frisson-summary,
   .ghosted-summary,
   .past-tense-stats,
   .pulse-layout,
@@ -1389,6 +1525,11 @@ img.playlist-cover {
   }
 
   .ghosted-list li {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .frisson-list li {
     grid-template-columns: 1fr;
     gap: 8px;
   }

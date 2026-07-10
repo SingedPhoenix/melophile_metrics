@@ -432,3 +432,68 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'all-time album orbit' })).toBeVisible();
   await expect(page.getByText('endless summer')).toBeVisible();
 });
+
+test('react renderer opens migrated Frisson slice', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => null,
+      databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
+      importLastfmScrobbles: async () => ({}),
+      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      yearlyListeningRollups: async () => ({ years: [], topYears: [] }),
+      listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
+      recentListening: async () => ({ scrobbles: [] }),
+      ghostedTracks: async () => ({ minListens: 5, tracks: [] }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] }),
+      frissonOverview: async () => ({
+        repeatedTracks: [{
+          rank: 1,
+          artist: 'health',
+          track: 'you died',
+          album: 'rat wars',
+          listens: 512,
+          firstPlayedUts: 1609459200,
+          lastPlayedUts: 1783468800,
+          spanDays: 2014,
+          daysSinceLastPlayed: 3
+        }],
+        enduringTracks: [{
+          rank: 1,
+          artist: 'the midnight',
+          track: 'los angeles',
+          album: 'endless summer',
+          listens: 480,
+          firstPlayedUts: 1451606400,
+          lastPlayedUts: 1783468800,
+          spanDays: 3840,
+          daysSinceLastPlayed: 3
+        }],
+        recentAnchors: [{
+          rank: 1,
+          artist: 'health',
+          track: 'you died',
+          album: 'rat wars',
+          listens: 8,
+          firstPlayedUts: 1782864000,
+          lastPlayedUts: 1783468800,
+          spanDays: 7,
+          daysSinceLastPlayed: 3
+        }]
+      })
+    };
+  });
+  await page.goto('/dist/renderer/index.html');
+
+  await page.getByRole('button', { name: /frisson/i }).click();
+
+  await expect(page.getByRole('heading', { name: 'frisson' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'repeat-heavy tracks' })).toBeVisible();
+  await expect(page.locator('.frisson-list-panel').getByText('you died')).toBeVisible();
+  await page.getByRole('button', { name: 'enduring' }).click();
+  await expect(page.getByRole('heading', { name: 'enduring attachments' })).toBeVisible();
+  await expect(page.locator('.frisson-list-panel').getByText('los angeles')).toBeVisible();
+  await page.getByRole('button', { name: 'recent' }).click();
+  await expect(page.getByRole('heading', { name: 'recent anchors' })).toBeVisible();
+});

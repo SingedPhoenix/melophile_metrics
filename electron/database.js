@@ -286,6 +286,61 @@ function freshOverview(options = {}) {
   return { topAlbums, quietArtists, recentArtists };
 }
 
+function frissonOverview(options = {}) {
+  const openedDb = requireDb();
+  const limit = Math.max(1, Math.min(Number.parseInt(options.limit, 10) || 12, 50));
+  const nowUts = Math.floor(Date.now() / 1000);
+  const recentCutoff = nowUts - 30 * 86400;
+
+  const repeatedTracks = rankRows(openedDb.prepare(`
+    SELECT artist, track, album, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY artist, track
+    ORDER BY listens DESC, last_played_uts DESC, artist ASC, track ASC
+    LIMIT ?
+  `).all(limit).map(row => attachTrackMetrics(row, nowUts)));
+
+  const enduringTracks = rankRows(openedDb.prepare(`
+    SELECT artist, track, album, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY artist, track
+    HAVING listens >= 10
+    ORDER BY (last_played_uts - first_played_uts) DESC, listens DESC, artist ASC, track ASC
+    LIMIT ?
+  `).all(limit).map(row => attachTrackMetrics(row, nowUts)));
+
+  const recentAnchors = rankRows(openedDb.prepare(`
+    SELECT artist, track, album, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0 AND played_at_uts >= ?
+    GROUP BY artist, track
+    ORDER BY listens DESC, last_played_uts DESC, artist ASC, track ASC
+    LIMIT ?
+  `).all(recentCutoff, limit).map(row => attachTrackMetrics(row, nowUts)));
+
+  return { repeatedTracks, enduringTracks, recentAnchors };
+}
+
+function attachTrackMetrics(row, nowUts) {
+  const firstPlayedUts = Number(row.first_played_uts || 0);
+  const lastPlayedUts = Number(row.last_played_uts || 0);
+  const spanDays = firstPlayedUts && lastPlayedUts
+    ? Math.max(0, Math.floor((lastPlayedUts - firstPlayedUts) / 86400))
+    : 0;
+  return {
+    artist: row.artist,
+    track: row.track,
+    album: row.album || '',
+    listens: Number(row.listens || 0),
+    firstPlayedUts,
+    lastPlayedUts,
+    spanDays,
+    daysSinceLastPlayed: Math.max(0, Math.floor((nowUts - Number(row.last_played_uts || nowUts)) / 86400))
+  };
+}
+
 function trackPlayCounts(trackRefs = []) {
   const openedDb = requireDb();
   const refs = Array.isArray(trackRefs) ? trackRefs.map(normalizeTrackRef).filter(Boolean) : [];
@@ -509,6 +564,7 @@ module.exports = {
   closeMelophileDatabase,
   databaseStatus,
   freshOverview,
+  frissonOverview,
   ghostedTracks,
   importLastfmScrobbles,
   listeningRollups,

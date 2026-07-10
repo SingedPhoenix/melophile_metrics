@@ -7,6 +7,7 @@ const {
   closeMelophileDatabase,
   databaseStatus,
   freshOverview,
+  frissonOverview,
   ghostedTracks,
   importLastfmScrobbles,
   listeningRollups,
@@ -129,6 +130,8 @@ function registerDesktopHandlers() {
   ipcMain.handle('melophile:ghosted-tracks', async (_event, payload = {}) => ghostedTracks(payload));
 
   ipcMain.handle('melophile:fresh-overview', async (_event, payload = {}) => freshOverview(payload));
+
+  ipcMain.handle('melophile:frisson-overview', async (_event, payload = {}) => frissonOverview(payload));
 }
 
 async function findLocalConfigPath() {

@@ -2,6 +2,7 @@ import type { PastTenseTrackRef, TrackPlayCountResult } from './features/past-te
 import type {
   DesktopDatabaseStatus,
   FreshOverview,
+  FrissonOverview,
   GhostedTracks,
   ListeningRollups,
   LocalServiceConfig,
@@ -25,6 +26,7 @@ declare global {
       recentListening: (limit?: number) => Promise<RecentListening>;
       ghostedTracks: (options?: { limit?: number; minListens?: number }) => Promise<GhostedTracks>;
       freshOverview: (options?: { albumLimit?: number; artistLimit?: number }) => Promise<FreshOverview>;
+      frissonOverview: (options?: { limit?: number }) => Promise<FrissonOverview>;
     };
   }
 }
