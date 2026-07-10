@@ -1,5 +1,10 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
+import {
+  readPastTenseLiveSnapshot,
+  refreshPastTenseCache,
+  type PastTenseRefreshProgress
+} from '../past-tense/pastTenseData';
 import { useDesktopStatus, useLocalServiceConfig } from '../../shared/useDesktopStatus';
 
 type SettingsTab = 'accounts' | 'data' | 'appearance';
@@ -23,6 +28,10 @@ const themes = [
 
 function SettingsScreen() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('accounts');
+  const [pastTenseSnapshot, setPastTenseSnapshot] = useState(() => readPastTenseLiveSnapshot());
+  const [pastTenseRefreshState, setPastTenseRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
+  const [pastTenseProgress, setPastTenseProgress] = useState<PastTenseRefreshProgress | null>(null);
+  const [pastTenseMessage, setPastTenseMessage] = useState('');
   const desktopStatus = useDesktopStatus();
   const localConfig = useLocalServiceConfig();
   const status = desktopStatus.data;
@@ -49,6 +58,27 @@ function SettingsScreen() {
       detail: config?.musicbrainz?.contact || 'contact string for catalog lookups'
     }
   ]), [config]);
+  const refreshPastTense = async () => {
+    setPastTenseRefreshState('running');
+    setPastTenseMessage('starting past tense cache refresh');
+    setPastTenseProgress(null);
+    try {
+      const result = await refreshPastTenseCache({
+        clientId: config?.spotify?.clientId,
+        force: true,
+        onProgress: progress => {
+          setPastTenseProgress(progress);
+          setPastTenseMessage(`refreshing ${progress.label} · ${progress.current}/${progress.total}`);
+        }
+      });
+      setPastTenseSnapshot(readPastTenseLiveSnapshot());
+      setPastTenseRefreshState('complete');
+      setPastTenseMessage(`${result.cachedPlaylists.toLocaleString()} playlists · ${result.cachedTracks.toLocaleString()} tracks cached`);
+    } catch (error) {
+      setPastTenseRefreshState('error');
+      setPastTenseMessage(error instanceof Error ? error.message : 'past tense cache refresh failed');
+    }
+  };
 
   return (
     <section className="settings-screen" aria-labelledby="settings-title">
@@ -116,6 +146,37 @@ function SettingsScreen() {
               <dd>{status?.path || 'pending'}</dd>
             </div>
           </dl>
+          <section className="settings-maintenance-panel" aria-labelledby="past-tense-cache-title">
+            <div>
+              <h3 id="past-tense-cache-title">past tense cache</h3>
+              <p>
+                Spotify release-year playlist details and tracks used by the React Past Tense view.
+              </p>
+            </div>
+            <div className="settings-maintenance-metrics">
+              <DataMetric label="cached playlists" value={formatNumber(pastTenseSnapshot.stats.cachedPlaylists)} />
+              <DataMetric label="cached tracks" value={formatNumber(pastTenseSnapshot.stats.cachedTracks)} />
+              <DataMetric label="last refreshed" value={formatDateFromMs(pastTenseSnapshot.stats.updatedAtMs)} />
+            </div>
+            {pastTenseProgress && (
+              <span className="settings-progress" aria-label="Past Tense refresh progress">
+                <span style={{ width: `${Math.max(2, Math.round((pastTenseProgress.current / pastTenseProgress.total) * 100))}%` }} />
+              </span>
+            )}
+            <div className="settings-maintenance-actions">
+              <button
+                className="status-chip is-button"
+                disabled={pastTenseRefreshState === 'running'}
+                type="button"
+                onClick={refreshPastTense}
+              >
+                {pastTenseRefreshState === 'running' ? 'refreshing past tense cache' : 'refresh past tense cache'}
+              </button>
+              <span className={`settings-maintenance-status ${pastTenseRefreshState}`}>
+                {pastTenseMessage || 'uses the existing local Spotify authorization cache'}
+              </span>
+            </div>
+          </section>
         </article>
       )}
 
@@ -162,6 +223,11 @@ function formatDate(value: string | undefined) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'pending';
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatDateFromMs(value: number | undefined) {
+  if (!value) return 'pending';
+  return formatDate(new Date(value).toISOString());
 }
 
 export default SettingsScreen;

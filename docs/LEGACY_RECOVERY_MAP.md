@@ -37,18 +37,20 @@ Restored in React:
 - Per-playlist top genre summary from cached Spotify artist genre data.
 - Per-playlist top artist images from cached Spotify artist data.
 - Per-playlist track gem badges from SQLite all-time rank bands.
+- Manual Past Tense cache refresh controls in the React Settings/Data area.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
 - Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, track opening, top genre, artist image, and gem badge.
+- Smoke coverage for React Settings/Data Past Tense cache refresh.
 
 Still To Recover:
 
 - Spotify artist genre/image hydration for Past Tense detail views.
-- Manual and scheduled Past Tense cache refresh controls in the React Settings/Data area.
+- Scheduled Past Tense cache refresh controls in the React Settings/Data area.
 
 Recommended migration order:
 
 1. Reconnect artist genre/image hydration after the detail view is stable.
-2. Move cache refresh controls from legacy Settings into React Settings/Data.
+2. Move scheduled cache refresh controls from legacy Settings into React Settings/Data.
 3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next

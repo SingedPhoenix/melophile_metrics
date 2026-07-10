@@ -447,7 +447,53 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
 });
 
 test('react renderer opens migrated Settings slice', async ({ page }) => {
+  await page.route('https://api.spotify.com/**', async route => {
+    const url = new URL(route.request().url());
+    const playlistMatch = url.pathname.match(/\/v1\/playlists\/([^/]+)$/);
+    const tracksMatch = url.pathname.match(/\/v1\/playlists\/([^/]+)\/tracks$/);
+    if (playlistMatch) {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          id: playlistMatch[1],
+          name: `Vol. ${playlistMatch[1].slice(0, 4)}`,
+          uri: `spotify:playlist:${playlistMatch[1]}`,
+          external_urls: { spotify: `https://open.spotify.com/playlist/${playlistMatch[1]}` },
+          images: [],
+          tracks: { total: 1 }
+        }
+      });
+      return;
+    }
+    if (tracksMatch) {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          items: [{
+            track: {
+              id: `track-${tracksMatch[1]}`,
+              name: 'cached refresh track',
+              uri: `spotify:track:${tracksMatch[1]}`,
+              duration_ms: 180000,
+              artists: [{ id: 'artist-refresh', name: 'refresh artist' }],
+              album: { name: 'refresh album', images: [] }
+            }
+          }],
+          next: null,
+          total: 1
+        }
+      });
+      return;
+    }
+    await route.fulfill({ status: 404, body: '{}' });
+  });
   await page.addInitScript(() => {
+    localStorage.setItem('melophile.spotify.clientId', 'present');
+    localStorage.setItem('melophile.spotify.token', JSON.stringify({
+      access_token: 'test-access-token',
+      refresh_token: 'test-refresh-token',
+      expires_at: Date.now() + 3600000
+    }));
     window.melophileDesktop = {
       platform: 'test',
       isElectron: true,
@@ -492,6 +538,13 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await page.getByRole('button', { name: 'data' }).click();
   await expect(page.getByRole('heading', { name: 'local sqlite database' })).toBeVisible();
   await expect(page.locator('.settings-data-grid').getByText('173,971')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'past tense cache' })).toBeVisible();
+  await page.getByRole('button', { name: 'refresh past tense cache' }).click();
+  await expect(page.getByText('57 playlists · 57 tracks cached')).toBeVisible({ timeout: 12000 });
+  await expect.poll(() => page.evaluate(() => {
+    const stored = JSON.parse(localStorage.getItem('melophile.pastTense.tracks.v1') || '{}');
+    return Object.keys(stored.playlists || {}).length;
+  })).toBe(57);
   await page.getByRole('button', { name: 'appearance' }).click();
   await expect(page.getByRole('heading', { name: 'appearance' })).toBeVisible();
   await expect(page.getByText('amethyst dusk')).toBeVisible();

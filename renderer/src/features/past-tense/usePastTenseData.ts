@@ -29,7 +29,11 @@ export function usePastTenseData() {
       queryClient.invalidateQueries({ queryKey: pastTenseSnapshotQueryKey });
     };
     window.addEventListener('storage', refreshSnapshot);
-    return () => window.removeEventListener('storage', refreshSnapshot);
+    window.addEventListener('melophile:past-tense-cache-updated', refreshSnapshot);
+    return () => {
+      window.removeEventListener('storage', refreshSnapshot);
+      window.removeEventListener('melophile:past-tense-cache-updated', refreshSnapshot);
+    };
   }, [queryClient]);
 
   const snapshot = snapshotQuery.data;

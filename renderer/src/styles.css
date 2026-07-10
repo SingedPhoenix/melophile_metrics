@@ -812,6 +812,70 @@ h1 {
   color: rgba(238, 238, 238, 0.82);
 }
 
+.settings-maintenance-panel {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(204, 204, 204, 0.08);
+}
+
+.settings-maintenance-panel h3 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.settings-maintenance-panel p,
+.settings-maintenance-status {
+  margin: 8px 0 0;
+  color: rgba(204, 204, 204, 0.48);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.settings-maintenance-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-maintenance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.settings-maintenance-actions .status-chip:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.settings-maintenance-status.complete {
+  color: rgba(151, 164, 137, 0.78);
+}
+
+.settings-maintenance-status.error {
+  color: rgba(205, 164, 198, 0.82);
+}
+
+.settings-progress {
+  display: block;
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 999px;
+  background: rgba(204, 204, 204, 0.055);
+}
+
+.settings-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(205, 164, 198, 0.88), rgba(151, 164, 137, 0.78));
+}
+
 .theme-library-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -1936,6 +2000,7 @@ img.playlist-cover {
   .past-tense-stats,
   .pulse-layout,
   .settings-data-grid,
+  .settings-maintenance-metrics,
   .settings-service-grid,
   .theme-library-grid {
     grid-template-columns: 1fr;
