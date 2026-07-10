@@ -29,26 +29,29 @@ Restored in React:
 - Spotify opening for playlist cards and unmatched sample searches.
 - SQLite scrobble counts matched against cached playlist tracks.
 - Match watchlist for low-coverage cached playlists.
+- Playlist drill-in view from release-year cards using cached Spotify track data.
+- Playlist detail hero with cover art, back navigation, open-in-Spotify action, and cache-pending state.
+- Per-playlist summary cards for tracks, artists, albums, rank among years, duration, and SQLite listens.
+- Per-playlist top artists panel with songs/scrobbles toggle.
+- Per-playlist track list with rank, title, artist, album, duration, scrobble count, and Spotify opening.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
+- Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, and track opening.
 
 Still To Recover:
 
-- Playlist drill-in route/view when a release-year card is clicked.
-- Playlist detail hero with cover art, open-in-Spotify action, loading state, and error state.
-- Per-playlist summary cards: tracks, artists, albums, rank among years, total duration, and top genre.
-- Per-playlist top artists panel with songs/scrobbles toggle and artist images from Spotify artist genre cache.
-- Per-playlist track list with rank, title, artists, album, duration, scrobble count, and gem badge.
+- Per-playlist top genre summary.
+- Per-playlist top artist images from Spotify artist genre cache.
+- Per-playlist gem badges.
 - Spotify artist genre/image hydration for Past Tense detail views.
 - Manual and scheduled Past Tense cache refresh controls in the React Settings/Data area.
 
 Recommended migration order:
 
-1. Add a React Past Tense selected-year detail view using the existing cached tracks in localStorage.
-2. Restore detail summary calculations without making new network calls.
-3. Restore the per-playlist top artists panel and metric toggle.
-4. Restore the full track list and Spotify open/play behavior for tracks.
-5. Reconnect artist genre/image hydration after the detail view is stable.
-6. Move cache refresh controls from legacy Settings into React Settings/Data.
+1. Reconnect artist genre/image hydration after the detail view is stable.
+2. Restore top genre and artist image presentation in the playlist detail view.
+3. Restore gem badges on playlist tracks.
+4. Move cache refresh controls from legacy Settings into React Settings/Data.
+5. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
 
