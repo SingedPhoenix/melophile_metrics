@@ -12,7 +12,13 @@ export type PastTensePlaylist = {
   songCountSource: 'cached-tracks' | 'spotify-playlist' | 'fallback';
   sqliteMatchedTracks?: number;
   sqliteMatchTrackTotal?: number;
-  sqliteUnmatchedSamples?: string[];
+  sqliteUnmatchedSamples?: PastTenseUnmatchedSample[];
+};
+
+export type PastTenseUnmatchedSample = {
+  trackName: string;
+  artists: string[];
+  label: string;
 };
 
 export type PastTenseCacheStats = {
@@ -290,11 +296,15 @@ function playlistTrackMatchCounts(trackCounts: Record<string, number>) {
 }
 
 function playlistUnmatchedSamples(trackCounts: Record<string, number>, trackRefs: PastTenseTrackRef[]) {
-  return trackRefs.reduce<Record<string, string[]>>((samples, ref) => {
+  return trackRefs.reduce<Record<string, PastTenseUnmatchedSample[]>>((samples, ref) => {
     if (Number(trackCounts[ref.key]) > 0) return samples;
     const current = samples[ref.playlistId] || [];
     if (current.length >= 3) return samples;
-    current.push(`${ref.trackName} · ${ref.artists.join(', ')}`);
+    current.push({
+      trackName: ref.trackName,
+      artists: ref.artists,
+      label: `${ref.trackName} · ${ref.artists.join(', ')}`
+    });
     samples[ref.playlistId] = current;
     return samples;
   }, {});

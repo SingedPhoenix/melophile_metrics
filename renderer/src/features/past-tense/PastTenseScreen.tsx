@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
-import { openSpotifyUrl } from '../../shared/spotifyLinks';
+import { openSpotifySearch, openSpotifyUrl } from '../../shared/spotifyLinks';
 import { useDesktopStatus, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
 import {
   labelForMetric,
@@ -170,7 +170,15 @@ function MatchWatchlistPanel({ playlists }: { playlists: PastTensePlaylist[] }) 
               <span className="metric-value">{matched}/{total} · {percent}%</span>
               {Boolean(playlist.sqliteUnmatchedSamples?.length) && (
                 <span className="match-samples">
-                  {playlist.sqliteUnmatchedSamples?.join(' / ')}
+                  {playlist.sqliteUnmatchedSamples?.map(sample => (
+                    <button
+                      key={`${playlist.id}-${sample.label}`}
+                      type="button"
+                      onClick={() => openSpotifySearch('track', sample.trackName, sample.artists[0] || '')}
+                    >
+                      {sample.label}
+                    </button>
+                  ))}
                 </span>
               )}
             </li>

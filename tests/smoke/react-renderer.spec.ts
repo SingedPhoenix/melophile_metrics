@@ -150,6 +150,8 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'match watchlist' })).toBeVisible();
   await expect(page.getByText('1/2 · 50%')).toBeVisible();
   await expect(page.getByText('low match one · cached artist')).toBeVisible();
+  await page.getByRole('button', { name: 'low match one · cached artist' }).click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:search:low%20match%20one%20cached%20artist');
   await page.getByRole('link', { name: /Vol\. 1970 cached test on Spotify/ }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm');
 
