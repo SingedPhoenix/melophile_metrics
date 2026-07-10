@@ -83,7 +83,11 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
       importLastfmScrobbles: async () => ({}),
       trackPlayCounts: async () => ({
-        trackCounts: {},
+        trackCounts: {
+          '6h8yLdFD25fBxgXuiIxqzm|||0': 10,
+          '6h8yLdFD25fBxgXuiIxqzm|||1': 20,
+          '6h8yLdFD25fBxgXuiIxqzm|||2': 30
+        },
         playlistCounts: {
           '6h8yLdFD25fBxgXuiIxqzm': 30000
         }
@@ -133,7 +137,7 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await page.getByRole('button', { name: 'scrobbles' }).click();
   await expect(page.getByRole('button', { name: 'scrobbles' })).toHaveClass(/active/);
   await expect(page.getByText('ranked by annual listening scrobbles')).toBeVisible();
-  await expect(page.getByText('1 playlists · 3 cached tracks · sqlite listens')).toBeVisible();
+  await expect(page.getByText('1 playlists · 3 cached tracks · 3/3 sqlite-matched tracks')).toBeVisible();
   await expect(page.getByText('25,468 scrobbles')).toBeVisible();
 });
 

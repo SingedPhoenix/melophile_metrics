@@ -4,6 +4,7 @@ import {
   applyTrackPlayCounts,
   readPastTenseLiveSnapshot,
   readPastTenseTrackRefs,
+  summarizeTrackMatches,
   TrackPlayCountResult
 } from './pastTenseData';
 
@@ -48,10 +49,15 @@ export function usePastTenseData() {
     () => applyTrackPlayCounts(snapshot.playlists, trackCountQuery.data),
     [snapshot.playlists, trackCountQuery.data]
   );
+  const matchStats = useMemo(
+    () => summarizeTrackMatches(snapshot, trackCountQuery.data),
+    [snapshot, trackCountQuery.data]
+  );
 
   return {
     invalidate: () => queryClient.invalidateQueries({ queryKey: pastTenseSnapshotQueryKey }),
     isLoadingScrobbles: trackCountQuery.isFetching,
+    matchStats,
     playlists,
     snapshot
   };

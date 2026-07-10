@@ -53,6 +53,13 @@ export type TrackPlayCountResult = {
   playlistCounts?: Record<string, number>;
 };
 
+export type PastTenseMatchStats = {
+  matchedPlaylists: number;
+  matchedTracks: number;
+  totalPlaylists: number;
+  totalTracks: number;
+};
+
 const playlistCacheKey = 'melophile.pastTense.playlists.v2';
 const trackCacheKey = 'melophile.pastTense.tracks.v1';
 
@@ -239,6 +246,17 @@ export function applyTrackPlayCounts(playlists: PastTensePlaylist[], result: Tra
       scrobbleCountSource: 'sqlite' as const
     };
   });
+}
+
+export function summarizeTrackMatches(snapshot: PastTenseLiveSnapshot, result: TrackPlayCountResult | null | undefined): PastTenseMatchStats | null {
+  if (!result?.trackCounts) return null;
+  const playlistCounts = result.playlistCounts || {};
+  return {
+    matchedPlaylists: Object.values(playlistCounts).filter(count => Number(count) > 0).length,
+    matchedTracks: Object.values(result.trackCounts).filter(count => Number(count) > 0).length,
+    totalPlaylists: snapshot.stats.cachedPlaylists,
+    totalTracks: snapshot.stats.cachedTracks
+  };
 }
 
 export function valueForMetric(playlist: PastTensePlaylist, metric: PastTenseMetric) {

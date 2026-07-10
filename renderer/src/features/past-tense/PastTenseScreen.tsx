@@ -5,6 +5,7 @@ import { useDesktopStatus, useYearlyListeningRollups } from '../../shared/useDes
 import {
   labelForMetric,
   PastTenseCacheStats,
+  PastTenseMatchStats,
   PastTenseMetric,
   PastTensePlaylist,
   valueForMetric
@@ -25,7 +26,7 @@ type AnnualMetricRow = {
 
 function PastTenseScreen() {
   const [metric, setMetric] = useState<PastTenseMetric>('songs');
-  const { invalidate, isLoadingScrobbles, playlists, snapshot } = usePastTenseData();
+  const { invalidate, isLoadingScrobbles, matchStats, playlists, snapshot } = usePastTenseData();
   const desktopStatus = useDesktopStatus();
   const yearlyRollups = useYearlyListeningRollups();
   const scrobbleCount = desktopStatus.data?.scrobbles;
@@ -81,6 +82,7 @@ function PastTenseScreen() {
           <CacheStatus
             hasSqliteCounts={playlists.some(playlist => playlist.scrobbleCountSource === 'sqlite')}
             isLoadingScrobbles={isLoadingScrobbles}
+            matchStats={matchStats}
             stats={snapshot.stats}
             onRefresh={invalidate}
           />
@@ -103,24 +105,34 @@ type MetricPanelProps = {
 function CacheStatus({
   hasSqliteCounts,
   isLoadingScrobbles,
+  matchStats,
   stats,
   onRefresh
 }: {
   hasSqliteCounts: boolean;
   isLoadingScrobbles: boolean;
+  matchStats: PastTenseMatchStats | null;
   stats: PastTenseCacheStats;
   onRefresh: () => void;
 }) {
   const cacheLabel = stats.cachedPlaylists
     ? `${stats.cachedPlaylists} playlists · ${stats.cachedTracks.toLocaleString()} cached tracks`
     : `${stats.playlistDetails} playlist records · cache pending`;
-  const sqliteLabel = isLoadingScrobbles ? ' · loading sqlite' : hasSqliteCounts ? ' · sqlite listens' : '';
+  const sqliteLabel = sqliteMatchLabel(isLoadingScrobbles, hasSqliteCounts, matchStats);
 
   return (
     <button className="status-chip is-button" type="button" onClick={onRefresh}>
       {cacheLabel}{sqliteLabel}
     </button>
   );
+}
+
+function sqliteMatchLabel(isLoadingScrobbles: boolean, hasSqliteCounts: boolean, matchStats: PastTenseMatchStats | null) {
+  if (isLoadingScrobbles) return ' · loading sqlite';
+  if (matchStats?.totalTracks) {
+    return ` · ${matchStats.matchedTracks.toLocaleString()}/${matchStats.totalTracks.toLocaleString()} sqlite-matched tracks`;
+  }
+  return hasSqliteCounts ? ' · sqlite listens' : '';
 }
 
 function TopYearsPanel({ label, metricSource, rows }: MetricPanelProps & { rows: AnnualMetricRow[] }) {
