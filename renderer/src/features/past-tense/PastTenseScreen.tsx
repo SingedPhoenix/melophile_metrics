@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
+import { openSpotifyUrl } from '../../shared/spotifyLinks';
 import { useDesktopStatus, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
 import {
   labelForMetric,
@@ -195,7 +196,15 @@ function PlaylistCard({ playlist }: { playlist: PastTensePlaylist }) {
     : <div className={`playlist-cover ${decadeClass}`} aria-hidden="true">'{String(playlist.year).slice(2)}</div>;
 
   return (
-    <a className="playlist-card" href={playlist.url} aria-label={`${playlist.name} on Spotify`}>
+    <a
+      className="playlist-card"
+      href={playlist.url}
+      aria-label={`${playlist.name} on Spotify`}
+      onClick={event => {
+        event.preventDefault();
+        openSpotifyUrl(playlist.url);
+      }}
+    >
       {cover}
       <strong>{playlist.name}</strong>
       <span>{playlist.year} · {playlist.songCount.toLocaleString()} tracks · {songCountSourceLabel(playlist.songCountSource)}</span>

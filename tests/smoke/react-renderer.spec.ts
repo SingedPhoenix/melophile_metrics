@@ -127,6 +127,8 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await expect(page.getByText('1 playlists · 3 cached tracks')).toBeVisible();
   await expect(page.getByText('Vol. 1970 cached test')).toBeVisible();
   await expect(page.getByText('1970 · 3 tracks · track cache')).toBeVisible();
+  await page.getByRole('link', { name: /Vol\. 1970 cached test on Spotify/ }).click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm');
 
   await page.getByRole('button', { name: 'scrobbles' }).click();
   await expect(page.getByRole('button', { name: 'scrobbles' })).toHaveClass(/active/);
