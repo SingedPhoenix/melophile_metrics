@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
+import PulseScreen from './features/pulse/PulseScreen';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
 
@@ -46,7 +47,9 @@ function App() {
         </button>
       )}
 
-      {activeSection === 'past-tense' ? (
+      {activeSection === 'pulse' ? (
+        <PulseScreen />
+      ) : activeSection === 'past-tense' ? (
         <PastTenseScreen />
       ) : (
         <>
@@ -87,7 +90,7 @@ function App() {
               <button className="section-card" key={section.name} type="button" onClick={() => setActiveSection(section.key)}>
                 <h2>{section.name}</h2>
                 <p>{section.description}</p>
-                <span>{section.key === 'past-tense' ? 'open migrated slice' : 'queued for migration'}</span>
+                <span>{section.key === 'past-tense' || section.key === 'pulse' ? 'open migrated slice' : 'queued for migration'}</span>
               </button>
             ))}
           </section>
