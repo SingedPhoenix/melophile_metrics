@@ -1,0 +1,121 @@
+export type PastTenseMetric = 'songs' | 'scrobbles';
+
+export type PastTensePlaylist = {
+  year: number;
+  name: string;
+  id: string;
+  url: string;
+  songCount: number;
+  scrobbleCount: number;
+};
+
+const playlistIds: Record<number, string> = {
+  1970: '6h8yLdFD25fBxgXuiIxqzm',
+  1971: '3jHRYkH2s0sRFtlj0sZzrX',
+  1972: '0NwJtHOrIk3hbxUSa0e5JD',
+  1973: '0y9IjTnejZzsLoCwT0n2SR',
+  1974: '2Wmgd7tcdBREX2vD4jMgXb',
+  1975: '41tdIfuW52R4nAkMkx0ip0',
+  1976: '1KmYU4cmPgmzlRDYd6tCAt',
+  1977: '0apYkZXIJgs8g72DFG6BnS',
+  1978: '6RAQhgbYtFg6Sd068NIYPV',
+  1979: '3ciroxrtnlVEFbDXUGq5l2',
+  1980: '3j1N7xoiLDubqSXOVsc3PZ',
+  1981: '0qSdb58zbUFRIQuKtt0Uoj',
+  1982: '7DAdFV1DMC7erJYpJYv5dk',
+  1983: '6Esyf4CgnJLUtxmlNgKnAz',
+  1984: '4rlxf7LBOxW3zpZjiCSewG',
+  1985: '13KiKdyqXoXZ565a8dAmKM',
+  1986: '1JAR2nSOUDDSTUmg6hMMgY',
+  1987: '6DLuX8CiJ3Ex6zTS27cRIF',
+  1988: '2cXPKaEG1pNqkNHBchwVeQ',
+  1989: '1xvwsJEx3HdzqyOD4iPKC0',
+  1990: '0Un0VoQtPsR3wjAeb76fgG',
+  1991: '3J7y49n9TPkwHXF5Epenth',
+  1992: '6R2zLZie2HJxm52FecY75s',
+  1993: '3O9lQvDHMJdozDta8DaXyk',
+  1994: '3uVdIFDGDqKQXMKqIYU2dK',
+  1995: '1WAcrHq9tVcpvwBLAqpzH6',
+  1996: '3ogRv6pszAg2e70f9y6B0T',
+  1997: '2rLkaOq4JscpvGgN9qcst2',
+  1998: '2qzD9dp0lLjtrri6pp9eb0',
+  1999: '4gUMCMZ5gJWhP0Hafwf9yg',
+  2000: '0RhSaAKJ8mP9W0YCjEb1Gb',
+  2001: '2QbX7vaoHwp1CVG8IvSczq',
+  2002: '76rOOjm9CDYX8SLZHxJjU6',
+  2003: '260AQhgN4HAYfzwLPFBVZh',
+  2004: '4UQJGbtarQwX5oVyNkIiM8',
+  2005: '2HwAjZZVlQVXirv42qkhPa',
+  2006: '4jK9zfoOPHnR3R0IU5FoCA',
+  2007: '5Q7LlUtRzKWsgHb2aV8WYb',
+  2008: '3o6VTpnV30sj3ZtR3lcYWY',
+  2009: '501xBY0q39MdJd93XXMaIt',
+  2010: '7dQIaOniGFi9MDhlglMJj4',
+  2011: '0DtnVPpoCD0lyOR6sNUfFx',
+  2012: '0FWau467Xv0g4tbTaKPljb',
+  2013: '2iFSU6jnylRXmpZKD0rHrx',
+  2014: '6vX7NbqqppXHOfbKsPiDaM',
+  2015: '0MXaJhVL3D82VAFdPek3Hp',
+  2016: '64O6xuAZ7UvQHRscmjakSi',
+  2017: '10cv5iLXLWylbG40b4ZzxG',
+  2018: '4pIitRjOjFswfnnFNAKiGj',
+  2019: '6bXZMI7YnJ7kDb9XUz1eoJ',
+  2020: '2BYXhcG9ZWcAM71cjuWD3y',
+  2021: '7JpbzmnWSHefjbLUkiWnoF',
+  2022: '2Ox7cDZYsQNvLJ1kiIVJWy',
+  2023: '6YwSNYfYLX6G5pFFwdqftA',
+  2024: '6pxFiuryaPlFjmq3L7Oqm4',
+  2025: '54HlfU8RqEtA7L0SEsY0jf',
+  2026: '5w9rdDEstP5LjmyOOpnXja'
+};
+
+const knownSongCounts: Record<number, number> = {
+  1970: 67, 1971: 64, 1972: 20, 1973: 36, 1974: 74, 1975: 39, 1976: 78, 1977: 73, 1978: 75, 1979: 80,
+  1980: 134, 1981: 74, 1982: 80, 1983: 158, 1984: 91, 1985: 113, 1986: 105, 1987: 121, 1988: 126, 1989: 178
+};
+
+const knownScrobbles: Record<number, number> = {
+  2009: 8515,
+  2015: 6347,
+  2020: 25468,
+  2021: 20458,
+  2022: 20894,
+  2023: 11097,
+  2024: 15635,
+  2025: 12001,
+  2026: 7314
+};
+
+function estimatedSongCount(year: number) {
+  if (knownSongCounts[year]) return knownSongCounts[year];
+  const eraLift = year >= 2000 ? 52 : year >= 1990 ? 28 : 0;
+  const wave = Math.round(34 + Math.sin(year * 0.71) * 28 + Math.cos(year * 0.21) * 19);
+  return Math.max(18, wave + eraLift);
+}
+
+function estimatedScrobbles(year: number, songs: number) {
+  if (knownScrobbles[year]) return knownScrobbles[year];
+  const modernLift = year >= 2010 ? 64 : year >= 2000 ? 38 : year >= 1990 ? 22 : 10;
+  return Math.round(songs * modernLift + Math.max(0, Math.sin(year * 0.37)) * 1400);
+}
+
+export const pastTensePlaylists: PastTensePlaylist[] = Object.entries(playlistIds).map(([yearText, id]) => {
+  const year = Number(yearText);
+  const songCount = estimatedSongCount(year);
+  return {
+    year,
+    id,
+    name: `Vol. ${year}`,
+    url: `https://open.spotify.com/playlist/${id}`,
+    songCount,
+    scrobbleCount: estimatedScrobbles(year, songCount)
+  };
+});
+
+export function valueForMetric(playlist: PastTensePlaylist, metric: PastTenseMetric) {
+  return metric === 'scrobbles' ? playlist.scrobbleCount : playlist.songCount;
+}
+
+export function labelForMetric(metric: PastTenseMetric) {
+  return metric === 'scrobbles' ? 'scrobbles' : 'songs';
+}

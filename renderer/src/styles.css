@@ -28,6 +28,15 @@ select {
   font: inherit;
 }
 
+button,
+a {
+  color: inherit;
+}
+
+a {
+  text-decoration: none;
+}
+
 .app-shell {
   width: min(1320px, calc(100vw - 48px));
   min-height: 100vh;
@@ -123,9 +132,28 @@ h1 {
 }
 
 .status-label,
-.status-detail {
+.status-detail,
+.section-card span,
+.screen-title-block p,
+.section-heading p,
+.panel-head p,
+.top-year-list small,
+.playlist-card span {
   font-family: "SF Mono", ui-monospace, monospace;
   font-size: 12px;
+}
+
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  margin: 18px 0 0;
+  padding: 0 14px;
+  border: 1px solid rgba(204, 204, 204, 0.12);
+  border-radius: 999px;
+  background: rgba(204, 204, 204, 0.04);
+  color: rgba(238, 238, 238, 0.78);
+  cursor: pointer;
 }
 
 .section-grid {
@@ -135,11 +163,32 @@ h1 {
 }
 
 .section-card {
+  appearance: none;
+  display: block;
+  text-align: left;
   min-height: 160px;
   padding: 20px;
   border: 1px solid rgba(204, 204, 204, 0.09);
   border-radius: 14px;
   background: rgba(204, 204, 204, 0.028);
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.section-card:hover,
+.section-card:focus-visible,
+.back-button:hover,
+.back-button:focus-visible,
+.pill:hover,
+.pill:focus-visible,
+.playlist-card:hover,
+.playlist-card:focus-visible {
+  border-color: rgba(238, 238, 238, 0.22);
+  background: rgba(204, 204, 204, 0.055);
+}
+
+.section-card:hover {
+  transform: translateY(-2px);
 }
 
 .section-card h2 {
@@ -154,9 +203,303 @@ h1 {
   line-height: 1.4;
 }
 
+.section-card span {
+  display: block;
+  margin-top: 18px;
+  color: rgba(204, 204, 204, 0.42);
+}
+
+.past-tense-screen {
+  margin-top: 28px;
+}
+
+.screen-title-block {
+  margin: 0 auto 28px;
+  text-align: center;
+}
+
+.screen-title-block .eyebrow {
+  margin-bottom: 12px;
+}
+
+.screen-title-block h1 {
+  max-width: none;
+}
+
+.past-tense-stats {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.72fr) minmax(680px, 1.7fr);
+  gap: 16px;
+  margin: 0 0 22px;
+}
+
+.stats-panel,
+.playlist-family {
+  border: 1px solid rgba(204, 204, 204, 0.1);
+  border-radius: 16px;
+  background: rgba(204, 204, 204, 0.032);
+  box-shadow: inset 0 1px 0 rgba(238, 238, 238, 0.035);
+}
+
+.stats-panel {
+  min-width: 0;
+  padding: 20px;
+}
+
+.panel-head,
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.panel-head {
+  margin-bottom: 16px;
+}
+
+.panel-head h2,
+.section-heading h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.panel-head p,
+.section-heading p {
+  margin: 7px 0 0;
+  color: rgba(204, 204, 204, 0.42);
+}
+
+.metric-toggle {
+  display: inline-flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.pill {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid rgba(204, 204, 204, 0.11);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(238, 238, 238, 0.64);
+  cursor: pointer;
+}
+
+.pill.active {
+  border-color: rgba(205, 164, 198, 0.62);
+  background: rgba(205, 164, 198, 0.22);
+  color: rgba(238, 238, 238, 0.94);
+}
+
+.top-year-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.top-year-list li {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(204, 204, 204, 0.06);
+}
+
+.top-year-list li:last-child {
+  border-bottom: none;
+}
+
+.top-year-list li.is-current {
+  margin: 0 -10px;
+  padding-right: 10px;
+  padding-left: 10px;
+  border-radius: 10px;
+  background: rgba(204, 204, 204, 0.06);
+}
+
+.rank,
+.metric-value {
+  font-family: "SF Mono", ui-monospace, monospace;
+  color: rgba(204, 204, 204, 0.44);
+}
+
+.top-year-list strong {
+  display: block;
+  font-size: 25px;
+  line-height: 1;
+}
+
+.top-year-list small {
+  display: block;
+  margin-top: 4px;
+  color: rgba(204, 204, 204, 0.42);
+}
+
+.metric-value {
+  white-space: nowrap;
+  text-align: right;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.trend-chart {
+  display: grid;
+  grid-template-columns: repeat(57, minmax(4px, 1fr));
+  align-items: end;
+  height: 280px;
+  gap: 4px;
+  padding: 16px 12px 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.17), rgba(204, 204, 204, 0.028));
+}
+
+.trend-bar-wrap {
+  display: flex;
+  align-items: end;
+  min-width: 0;
+  height: 100%;
+}
+
+.trend-bar {
+  position: relative;
+  width: 100%;
+  min-height: 6px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, rgba(205, 164, 198, 0.94), rgba(151, 164, 137, 0.74));
+  opacity: 0.72;
+}
+
+.trend-bar.is-current {
+  opacity: 1;
+  background: linear-gradient(180deg, rgba(238, 238, 238, 0.96), rgba(205, 164, 198, 0.82));
+}
+
+.trend-bar span {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  display: none;
+  transform: translateX(-50%);
+  padding: 3px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.72);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.trend-bar:hover span {
+  display: block;
+}
+
+.trend-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: rgba(204, 204, 204, 0.38);
+}
+
+.playlist-family {
+  padding: 18px;
+}
+
+.section-heading {
+  margin: 0 0 18px;
+  padding: 0 2px;
+}
+
+.status-chip {
+  padding: 8px 12px;
+  border: 1px solid rgba(204, 204, 204, 0.12);
+  border-radius: 999px;
+  color: rgba(204, 204, 204, 0.48);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.playlist-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(96px, 1fr));
+  gap: 10px;
+}
+
+.playlist-card {
+  display: block;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(204, 204, 204, 0.1);
+  border-radius: 12px;
+  background: rgba(204, 204, 204, 0.035);
+}
+
+.playlist-cover {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  margin-bottom: 9px;
+  border-radius: 10px;
+  background: #6e3a27;
+  color: rgba(238, 238, 238, 0.94);
+  font-size: clamp(26px, 3.1vw, 52px);
+  font-weight: 800;
+  line-height: 1;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.36);
+}
+
+.playlist-cover.decade-7 { background: #a95f18; }
+.playlist-cover.decade-8 { background: #7a6696; }
+.playlist-cover.decade-9 { background: #517c78; }
+.playlist-cover.decade-0 { background: #845c78; }
+.playlist-cover.decade-1 { background: #596f38; }
+.playlist-cover.decade-2 { background: #7d4964; }
+
+.playlist-card strong {
+  display: block;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-card span {
+  display: block;
+  overflow: hidden;
+  margin-top: 5px;
+  color: rgba(204, 204, 204, 0.42);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
   .migration-panel,
-  .section-grid {
+  .section-grid,
+  .past-tense-stats {
     grid-template-columns: 1fr;
+  }
+
+  .panel-head,
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .playlist-grid {
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+  }
+
+  .trend-chart {
+    grid-template-columns: repeat(57, minmax(3px, 1fr));
+    gap: 2px;
+    height: 220px;
   }
 }
