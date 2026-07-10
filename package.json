@@ -7,10 +7,14 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
+    "dev:renderer": "vite --config vite.config.ts",
+    "build:renderer": "vite build --config vite.config.ts",
+    "check:renderer": "tsc --noEmit -p tsconfig.renderer.json",
     "build:mac": "scripts/build-macos-app.sh",
     "start:mac": "scripts/build-macos-app.sh && open \"dist/melophile metrics.app\"",
     "start:web": "python3 -m http.server 8767",
-    "check:js": "node --check electron/main.js && node --check electron/preload.js && node --check electron/database.js"
+    "check:js": "node --check electron/main.js && node --check electron/preload.js && node --check electron/database.js",
+    "check": "npm run check:js && npm run check:renderer"
   },
   "build": {
     "appId": "com.singedphoenix.melophilemetrics",
@@ -20,6 +24,15 @@
     }
   },
   "devDependencies": {
-    "electron": "^43.1.0"
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "electron": "^43.1.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4"
+  },
+  "dependencies": {
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   }
 }

@@ -1,0 +1,162 @@
+:root {
+  color: rgba(238, 238, 238, 0.92);
+  background: #07130f;
+  font-family: Avenir, "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(142, 88, 126, 0.32), transparent 30%),
+    radial-gradient(circle at 82% 88%, rgba(173, 177, 153, 0.2), transparent 35%),
+    linear-gradient(135deg, #101c17 0%, #06110e 56%, #111613 100%);
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(1320px, calc(100vw - 48px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 28px 0 56px;
+}
+
+.brand-header {
+  padding-bottom: 28px;
+  border-bottom: 1px solid rgba(204, 204, 204, 0.1);
+  text-align: center;
+}
+
+.brand-name {
+  margin: 0;
+  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-size: clamp(34px, 5vw, 54px);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.brand-subtitle,
+.brand-note,
+.eyebrow,
+.intro,
+.section-card p,
+.status-label,
+.status-detail {
+  color: rgba(204, 204, 204, 0.58);
+}
+
+.brand-subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+}
+
+.brand-note {
+  margin: 8px 0 0;
+  font-family: "SF Mono", "DM Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.migration-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  gap: 22px;
+  align-items: stretch;
+  margin: 34px 0 24px;
+  padding: 26px;
+  border: 1px solid rgba(204, 204, 204, 0.11);
+  border-radius: 16px;
+  background: rgba(204, 204, 204, 0.035);
+  box-shadow: inset 0 1px 0 rgba(238, 238, 238, 0.04);
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+h1 {
+  max-width: 780px;
+  margin: 0;
+  font-size: clamp(34px, 4vw, 58px);
+  line-height: 0.96;
+  letter-spacing: 0;
+}
+
+.intro {
+  max-width: 790px;
+  margin: 16px 0 0;
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.status-card {
+  display: grid;
+  align-content: center;
+  min-height: 180px;
+  padding: 20px;
+  border: 1px solid rgba(204, 204, 204, 0.1);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.17);
+}
+
+.status-card strong {
+  display: block;
+  margin: 10px 0;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.status-label,
+.status-detail {
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.section-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.section-card {
+  min-height: 160px;
+  padding: 20px;
+  border: 1px solid rgba(204, 204, 204, 0.09);
+  border-radius: 14px;
+  background: rgba(204, 204, 204, 0.028);
+}
+
+.section-card h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.section-card p {
+  margin: 12px 0 0;
+  line-height: 1.4;
+}
+
+@media (max-width: 900px) {
+  .migration-panel,
+  .section-grid {
+    grid-template-columns: 1fr;
+  }
+}
