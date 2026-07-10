@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
+import { useDesktopStatus } from './shared/useDesktopStatus';
 import './styles.css';
 
 const sections = [
@@ -17,6 +18,13 @@ type SectionKey = (typeof sections)[number]['key'];
 
 function App() {
   const [activeSection, setActiveSection] = useState<SectionKey | 'home'>('home');
+  const desktopStatus = useDesktopStatus();
+  const scrobbleCount = desktopStatus.data?.scrobbles;
+  const statusLabel = typeof scrobbleCount === 'number'
+    ? `${scrobbleCount.toLocaleString()} sqlite scrobbles`
+    : desktopStatus.isFetching
+      ? 'checking sqlite'
+      : 'browser fallback';
 
   return (
     <main className="app-shell">
@@ -49,6 +57,7 @@ function App() {
               <span className="status-label">current phase</span>
               <strong>{activeSection === 'home' ? 'first slice' : activeSection}</strong>
               <span className="status-detail">Past Tense is the first migrated component path</span>
+              <span className="status-detail data-status">{statusLabel}</span>
             </div>
           </section>
 

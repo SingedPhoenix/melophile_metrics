@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
+import { useDesktopStatus } from '../../shared/useDesktopStatus';
 import {
   labelForMetric,
   PastTenseCacheStats,
@@ -18,6 +19,8 @@ const metricOptions = [
 function PastTenseScreen() {
   const [metric, setMetric] = useState<PastTenseMetric>('songs');
   const { invalidate, isLoadingScrobbles, playlists, snapshot } = usePastTenseData();
+  const desktopStatus = useDesktopStatus();
+  const scrobbleCount = desktopStatus.data?.scrobbles;
   const label = labelForMetric(metric);
   const ranked = useMemo(
     () => [...playlists].sort((a, b) => valueForMetric(b, metric) - valueForMetric(a, metric)).slice(0, 10),
@@ -29,6 +32,11 @@ function PastTenseScreen() {
       <div className="screen-title-block">
         <p className="eyebrow">release-date playlist family</p>
         <h1 id="past-tense-title">past tense</h1>
+        <p className="screen-data-note">
+          {typeof scrobbleCount === 'number'
+            ? `${scrobbleCount.toLocaleString()} sqlite scrobbles available`
+            : 'sqlite listening history pending'}
+        </p>
       </div>
 
       <div className="past-tense-stats">

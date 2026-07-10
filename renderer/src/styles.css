@@ -131,6 +131,11 @@ h1 {
   line-height: 1;
 }
 
+.status-detail.data-status {
+  margin-top: 8px;
+  color: rgba(205, 164, 198, 0.72);
+}
+
 .status-label,
 .status-detail,
 .section-card span,
@@ -224,6 +229,11 @@ h1 {
 
 .screen-title-block h1 {
   max-width: none;
+}
+
+.screen-data-note {
+  margin: 12px 0 0;
+  color: rgba(204, 204, 204, 0.46);
 }
 
 .past-tense-stats {
