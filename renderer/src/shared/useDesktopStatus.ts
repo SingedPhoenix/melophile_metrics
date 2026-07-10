@@ -18,6 +18,20 @@ export type DesktopDatabaseStatus = {
   } | null;
 };
 
+export type YearlyListeningRollup = {
+  year: number;
+  listens: number;
+};
+
+export type RankedYearlyListeningRollup = YearlyListeningRollup & {
+  rank: number;
+};
+
+export type YearlyListeningRollups = {
+  years: YearlyListeningRollup[];
+  topYears: RankedYearlyListeningRollup[];
+};
+
 export function useDesktopStatus() {
   return useQuery({
     queryKey: ['desktop', 'database-status'],
@@ -26,5 +40,16 @@ export function useDesktopStatus() {
       return window.melophileDesktop.databaseStatus();
     },
     staleTime: 15_000
+  });
+}
+
+export function useYearlyListeningRollups() {
+  return useQuery({
+    queryKey: ['desktop', 'yearly-listening-rollups'],
+    queryFn: async (): Promise<YearlyListeningRollups | null> => {
+      if (!window.melophileDesktop?.yearlyListeningRollups) return null;
+      return window.melophileDesktop.yearlyListeningRollups();
+    },
+    staleTime: 60_000
   });
 }

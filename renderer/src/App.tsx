@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import PastTenseScreen from './features/past-tense/PastTenseScreen';
-import { useDesktopStatus } from './shared/useDesktopStatus';
+import { useDesktopStatus, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
 
 const sections = [
@@ -19,7 +19,9 @@ type SectionKey = (typeof sections)[number]['key'];
 function App() {
   const [activeSection, setActiveSection] = useState<SectionKey | 'home'>('home');
   const desktopStatus = useDesktopStatus();
+  const yearlyRollups = useYearlyListeningRollups();
   const scrobbleCount = desktopStatus.data?.scrobbles;
+  const topListeningYear = yearlyRollups.data?.topYears?.[0];
   const statusLabel = typeof scrobbleCount === 'number'
     ? `${scrobbleCount.toLocaleString()} sqlite scrobbles`
     : desktopStatus.isFetching
@@ -58,6 +60,11 @@ function App() {
               <strong>{activeSection === 'home' ? 'first slice' : activeSection}</strong>
               <span className="status-detail">Past Tense is the first migrated component path</span>
               <span className="status-detail data-status">{statusLabel}</span>
+              {topListeningYear && (
+                <span className="status-detail data-status">
+                  top year {topListeningYear.year} · {topListeningYear.listens.toLocaleString()} listens
+                </span>
+              )}
             </div>
           </section>
 

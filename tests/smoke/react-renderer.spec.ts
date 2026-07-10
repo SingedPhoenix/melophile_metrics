@@ -8,7 +8,11 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
       readLocalConfig: async () => null,
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
       importLastfmScrobbles: async () => ({}),
-      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} })
+      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      yearlyListeningRollups: async () => ({
+        years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
+        topYears: [{ year: 2020, listens: 25468, rank: 1 }]
+      })
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -17,6 +21,7 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'the new architecture starts here' })).toBeVisible();
   await expect(page.getByText('react migration shell')).toBeVisible();
   await expect(page.getByText('173,971 sqlite scrobbles')).toBeVisible();
+  await expect(page.getByText('top year 2020 · 25,468 listens')).toBeVisible();
   await expect(page.getByRole('button', { name: /past tense/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
 });
@@ -56,6 +61,10 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
         playlistCounts: {
           '6h8yLdFD25fBxgXuiIxqzm': 30000
         }
+      }),
+      yearlyListeningRollups: async () => ({
+        years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
+        topYears: [{ year: 2020, listens: 25468, rank: 1 }]
       })
     };
   });

@@ -108,6 +108,28 @@ function databaseStatus() {
   };
 }
 
+function yearlyListeningRollups() {
+  const openedDb = requireDb();
+  const years = openedDb.prepare(`
+    SELECT CAST(substr(played_at_iso, 1, 4) AS INTEGER) AS year, COUNT(*) AS listens
+    FROM scrobbles
+    WHERE missing_from_source = 0
+    GROUP BY year
+    ORDER BY year ASC
+  `).all().map(row => ({
+    year: Number(row.year || 0),
+    listens: Number(row.listens || 0)
+  })).filter(row => row.year > 0);
+
+  const topYears = years
+    .slice()
+    .sort((a, b) => b.listens - a.listens || b.year - a.year)
+    .slice(0, 10)
+    .map((row, index) => ({ ...row, rank: index + 1 }));
+
+  return { years, topYears };
+}
+
 function trackPlayCounts(trackRefs = []) {
   const openedDb = requireDb();
   const refs = Array.isArray(trackRefs) ? trackRefs.map(normalizeTrackRef).filter(Boolean) : [];
@@ -328,5 +350,6 @@ module.exports = {
   databaseStatus,
   importLastfmScrobbles,
   openMelophileDatabase,
-  trackPlayCounts
+  trackPlayCounts,
+  yearlyListeningRollups
 };

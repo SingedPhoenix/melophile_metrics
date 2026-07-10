@@ -8,7 +8,8 @@ const {
   databaseStatus,
   importLastfmScrobbles,
   openMelophileDatabase,
-  trackPlayCounts
+  trackPlayCounts,
+  yearlyListeningRollups
 } = require('./database');
 
 const APP_ROOT = path.join(__dirname, '..');
@@ -112,6 +113,8 @@ function registerDesktopHandlers() {
     const tracks = Array.isArray(payload.tracks) ? payload.tracks : [];
     return trackPlayCounts(tracks);
   });
+
+  ipcMain.handle('melophile:yearly-listening-rollups', async () => yearlyListeningRollups());
 }
 
 async function findLocalConfigPath() {
