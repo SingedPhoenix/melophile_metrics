@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
 import { openSpotifySearch, openSpotifyUrl } from '../../shared/spotifyLinks';
 import { useDesktopStatus, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
 import {
   labelForMetric,
+  PastTenseArtistMetadata,
   PastTenseCachedTrack,
   PastTenseCacheStats,
   PastTenseMatchStats,
   PastTenseMetric,
   PastTensePlaylist,
+  PastTenseTrackGem,
+  readPastTenseArtistMetadata,
   readPastTensePlaylistTracks,
   valueForMetric
 } from './pastTenseData';
@@ -29,7 +33,7 @@ type AnnualMetricRow = {
 function PastTenseScreen() {
   const [metric, setMetric] = useState<PastTenseMetric>('songs');
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
-  const { invalidate, isLoadingScrobbles, matchStats, playlists, snapshot, trackPlayCounts } = usePastTenseData();
+  const { invalidate, isLoadingScrobbles, matchStats, playlists, snapshot, trackGems, trackPlayCounts } = usePastTenseData();
   const desktopStatus = useDesktopStatus();
   const yearlyRollups = useYearlyListeningRollups();
   const scrobbleCount = desktopStatus.data?.scrobbles;
@@ -72,12 +76,18 @@ function PastTenseScreen() {
     () => selectedPlaylistId ? readPastTensePlaylistTracks(selectedPlaylistId) : [],
     [selectedPlaylistId, snapshot.stats.cachedTracks, snapshot.stats.updatedAtMs]
   );
+  const artistMetadata = useMemo(
+    () => selectedPlaylistId ? readPastTenseArtistMetadata() : {},
+    [selectedPlaylistId, snapshot.stats.updatedAtMs]
+  );
 
   if (selectedPlaylist) {
     return (
       <PastTenseDetail
+        artistMetadata={artistMetadata}
         playlist={selectedPlaylist}
         playlistRank={playlistRank(selectedPlaylist, playlists)}
+        trackGems={trackGems}
         trackPlayCounts={trackPlayCounts}
         tracks={selectedTracks}
         onBack={() => setSelectedPlaylistId(null)}
@@ -309,23 +319,27 @@ function songCountSourceLabel(source: PastTensePlaylist['songCountSource']) {
 }
 
 function PastTenseDetail({
+  artistMetadata,
   playlist,
   playlistRank,
+  trackGems,
   trackPlayCounts,
   tracks,
   onBack
 }: {
+  artistMetadata: Record<string, PastTenseArtistMetadata>;
   playlist: PastTensePlaylist;
   playlistRank: string;
+  trackGems: Record<string, PastTenseTrackGem>;
   trackPlayCounts: Record<string, number>;
   tracks: PastTenseCachedTrack[];
   onBack: () => void;
 }) {
   const [artistMetric, setArtistMetric] = useState<PastTenseMetric>('songs');
-  const summary = useMemo(() => summarizePlaylistTracks(tracks), [tracks]);
+  const summary = useMemo(() => summarizePlaylistTracks(tracks, artistMetadata), [artistMetadata, tracks]);
   const topArtists = useMemo(
-    () => topPlaylistArtists(tracks, trackPlayCounts, playlist.id, artistMetric),
-    [artistMetric, playlist.id, trackPlayCounts, tracks]
+    () => topPlaylistArtists(tracks, trackPlayCounts, playlist.id, artistMetric, artistMetadata),
+    [artistMetadata, artistMetric, playlist.id, trackPlayCounts, tracks]
   );
   const cover = playlist.imageUrl
     ? <img className="past-tense-detail-cover" src={playlist.imageUrl} alt="" />
@@ -356,7 +370,7 @@ function PastTenseDetail({
             <DetailMetric label="albums" value={summary.albumCount.toLocaleString()} />
             <DetailMetric label="year rank" value={playlistRank} />
             <DetailMetric label="duration" value={formatLongDuration(summary.durationMs)} />
-            <DetailMetric label="sqlite listens" value={playlist.scrobbleCount.toLocaleString()} />
+            <DetailMetric label="top genre" value={summary.topGenre} />
           </div>
         </div>
       </div>
@@ -386,6 +400,11 @@ function PastTenseDetail({
                   }
                 }}
               >
+                {artist.image ? (
+                  <img className="past-tense-artist-image" src={artist.image} alt="" />
+                ) : (
+                  <span className="past-tense-artist-placeholder" aria-hidden="true">{artist.name.slice(0, 1)}</span>
+                )}
                 <span className="rank">#{index + 1}</span>
                 <strong>{artist.name}</strong>
                 <span>{artist.value.toLocaleString()} {labelForMetric(artistMetric)}</span>
@@ -407,6 +426,7 @@ function PastTenseDetail({
             {tracks.map((track, index) => {
               const artists = trackArtists(track);
               const scrobbles = Number(trackPlayCounts[`${playlist.id}|||${index}`]) || 0;
+              const gem = trackGems[`${playlist.id}|||${index}`];
               const spotifyUrl = track.uri || track.external_urls?.spotify || '';
               return (
                 <li
@@ -426,7 +446,10 @@ function PastTenseDetail({
                   <span className="rank">#{index + 1}</span>
                   <span className="track-title-block">
                     <strong>{track.name || 'untitled track'}</strong>
-                    <small>{artists.join(', ') || 'unknown artist'}{track.album?.name ? ` · ${track.album.name}` : ''}</small>
+                    <small>
+                      {artists.join(', ') || 'unknown artist'}{track.album?.name ? ` · ${track.album.name}` : ''}
+                      {gem && <GemBadge gem={gem} />}
+                    </small>
                   </span>
                   <span className="metric-value">{scrobbles.toLocaleString()} scrobbles</span>
                   <span className="track-duration">{formatDuration(track.duration_ms)}</span>
@@ -455,20 +478,42 @@ function DetailMetric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function summarizePlaylistTracks(tracks: PastTenseCachedTrack[]) {
+function GemBadge({ gem }: { gem: PastTenseTrackGem }) {
+  return (
+    <span className="past-tense-gem-badge" style={{ '--gem-color': gem.color } as CSSProperties}>
+      <span className="gem-dot" aria-hidden="true" />
+      <span>{gem.label}</span>
+    </span>
+  );
+}
+
+function summarizePlaylistTracks(tracks: PastTenseCachedTrack[], artistMetadata: Record<string, PastTenseArtistMetadata>) {
   const artists = new Set<string>();
   const albums = new Set<string>();
+  const genres = new Map<string, number>();
   const durationMs = tracks.reduce((sum, track) => {
     trackArtists(track).forEach(artist => artists.add(artist.toLowerCase()));
+    const seenGenres = new Set<string>();
+    (track.artists || []).forEach(artist => {
+      if (!artist.id) return;
+      (artistMetadata[artist.id]?.genres || []).slice(0, 3).forEach(genre => {
+        const key = String(genre || '').trim().toLowerCase();
+        if (!key || seenGenres.has(key)) return;
+        seenGenres.add(key);
+        genres.set(key, (genres.get(key) || 0) + 1);
+      });
+    });
     const albumName = String(track.album?.name || '').trim();
     if (albumName) albums.add(`${trackArtists(track)[0] || ''}|||${albumName}`.toLowerCase());
     return sum + (Number(track.duration_ms) || 0);
   }, 0);
+  const topGenre = [...genres.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] || 'pending';
 
   return {
     albumCount: albums.size,
     artistCount: artists.size,
-    durationMs
+    durationMs,
+    topGenre
   };
 }
 
@@ -476,13 +521,16 @@ function topPlaylistArtists(
   tracks: PastTenseCachedTrack[],
   trackPlayCounts: Record<string, number>,
   playlistId: string,
-  metric: PastTenseMetric
+  metric: PastTenseMetric,
+  artistMetadata: Record<string, PastTenseArtistMetadata>
 ) {
-  const artists = tracks.reduce<Record<string, { key: string; name: string; songs: number; scrobbles: number }>>((result, track, index) => {
+  const artists = tracks.reduce<Record<string, { id: string; key: string; name: string; songs: number; scrobbles: number }>>((result, track, index) => {
     const scrobbles = Number(trackPlayCounts[`${playlistId}|||${index}`]) || 0;
-    trackArtists(track).forEach(name => {
-      const key = name.toLowerCase();
-      const current = result[key] || { key, name, songs: 0, scrobbles: 0 };
+    (track.artists || []).forEach(artist => {
+      const name = String(artist.name || '').trim();
+      if (!name) return;
+      const key = artist.id || name.toLowerCase();
+      const current = result[key] || { id: artist.id || '', key, name, songs: 0, scrobbles: 0 };
       current.songs += 1;
       current.scrobbles += scrobbles;
       result[key] = current;
@@ -491,7 +539,11 @@ function topPlaylistArtists(
   }, {});
   const metricKey = metric === 'scrobbles' ? 'scrobbles' : 'songs';
   return Object.values(artists)
-    .map(artist => ({ ...artist, value: artist[metricKey] }))
+    .map(artist => ({
+      ...artist,
+      image: artist.id ? artistMetadata[artist.id]?.image || '' : '',
+      value: artist[metricKey]
+    }))
     .sort((a, b) => b.value - a.value || b.songs - a.songs || a.name.localeCompare(b.name))
     .slice(0, 5);
 }

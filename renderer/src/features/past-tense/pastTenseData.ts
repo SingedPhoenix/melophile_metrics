@@ -53,6 +53,13 @@ export type PastTenseCachedTrack = {
   duration_ms?: number;
 };
 
+export type PastTenseArtistMetadata = {
+  name?: string;
+  genres?: string[];
+  image?: string;
+  updatedAtMs?: number;
+};
+
 type CachedTrackStore = {
   updatedAtMs?: number;
   playlists?: Record<string, { total?: number; tracks?: PastTenseCachedTrack[]; updatedAtMs?: number }>;
@@ -67,7 +74,16 @@ export type PastTenseTrackRef = {
 
 export type TrackPlayCountResult = {
   trackCounts?: Record<string, number>;
+  trackGems?: Record<string, PastTenseTrackGem>;
   playlistCounts?: Record<string, number>;
+};
+
+export type PastTenseTrackGem = {
+  name: string;
+  label: string;
+  color: string;
+  rank: number;
+  count: number;
 };
 
 export type PastTenseMatchStats = {
@@ -79,6 +95,7 @@ export type PastTenseMatchStats = {
 
 const playlistCacheKey = 'melophile.pastTense.playlists.v2';
 const trackCacheKey = 'melophile.pastTense.tracks.v1';
+const artistGenreCacheKey = 'melophile.pastTense.artistGenres.v1';
 
 const playlistIds: Record<number, string> = {
   1970: '6h8yLdFD25fBxgXuiIxqzm',
@@ -256,6 +273,10 @@ export function readPastTensePlaylistTracks(playlistId: string): PastTenseCached
   const trackStore = readJson<CachedTrackStore>(trackCacheKey, { playlists: {} });
   const tracks = trackStore.playlists?.[playlistId]?.tracks;
   return Array.isArray(tracks) ? tracks : [];
+}
+
+export function readPastTenseArtistMetadata(): Record<string, PastTenseArtistMetadata> {
+  return readJson<Record<string, PastTenseArtistMetadata>>(artistGenreCacheKey, {});
 }
 
 export function applyTrackPlayCounts(

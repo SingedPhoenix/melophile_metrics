@@ -31,27 +31,25 @@ Restored in React:
 - Match watchlist for low-coverage cached playlists.
 - Playlist drill-in view from release-year cards using cached Spotify track data.
 - Playlist detail hero with cover art, back navigation, open-in-Spotify action, and cache-pending state.
-- Per-playlist summary cards for tracks, artists, albums, rank among years, duration, and SQLite listens.
+- Per-playlist summary cards for tracks, artists, albums, rank among years, duration, and top genre.
 - Per-playlist top artists panel with songs/scrobbles toggle.
 - Per-playlist track list with rank, title, artist, album, duration, scrobble count, and Spotify opening.
+- Per-playlist top genre summary from cached Spotify artist genre data.
+- Per-playlist top artist images from cached Spotify artist data.
+- Per-playlist track gem badges from SQLite all-time rank bands.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
-- Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, and track opening.
+- Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, track opening, top genre, artist image, and gem badge.
 
 Still To Recover:
 
-- Per-playlist top genre summary.
-- Per-playlist top artist images from Spotify artist genre cache.
-- Per-playlist gem badges.
 - Spotify artist genre/image hydration for Past Tense detail views.
 - Manual and scheduled Past Tense cache refresh controls in the React Settings/Data area.
 
 Recommended migration order:
 
 1. Reconnect artist genre/image hydration after the detail view is stable.
-2. Restore top genre and artist image presentation in the playlist detail view.
-3. Restore gem badges on playlist tracks.
-4. Move cache refresh controls from legacy Settings into React Settings/Data.
-5. Inventory and recover Fresh seed/harvest workflows next.
+2. Move cache refresh controls from legacy Settings into React Settings/Data.
+3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
 

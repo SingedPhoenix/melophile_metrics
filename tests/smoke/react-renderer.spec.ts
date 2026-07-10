@@ -95,9 +95,9 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
         '6h8yLdFD25fBxgXuiIxqzm': {
           total: 3,
           tracks: [
-            { name: 'one', uri: 'spotify:track:one', duration_ms: 181000, artists: [{ name: 'cached artist' }], album: { name: 'first album' } },
-            { name: 'two', duration_ms: 182000, artists: [{ name: 'cached artist' }], album: { name: 'first album' } },
-            { name: 'three', duration_ms: 183000, artists: [{ name: 'other cached artist' }], album: { name: 'second album' } }
+            { name: 'one', uri: 'spotify:track:one', duration_ms: 181000, artists: [{ id: 'artist-one', name: 'cached artist' }], album: { name: 'first album' } },
+            { name: 'two', duration_ms: 182000, artists: [{ id: 'artist-one', name: 'cached artist' }], album: { name: 'first album' } },
+            { name: 'three', duration_ms: 183000, artists: [{ id: 'artist-two', name: 'other cached artist' }], album: { name: 'second album' } }
           ]
         },
         '3jHRYkH2s0sRFtlj0sZzrX': {
@@ -107,6 +107,20 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
             { name: 'low match two', artists: [{ name: 'cached artist' }] }
           ]
         }
+      }
+    }));
+    localStorage.setItem('melophile.pastTense.artistGenres.v1', JSON.stringify({
+      'artist-one': {
+        name: 'cached artist',
+        genres: ['synthpop', 'new wave'],
+        image: 'https://example.com/cached-artist.jpg',
+        updatedAtMs: Date.now()
+      },
+      'artist-two': {
+        name: 'other cached artist',
+        genres: ['new wave'],
+        image: '',
+        updatedAtMs: Date.now()
       }
     }));
     window.melophileDesktop = {
@@ -122,6 +136,15 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
           '6h8yLdFD25fBxgXuiIxqzm|||2': 30,
           '3jHRYkH2s0sRFtlj0sZzrX|||0': 0,
           '3jHRYkH2s0sRFtlj0sZzrX|||1': 12
+        },
+        trackGems: {
+          '6h8yLdFD25fBxgXuiIxqzm|||0': {
+            name: 'diamond',
+            label: 'diamond',
+            color: '#A8D8EA',
+            rank: 42,
+            count: 10
+          }
         },
         playlistCounts: {
           '6h8yLdFD25fBxgXuiIxqzm': 30000,
@@ -176,9 +199,13 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Vol. 1970 cached test' })).toBeVisible();
   await expect(page.getByText('3 cached tracks from 1970')).toBeVisible();
   await expect(page.getByText('top artists of 1970')).toBeVisible();
+  await expect(page.getByText('top genre')).toBeVisible();
+  await expect(page.getByText('new wave')).toBeVisible();
+  await expect(page.locator('.past-tense-artist-image')).toHaveCount(1);
   await expect(page.getByText('playlist tracks')).toBeVisible();
   await expect(page.getByText('one')).toBeVisible();
   await expect(page.locator('.past-tense-track-list li').first().getByText('cached artist · first album')).toBeVisible();
+  await expect(page.locator('.past-tense-track-list li').first().getByText('diamond')).toBeVisible();
   await page.getByRole('button', { name: 'open playlist in spotify' }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('https://open.spotify.com/playlist/6h8yLdFD25fBxgXuiIxqzm');
   await page.getByText('one').click();

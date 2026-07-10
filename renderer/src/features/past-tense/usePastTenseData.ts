@@ -63,6 +63,7 @@ export function usePastTenseData() {
     matchStats,
     playlists,
     snapshot,
+    trackGems: trackCountQuery.data?.trackGems || {},
     trackPlayCounts: trackCountQuery.data?.trackCounts || {}
   };
 }

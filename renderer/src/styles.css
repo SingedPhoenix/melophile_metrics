@@ -1302,6 +1302,30 @@ img.playlist-cover {
   background: rgba(0, 0, 0, 0.12);
 }
 
+.past-tense-artist-image,
+.past-tense-artist-placeholder {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  overflow: hidden;
+  border: 1px solid rgba(204, 204, 204, 0.1);
+  border-radius: 50%;
+  background:
+    linear-gradient(145deg, rgba(205, 164, 198, 0.16), rgba(151, 164, 137, 0.12)),
+    rgba(0, 0, 0, 0.16);
+}
+
+.past-tense-artist-image {
+  object-fit: cover;
+}
+
+.past-tense-artist-placeholder {
+  color: rgba(238, 238, 238, 0.72);
+  font-size: 22px;
+  font-weight: 800;
+}
+
 .past-tense-artist-grid strong,
 .past-tense-artist-grid span {
   display: block;
@@ -1319,6 +1343,10 @@ img.playlist-cover {
 .past-tense-artist-grid span {
   color: rgba(204, 204, 204, 0.44);
   font-size: 12px;
+}
+
+.past-tense-artist-grid .past-tense-artist-placeholder {
+  display: grid;
 }
 
 .past-tense-track-list li {
@@ -1362,6 +1390,24 @@ img.playlist-cover {
   color: rgba(204, 204, 204, 0.42);
   font-size: 12px;
   text-align: right;
+}
+
+.past-tense-gem-badge {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  margin-left: 8px;
+  color: color-mix(in srgb, var(--gem-color, currentColor) 64%, rgba(204, 204, 204, 0.44));
+  white-space: nowrap;
+}
+
+.gem-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--gem-color, currentColor);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--gem-color, currentColor) 36%, transparent);
 }
 
 .pulse-layout {

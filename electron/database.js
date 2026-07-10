@@ -5,6 +5,18 @@ const { DatabaseSync } = require('node:sqlite');
 
 const DB_FILENAME = 'melophile.sqlite';
 const SCHEMA_VERSION = 1;
+const TRACK_GEM_RANGES = [
+  { name: 'blackOpal', label: 'black opal', from: 1, to: 30, color: '#151820' },
+  { name: 'diamond', label: 'diamond', from: 26, to: 90, color: '#A8D8EA' },
+  { name: 'ruby', label: 'ruby', from: 76, to: 180, color: '#C0392B' },
+  { name: 'sapphire', label: 'sapphire', from: 176, to: 330, color: '#2980B9' },
+  { name: 'emerald', label: 'emerald', from: 326, to: 570, color: '#27AE60' },
+  { name: 'aquamarine', label: 'aquamarine', from: 551, to: 900, color: '#1ABC9C' },
+  { name: 'topaz', label: 'topaz', from: 826, to: 1290, color: '#F39C12' },
+  { name: 'amethyst', label: 'amethyst', from: 1151, to: 1800, color: '#9B59B6' },
+  { name: 'citrine', label: 'citrine', from: 1526, to: 2370, color: '#E4A72D' },
+  { name: 'tigerEye', label: "tiger's eye", from: 1951, to: 3000, color: '#B86B2B' }
+];
 
 let db = null;
 let dbPath = null;
@@ -354,19 +366,34 @@ function trackPlayCounts(trackRefs = []) {
     FROM scrobbles
     WHERE missing_from_source = 0
     GROUP BY artist, track
+    ORDER BY count DESC, artist ASC, track ASC
   `).all();
 
   const sourceCounts = new Map();
-  rows.forEach(row => {
+  const sourceGems = new Map();
+  rows.forEach((row, index) => {
     const artistKey = normalizeText(row.artist);
+    const rank = index + 1;
+    const gemRange = TRACK_GEM_RANGES.find(range => rank >= range.from && rank <= range.to);
     normalizeTrackKeys(row.track).forEach(trackKey => {
       const key = artistKey + '|||' + trackKey;
       if (!uniqueKeys.has(key)) return;
       sourceCounts.set(key, (sourceCounts.get(key) || 0) + Number(row.count || 0));
+      if (!gemRange) return;
+      const gem = {
+        name: gemRange.name,
+        label: gemRange.label,
+        color: gemRange.color,
+        rank,
+        count: Number(row.count || 0)
+      };
+      const currentGem = sourceGems.get(key);
+      if (!currentGem || gem.rank < currentGem.rank) sourceGems.set(key, gem);
     });
   });
 
   const trackCounts = {};
+  const trackGems = {};
   const playlistCounts = {};
   refs.forEach(ref => {
     const count = ref.artistKeys.reduce((sum, artistKey) => {
@@ -374,11 +401,15 @@ function trackPlayCounts(trackRefs = []) {
         Math.max(best, sourceCounts.get(artistKey + '|||' + trackKey) || 0), 0);
       return sum + bestTrackCount;
     }, 0);
+    const gem = ref.artistKeys
+      .flatMap(artistKey => ref.trackKeys.map(trackKey => sourceGems.get(artistKey + '|||' + trackKey)).filter(Boolean))
+      .sort((a, b) => a.rank - b.rank)[0];
     trackCounts[ref.key] = count;
+    if (gem) trackGems[ref.key] = gem;
     playlistCounts[ref.playlistId] = (playlistCounts[ref.playlistId] || 0) + count;
   });
 
-  return { trackCounts, playlistCounts };
+  return { trackCounts, trackGems, playlistCounts };
 }
 
 function importLastfmScrobbles(rows, mode = 'manual') {
