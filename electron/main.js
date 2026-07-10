@@ -19,6 +19,8 @@ const {
 
 const APP_ROOT = path.join(__dirname, '..');
 const APP_HTML = path.join(__dirname, '..', 'melophile_metrics_v2.html');
+const REACT_RENDERER_HTML = path.join(APP_ROOT, 'dist', 'renderer', 'index.html');
+const REACT_RENDERER_ROUTE = '/dist/renderer/index.html';
 const APP_ICON_PNG = path.join(APP_ROOT, 'assets', 'app-icon', 'melophile-metrics.png');
 const APP_NAME = 'melophile metrics';
 const USER_DATA_DIR_NAME = 'melophile-metrics';
@@ -175,8 +177,18 @@ async function findLocalConfigPath() {
 
 async function getAppUrl() {
   const serverStarted = await startLocalServer();
-  if (serverStarted) return `http://127.0.0.1:${LOCAL_PORT}/melophile_metrics_v2.html`;
+  const route = await fileExists(REACT_RENDERER_HTML) ? REACT_RENDERER_ROUTE : '/melophile_metrics_v2.html';
+  if (serverStarted) return `http://127.0.0.1:${LOCAL_PORT}${route}`;
   return pathToFileURL(APP_HTML).toString();
+}
+
+async function fileExists(filePath) {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function startLocalServer() {

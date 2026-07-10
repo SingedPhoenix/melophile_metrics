@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SOURCE_APP="$ROOT_DIR/node_modules/electron/dist/Electron.app"
 DIST_DIR="$ROOT_DIR/dist"
+RENDERER_DIST="$DIST_DIR/renderer"
 APP_NAME="melophile metrics"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 APP_RESOURCES="$APP_BUNDLE/Contents/Resources"
@@ -18,6 +19,8 @@ if [[ ! -d "$SOURCE_APP" ]]; then
   echo "Electron.app was not found. Run npm install first." >&2
   exit 1
 fi
+
+npm run build:renderer
 
 rm -rf "$APP_BUNDLE"
 mkdir -p "$DIST_DIR"
@@ -42,6 +45,9 @@ rsync -a \
   --exclude '.env' \
   --exclude '.env.*' \
   "$ROOT_DIR/" "$APP_DIR/"
+
+mkdir -p "$APP_DIR/dist"
+cp -R "$RENDERER_DIST" "$APP_DIR/dist/renderer"
 
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $APP_NAME" "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $APP_NAME" "$PLIST"
