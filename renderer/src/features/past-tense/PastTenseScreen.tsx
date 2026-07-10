@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
-import { useDesktopStatus } from '../../shared/useDesktopStatus';
+import { useDesktopStatus, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
 import {
   labelForMetric,
   PastTenseCacheStats,
@@ -16,15 +16,42 @@ const metricOptions = [
   { value: 'scrobbles', label: 'scrobbles' }
 ] satisfies Array<{ value: PastTenseMetric; label: string }>;
 
+type AnnualMetricRow = {
+  year: number;
+  name: string;
+  value: number;
+};
+
 function PastTenseScreen() {
   const [metric, setMetric] = useState<PastTenseMetric>('songs');
   const { invalidate, isLoadingScrobbles, playlists, snapshot } = usePastTenseData();
   const desktopStatus = useDesktopStatus();
+  const yearlyRollups = useYearlyListeningRollups();
   const scrobbleCount = desktopStatus.data?.scrobbles;
   const label = labelForMetric(metric);
-  const ranked = useMemo(
-    () => [...playlists].sort((a, b) => valueForMetric(b, metric) - valueForMetric(a, metric)).slice(0, 10),
+  const sqliteYearlyRows = useMemo(
+    () => (yearlyRollups.data?.years || []).map(row => ({
+      year: row.year,
+      name: 'Last.fm listening year',
+      value: row.listens
+    })),
+    [yearlyRollups.data?.years]
+  );
+  const playlistMetricRows = useMemo(
+    () => playlists.map(playlist => ({
+      year: playlist.year,
+      name: playlist.name,
+      value: valueForMetric(playlist, metric)
+    })),
     [metric, playlists]
+  );
+  const metricRows = metric === 'scrobbles' && sqliteYearlyRows.length ? sqliteYearlyRows : playlistMetricRows;
+  const metricSource = metric === 'scrobbles' && sqliteYearlyRows.length
+    ? 'annual listening'
+    : 'playlist';
+  const ranked = useMemo(
+    () => [...metricRows].sort((a, b) => b.value - a.value || b.year - a.year).slice(0, 10),
+    [metricRows]
   );
 
   return (
@@ -40,8 +67,8 @@ function PastTenseScreen() {
       </div>
 
       <div className="past-tense-stats">
-        <TopYearsPanel label={label} metric={metric} playlists={ranked} />
-        <TrendPanel label={label} metric={metric} playlists={playlists} onMetricChange={setMetric} />
+        <TopYearsPanel label={label} metricSource={metricSource} rows={ranked} />
+        <TrendPanel label={label} metricSource={metricSource} rows={metricRows} metric={metric} onMetricChange={setMetric} />
       </div>
 
       <section className="playlist-family" aria-labelledby="release-year-volumes">
@@ -69,7 +96,7 @@ function PastTenseScreen() {
 
 type MetricPanelProps = {
   label: string;
-  metric: PastTenseMetric;
+  metricSource: string;
 };
 
 function CacheStatus({
@@ -95,24 +122,24 @@ function CacheStatus({
   );
 }
 
-function TopYearsPanel({ label, metric, playlists }: MetricPanelProps & { playlists: PastTensePlaylist[] }) {
+function TopYearsPanel({ label, metricSource, rows }: MetricPanelProps & { rows: AnnualMetricRow[] }) {
   return (
     <article className="stats-panel">
       <div className="panel-head">
         <div>
-          <h2>top release years</h2>
-          <p>ranked by playlist {label}</p>
+          <h2>top years</h2>
+          <p>ranked by {metricSource} {label}</p>
         </div>
       </div>
       <ol className="top-year-list">
-        {playlists.map((playlist, index) => (
-          <li className={playlist.year === currentYear ? 'is-current' : ''} key={playlist.year}>
+        {rows.map((row, index) => (
+          <li className={row.year === currentYear ? 'is-current' : ''} key={row.year}>
             <span className="rank">#{index + 1}</span>
             <span>
-              <strong>{playlist.year}{playlist.year === currentYear ? ' · current year' : ''}</strong>
-              <small>{playlist.name}</small>
+              <strong>{row.year}{row.year === currentYear ? ' · current year' : ''}</strong>
+              <small>{row.name}</small>
             </span>
-            <span className="metric-value">{valueForMetric(playlist, metric).toLocaleString()} {label}</span>
+            <span className="metric-value">{row.value.toLocaleString()} {label}</span>
           </li>
         ))}
       </ol>
@@ -122,29 +149,30 @@ function TopYearsPanel({ label, metric, playlists }: MetricPanelProps & { playli
 
 function TrendPanel({
   label,
+  metricSource,
   metric,
-  playlists,
+  rows,
   onMetricChange
-}: MetricPanelProps & { playlists: PastTensePlaylist[]; onMetricChange: (metric: PastTenseMetric) => void }) {
-  const max = Math.max(...playlists.map(playlist => valueForMetric(playlist, metric)));
-  const visibleTicks = playlists.filter(playlist => playlist.year % 5 === 0 || playlist.year === currentYear);
+}: MetricPanelProps & { metric: PastTenseMetric; rows: AnnualMetricRow[]; onMetricChange: (metric: PastTenseMetric) => void }) {
+  const max = Math.max(...rows.map(row => row.value), 1);
+  const visibleTicks = rows.filter(row => row.year % 5 === 0 || row.year === currentYear);
 
   return (
     <article className="stats-panel trend-panel">
       <div className="panel-head">
         <div>
           <h2>annual preference trend</h2>
-          <p>playlist {label} by release year</p>
+          <p>{metricSource} {label} by year</p>
         </div>
         <MetricToggle label="past tense metric" value={metric} options={metricOptions} onChange={onMetricChange} />
       </div>
       <div className="trend-chart" aria-label={`Past Tense ${label} trend`}>
-        {playlists.map(playlist => {
-          const value = valueForMetric(playlist, metric);
+        {rows.map(row => {
+          const value = row.value;
           const height = Math.max(6, Math.round((value / max) * 100));
           return (
-            <div className="trend-bar-wrap" key={playlist.year}>
-              <div className={playlist.year === currentYear ? 'trend-bar is-current' : 'trend-bar'} style={{ height: `${height}%` }}>
+            <div className="trend-bar-wrap" key={row.year}>
+              <div className={row.year === currentYear ? 'trend-bar is-current' : 'trend-bar'} style={{ height: `${height}%` }}>
                 <span>{value.toLocaleString()}</span>
               </div>
             </div>
@@ -152,8 +180,8 @@ function TrendPanel({
         })}
       </div>
       <div className="trend-axis">
-        {visibleTicks.map(playlist => (
-          <span key={playlist.year}>{playlist.year}</span>
+        {visibleTicks.map(row => (
+          <span key={row.year}>{row.year}</span>
         ))}
       </div>
     </article>

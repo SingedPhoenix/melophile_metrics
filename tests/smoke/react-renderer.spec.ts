@@ -74,7 +74,7 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'past tense' })).toBeVisible();
   await expect(page.getByText('173,971 sqlite scrobbles available')).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'top release years' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'top years' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'annual preference trend' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'songs' })).toHaveClass(/active/);
   await expect(page.locator('.playlist-grid .playlist-card')).toHaveCount(57);
@@ -84,7 +84,7 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
 
   await page.getByRole('button', { name: 'scrobbles' }).click();
   await expect(page.getByRole('button', { name: 'scrobbles' })).toHaveClass(/active/);
-  await expect(page.getByText('ranked by playlist scrobbles')).toBeVisible();
+  await expect(page.getByText('ranked by annual listening scrobbles')).toBeVisible();
   await expect(page.getByText('1 playlists · 3 cached tracks · sqlite listens')).toBeVisible();
-  await expect(page.getByText('30,000 scrobbles')).toBeVisible();
+  await expect(page.getByText('25,468 scrobbles')).toBeVisible();
 });
