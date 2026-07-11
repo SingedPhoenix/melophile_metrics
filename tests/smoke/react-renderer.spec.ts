@@ -11,7 +11,11 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
         musicbrainz: { contact: 'melophile@example.com' }
       }),
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
-      importLastfmScrobbles: async () => ({}),
+      importLastfmScrobbles: async rows => ({
+        rowsInserted: rows.length,
+        rowsUpdated: 0,
+        rowsUnchanged: 0
+      }),
       trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
       yearlyListeningRollups: async () => ({
         years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
@@ -138,7 +142,11 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
       isElectron: true,
       readLocalConfig: async () => null,
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
-      importLastfmScrobbles: async () => ({}),
+      importLastfmScrobbles: async rows => ({
+        rowsInserted: rows.length,
+        rowsUpdated: 0,
+        rowsUnchanged: 0
+      }),
       trackPlayCounts: async () => ({
         trackCounts: {
           '6h8yLdFD25fBxgXuiIxqzm|||0': 10,
@@ -237,7 +245,11 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
       isElectron: true,
       readLocalConfig: async () => null,
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
-      importLastfmScrobbles: async () => ({}),
+      importLastfmScrobbles: async rows => ({
+        rowsInserted: rows.length,
+        rowsUpdated: 0,
+        rowsUnchanged: 0
+      }),
       trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
       yearlyListeningRollups: async () => ({
         years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
@@ -303,7 +315,11 @@ test('react renderer opens migrated Dashboard slice', async ({ page }) => {
           message: 'last.fm scrobbles imported'
         }
       }),
-      importLastfmScrobbles: async () => ({}),
+      importLastfmScrobbles: async rows => ({
+        rowsInserted: rows.length,
+        rowsUpdated: 0,
+        rowsUnchanged: 0
+      }),
       trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
       yearlyListeningRollups: async () => ({
         years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
@@ -562,7 +578,11 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
           message: 'last.fm scrobbles imported'
         }
       }),
-      importLastfmScrobbles: async () => ({}),
+      importLastfmScrobbles: async rows => ({
+        rowsInserted: rows.length,
+        rowsUpdated: 0,
+        rowsUnchanged: 0
+      }),
       trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
       yearlyListeningRollups: async () => ({ years: [], topYears: [] }),
       listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
@@ -576,6 +596,27 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
     };
   });
   await page.goto('/dist/renderer/index.html');
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open('melophile-lastfm-cache', 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        if (!db.objectStoreNames.contains('scrobbles')) db.createObjectStore('scrobbles', { keyPath: 'id' });
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction('scrobbles', 'readwrite');
+        const store = tx.objectStore('scrobbles');
+        store.put({ id: '1|settings artist|settings song', uts: '1783760000', artist: 'settings artist', track: 'settings song', album: 'settings album' });
+        store.put({ id: '2|settings artist|second song', uts: '1783760100', artist: 'settings artist', track: 'second song', album: 'settings album' });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+      request.onerror = () => reject(request.error);
+    });
+    localStorage.setItem('melophile.lastfm.lastSyncAt', '2026-07-09T22:00:00.000Z');
+    localStorage.setItem('melophile.lastfm.lastRebuildAt', '2026-07-09T22:00:00.000Z');
+  });
 
   await page.getByRole('button', { name: /settings/i }).click();
 
@@ -585,6 +626,11 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await page.getByRole('button', { name: 'data' }).click();
   await expect(page.getByRole('heading', { name: 'local sqlite database' })).toBeVisible();
   await expect(page.locator('.settings-data-grid').getByText('173,971')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'last.fm data integrity' })).toBeVisible();
+  await page.getByRole('button', { name: 'load cached history' }).click();
+  await expect(page.getByText('2 cached scrobbles loaded.')).toBeVisible();
+  await page.getByRole('button', { name: 'save cache to sqlite' }).click();
+  await expect(page.getByText('Last.fm cache saved to SQLite · 2 inserted · 0 updated · 0 unchanged')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'spotify maintenance' })).toBeVisible();
   await expect(page.getByText(/scheduled scans wait/)).toBeVisible();
   await page.getByRole('button', { name: 'run seed scan now' }).click();

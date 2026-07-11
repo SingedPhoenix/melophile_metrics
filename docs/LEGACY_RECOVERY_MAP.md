@@ -38,9 +38,11 @@ Restored in React:
 - Per-playlist top artist images from cached Spotify artist data.
 - Per-playlist track gem badges from SQLite all-time rank bands.
 - Manual Past Tense cache refresh controls in the React Settings/Data area.
+- Last.fm data integrity panel in React Settings/Data with local IndexedDB cache inspection, profile-vs-cache delta checks, latest cached scrobble metadata, and cache-to-SQLite import action.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
 - Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, track opening, top genre, artist image, and gem badge.
 - Smoke coverage for React Settings/Data Past Tense cache refresh.
+- Smoke coverage for React Settings/Data Last.fm cache loading and local SQLite import.
 
 Still To Recover:
 
@@ -50,7 +52,7 @@ Still To Recover:
 Recommended migration order:
 
 1. Reconnect artist genre/image hydration after the detail view is stable.
-2. Recover Last.fm data integrity controls and local import/sync actions in React Settings/Data.
+2. Recover direct Last.fm network sync/rebuild actions in React/Electron once the bridge supports that workflow.
 3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
@@ -60,4 +62,4 @@ Recommended migration order:
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: not-heard queues, thresholds, skip controls, Spotify playback.
 - Frisson: emotional attachment rankings and shared ranked-bar styling.
-- Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, Spotify maintenance controls, Spotify link corrections, and genre profiles. Still recover Last.fm data integrity controls and local import/sync actions.
+- Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, Spotify maintenance controls, Spotify link corrections, and genre profiles. Last.fm cache inspection and local SQLite import are restored; still recover direct Last.fm network sync/rebuild actions.

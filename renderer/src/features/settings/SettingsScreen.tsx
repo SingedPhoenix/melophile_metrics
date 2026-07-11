@@ -31,6 +31,14 @@ import {
   type SpotifyCorrectionType,
   type SpotifyLinkCorrection
 } from './settingsCorrections';
+import {
+  fetchLastfmProfileCount,
+  lastfmIntegrityState,
+  lastfmProfileDelta,
+  readLastfmCachedRows,
+  readLastfmCacheSnapshot,
+  type LastfmCacheSnapshot
+} from './settingsLastfm';
 import { useDesktopStatus, useFreshOverview, useLocalServiceConfig } from '../../shared/useDesktopStatus';
 
 type SettingsTab = 'accounts' | 'data' | 'corrections' | 'appearance';
@@ -59,6 +67,10 @@ function SettingsScreen() {
   const [pastTenseRefreshState, setPastTenseRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [pastTenseProgress, setPastTenseProgress] = useState<PastTenseRefreshProgress | null>(null);
   const [pastTenseMessage, setPastTenseMessage] = useState('');
+  const [lastfmCacheSnapshot, setLastfmCacheSnapshot] = useState<LastfmCacheSnapshot>({ cacheCount: 0, latestUts: 0, lastSyncAt: '', lastRebuildAt: '' });
+  const [lastfmProfileCount, setLastfmProfileCount] = useState<number | null>(null);
+  const [lastfmIntegrityMessage, setLastfmIntegrityMessage] = useState('local cache status has not been checked yet.');
+  const [lastfmActionState, setLastfmActionState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [freshReleaseSnapshot, setFreshReleaseSnapshot] = useState<FreshReleaseSnapshot>(() => readFreshReleaseSnapshot());
   const [freshScanSchedule, setFreshScanSchedule] = useState<FreshScanSchedule>(() => readFreshScanSchedule());
   const [freshScanState, setFreshScanState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
@@ -124,9 +136,16 @@ function SettingsScreen() {
     }
   ]), [config]);
   const genreCounts = useMemo(() => genreProfileCounts(), [genreProfiles]);
+  const lastfmDelta = lastfmProfileDelta(lastfmCacheSnapshot.cacheCount, lastfmProfileCount);
+  const lastfmState = lastfmIntegrityState(lastfmCacheSnapshot.cacheCount, lastfmProfileCount);
   const refreshCorrections = () => {
     setSpotifyCorrections(spotifyCorrectionEntries());
     setGenreProfiles(genreProfileEntries());
+  };
+  const refreshLastfmCacheSnapshot = async () => {
+    const snapshot = await readLastfmCacheSnapshot();
+    setLastfmCacheSnapshot(snapshot);
+    return snapshot;
   };
   useEffect(() => {
     window.addEventListener('storage', refreshCorrections);
@@ -135,6 +154,11 @@ function SettingsScreen() {
       window.removeEventListener('storage', refreshCorrections);
       window.removeEventListener('melophile:settings-corrections-updated', refreshCorrections);
     };
+  }, []);
+  useEffect(() => {
+    void refreshLastfmCacheSnapshot().catch(() => {
+      setLastfmIntegrityMessage('the local Last.fm cache could not be opened.');
+    });
   }, []);
   const refreshPastTense = async () => {
     setPastTenseRefreshState('running');
@@ -155,6 +179,65 @@ function SettingsScreen() {
     } catch (error) {
       setPastTenseRefreshState('error');
       setPastTenseMessage(error instanceof Error ? error.message : 'past tense cache refresh failed');
+    }
+  };
+  const checkLastfmIntegrity = async () => {
+    setLastfmActionState('running');
+    setLastfmIntegrityMessage('checking Last.fm profile count');
+    try {
+      const snapshot = await refreshLastfmCacheSnapshot();
+      const profileCount = await fetchLastfmProfileCount(config?.lastfm?.username, config?.lastfm?.apiKey);
+      setLastfmProfileCount(profileCount);
+      const state = lastfmIntegrityState(snapshot.cacheCount, profileCount);
+      setLastfmActionState('complete');
+      setLastfmIntegrityMessage(profileCount === null
+        ? 'Last.fm profile count could not be checked.'
+        : state === 'rebuild'
+          ? 'cache drift detected. rebuild or resync from the legacy/static app until React sync is wired.'
+          : 'local cache matches the Last.fm profile count.');
+    } catch (error) {
+      setLastfmActionState('error');
+      setLastfmIntegrityMessage(error instanceof Error ? error.message : 'Last.fm data integrity check failed.');
+    }
+  };
+  const loadLastfmCache = async () => {
+    setLastfmActionState('running');
+    setLastfmIntegrityMessage('loading cached Last.fm history');
+    try {
+      const snapshot = await refreshLastfmCacheSnapshot();
+      setLastfmActionState('complete');
+      setLastfmIntegrityMessage(snapshot.cacheCount
+        ? `${snapshot.cacheCount.toLocaleString()} cached scrobbles loaded.`
+        : 'no cached Last.fm history was found for this app address.');
+    } catch (error) {
+      setLastfmActionState('error');
+      setLastfmIntegrityMessage(error instanceof Error ? error.message : 'the cached history could not be opened.');
+    }
+  };
+  const saveLastfmCacheToDatabase = async () => {
+    setLastfmActionState('running');
+    setLastfmIntegrityMessage('saving Last.fm cache to SQLite');
+    try {
+      const rows = await readLastfmCachedRows();
+      if (!rows.length) {
+        setLastfmActionState('error');
+        setLastfmIntegrityMessage('no cached Last.fm rows were found to save.');
+        return;
+      }
+      const result = await window.melophileDesktop?.importLastfmScrobbles(rows);
+      const nextStatus = await window.melophileDesktop?.databaseStatus?.();
+      desktopStatus.refetch();
+      setLastfmCacheSnapshot({
+        cacheCount: rows.length,
+        latestUts: rows.reduce((max, row) => Math.max(max, Number(row.uts) || 0), 0),
+        lastSyncAt: lastfmCacheSnapshot.lastSyncAt,
+        lastRebuildAt: lastfmCacheSnapshot.lastRebuildAt
+      });
+      setLastfmActionState('complete');
+      setLastfmIntegrityMessage(importSummary(result, nextStatus?.scrobbles));
+    } catch (error) {
+      setLastfmActionState('error');
+      setLastfmIntegrityMessage(error instanceof Error ? error.message : 'Last.fm cache could not be saved to SQLite.');
     }
   };
   const scanFreshReleases = async () => {
@@ -314,6 +397,52 @@ function SettingsScreen() {
             <DataMetric label="schema" value={status?.schemaVersion ? String(status.schemaVersion) : 'pending'} />
             <DataMetric label="last sync" value={formatDate(status?.lastSync?.finished_at)} />
           </div>
+          <section className="settings-maintenance-panel" aria-labelledby="lastfm-integrity-title">
+            <div>
+              <h3 id="lastfm-integrity-title">last.fm data integrity</h3>
+              <p>
+                Last.fm remains the master dataset. React can inspect the local cache and copy it into SQLite.
+              </p>
+            </div>
+            <div className="settings-maintenance-metrics wide">
+              <DataMetric label="last.fm profile scrobbles" value={formatNumber(lastfmProfileCount ?? undefined)} />
+              <DataMetric label="local cached scrobbles" value={formatNumber(lastfmCacheSnapshot.cacheCount)} />
+              <DataMetric label="profile delta" value={formatDelta(lastfmDelta)} />
+              <DataMetric label="cache status" value={lastfmState} />
+            </div>
+            <div className="settings-maintenance-metrics">
+              <DataMetric label="latest cached scrobble" value={formatDateFromUts(lastfmCacheSnapshot.latestUts)} />
+              <DataMetric label="last sync" value={formatDate(lastfmCacheSnapshot.lastSyncAt)} />
+              <DataMetric label="last rebuild" value={formatDate(lastfmCacheSnapshot.lastRebuildAt)} />
+            </div>
+            <div className="settings-maintenance-actions">
+              <button
+                className="status-chip is-button"
+                disabled={lastfmActionState === 'running'}
+                type="button"
+                onClick={checkLastfmIntegrity}
+              >
+                check integrity
+              </button>
+              <button
+                className="status-chip is-button"
+                disabled={lastfmActionState === 'running'}
+                type="button"
+                onClick={loadLastfmCache}
+              >
+                load cached history
+              </button>
+              <button
+                className="status-chip is-button"
+                disabled={lastfmActionState === 'running'}
+                type="button"
+                onClick={saveLastfmCacheToDatabase}
+              >
+                save cache to sqlite
+              </button>
+            </div>
+            <p className={`settings-maintenance-status ${lastfmActionState}`}>{lastfmIntegrityMessage}</p>
+          </section>
           <dl className="settings-sync-list">
             <div>
               <dt>source</dt>
@@ -607,6 +736,38 @@ function formatDate(value: string | undefined) {
 function formatDateFromMs(value: number | undefined) {
   if (!value) return 'pending';
   return formatDate(new Date(value).toISOString());
+}
+
+function formatDateFromUts(value: number | undefined) {
+  if (!value) return 'pending';
+  return formatDate(new Date(value * 1000).toISOString());
+}
+
+function formatDelta(value: number | null) {
+  if (value === null) return 'pending';
+  return `${value > 0 ? '+' : ''}${value.toLocaleString()}`;
+}
+
+function importSummary(result: unknown, scrobbles: number | undefined) {
+  const details = result && typeof result === 'object' ? result as {
+    rowsInserted?: number;
+    rowsUpdated?: number;
+    rowsUnchanged?: number;
+    rows_inserted?: number;
+    rows_updated?: number;
+    rows_unchanged?: number;
+    imported?: number;
+  } : {};
+  const rowsInserted = details.rowsInserted ?? details.rows_inserted;
+  const rowsUpdated = details.rowsUpdated ?? details.rows_updated;
+  const rowsUnchanged = details.rowsUnchanged ?? details.rows_unchanged;
+  const changed = [
+    typeof rowsInserted === 'number' ? `${rowsInserted.toLocaleString()} inserted` : '',
+    typeof rowsUpdated === 'number' ? `${rowsUpdated.toLocaleString()} updated` : '',
+    typeof rowsUnchanged === 'number' ? `${rowsUnchanged.toLocaleString()} unchanged` : ''
+  ].filter(Boolean).join(' · ');
+  if (changed) return `Last.fm cache saved to SQLite · ${changed}`;
+  return `Last.fm cache saved to SQLite${typeof scrobbles === 'number' ? ` · ${scrobbles.toLocaleString()} stored scrobbles` : ''}`;
 }
 
 function scanScheduleStatus(schedule: FreshScanSchedule) {
