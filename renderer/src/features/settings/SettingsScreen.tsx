@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
 import {
   readPastTenseLiveSnapshot,
@@ -16,13 +16,29 @@ import {
   type FreshReleaseSnapshot,
   type FreshScanSchedule
 } from '../fresh/freshData';
+import {
+  clearGenreProfile,
+  clearSpotifyCorrection,
+  genreProfileCounts,
+  genreProfileEntries,
+  normalizeSpotifyManualLink,
+  saveGenreProfile,
+  saveSpotifyCorrection,
+  splitGenreList,
+  spotifyCorrectionEntries,
+  type GenreProfile,
+  type GenreProfileType,
+  type SpotifyCorrectionType,
+  type SpotifyLinkCorrection
+} from './settingsCorrections';
 import { useDesktopStatus, useFreshOverview, useLocalServiceConfig } from '../../shared/useDesktopStatus';
 
-type SettingsTab = 'accounts' | 'data' | 'appearance';
+type SettingsTab = 'accounts' | 'data' | 'corrections' | 'appearance';
 
 const tabs: { value: SettingsTab; label: string }[] = [
   { value: 'accounts', label: 'accounts' },
   { value: 'data', label: 'data' },
+  { value: 'corrections', label: 'corrections' },
   { value: 'appearance', label: 'appearance' }
 ];
 
@@ -48,6 +64,25 @@ function SettingsScreen() {
   const [freshScanState, setFreshScanState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [freshScanProgress, setFreshScanProgress] = useState<FreshReleaseProgress | null>(null);
   const [freshScanMessage, setFreshScanMessage] = useState('');
+  const [spotifyCorrectionForm, setSpotifyCorrectionForm] = useState({
+    type: 'track' as SpotifyCorrectionType,
+    name: '',
+    artist: '',
+    url: ''
+  });
+  const [spotifyCorrectionMessage, setSpotifyCorrectionMessage] = useState('no correction selected.');
+  const [spotifyCorrections, setSpotifyCorrections] = useState(() => spotifyCorrectionEntries());
+  const [genreProfileForm, setGenreProfileForm] = useState({
+    type: 'artist' as GenreProfileType,
+    name: '',
+    artist: '',
+    family: '',
+    primary: '',
+    subgenres: '',
+    notes: ''
+  });
+  const [genreProfileMessage, setGenreProfileMessage] = useState('no genre profile selected.');
+  const [genreProfiles, setGenreProfiles] = useState(() => genreProfileEntries());
   const desktopStatus = useDesktopStatus();
   const localConfig = useLocalServiceConfig();
   const freshOverview = useFreshOverview(16, 12);
@@ -88,6 +123,19 @@ function SettingsScreen() {
       detail: config?.musicbrainz?.contact || 'contact string for catalog lookups'
     }
   ]), [config]);
+  const genreCounts = useMemo(() => genreProfileCounts(), [genreProfiles]);
+  const refreshCorrections = () => {
+    setSpotifyCorrections(spotifyCorrectionEntries());
+    setGenreProfiles(genreProfileEntries());
+  };
+  useEffect(() => {
+    window.addEventListener('storage', refreshCorrections);
+    window.addEventListener('melophile:settings-corrections-updated', refreshCorrections);
+    return () => {
+      window.removeEventListener('storage', refreshCorrections);
+      window.removeEventListener('melophile:settings-corrections-updated', refreshCorrections);
+    };
+  }, []);
   const refreshPastTense = async () => {
     setPastTenseRefreshState('running');
     setPastTenseMessage('starting past tense cache refresh');
@@ -131,6 +179,91 @@ function SettingsScreen() {
       setFreshScanState('error');
       setFreshScanMessage(error instanceof Error ? error.message : 'seed release scan failed');
     }
+  };
+  const saveSpotifyLinkCorrection = () => {
+    if (!spotifyCorrectionForm.name.trim()) {
+      setSpotifyCorrectionMessage('enter the name exactly as it appears in the list.');
+      return;
+    }
+    if (spotifyCorrectionForm.type !== 'artist' && !spotifyCorrectionForm.artist.trim()) {
+      setSpotifyCorrectionMessage('enter the artist name for track and album corrections.');
+      return;
+    }
+    const link = normalizeSpotifyManualLink(spotifyCorrectionForm.url, spotifyCorrectionForm.type);
+    if (!link) {
+      setSpotifyCorrectionMessage(`paste a valid spotify ${spotifyCorrectionForm.type} link.`);
+      return;
+    }
+    saveSpotifyCorrection({
+      type: spotifyCorrectionForm.type,
+      name: spotifyCorrectionForm.name.trim(),
+      artist: spotifyCorrectionForm.artist.trim(),
+      url: link
+    });
+    setSpotifyCorrectionForm(form => ({ ...form, url: link }));
+    setSpotifyCorrectionMessage(`correction saved for ${spotifyCorrectionForm.name.trim()}.`);
+    refreshCorrections();
+  };
+  const clearCurrentSpotifyCorrection = () => {
+    if (!spotifyCorrectionForm.name.trim()) {
+      setSpotifyCorrectionMessage('enter the corrected item name to clear it.');
+      return;
+    }
+    const cleared = clearSpotifyCorrection(spotifyCorrectionForm.type, spotifyCorrectionForm.name.trim(), spotifyCorrectionForm.artist.trim());
+    setSpotifyCorrectionMessage(cleared ? `correction cleared for ${spotifyCorrectionForm.name.trim()}.` : 'spotify correction not found.');
+    refreshCorrections();
+  };
+  const loadSpotifyCorrection = (correction: SpotifyLinkCorrection) => {
+    setSpotifyCorrectionForm({
+      type: correction.type || 'track',
+      name: correction.name || '',
+      artist: correction.artist || '',
+      url: correction.url || ''
+    });
+    setSpotifyCorrectionMessage(`editing correction for ${correction.name || 'spotify item'}.`);
+  };
+  const saveManualGenreProfile = () => {
+    const subgenres = splitGenreList(genreProfileForm.subgenres);
+    if (!genreProfileForm.name.trim()) {
+      setGenreProfileMessage('add a name before saving a genre profile.');
+      return;
+    }
+    if (!genreProfileForm.family.trim() && !genreProfileForm.primary.trim() && !subgenres.length) {
+      setGenreProfileMessage('add at least one genre family, primary genre, or subgenre.');
+      return;
+    }
+    saveGenreProfile({
+      type: genreProfileForm.type,
+      name: genreProfileForm.name.trim(),
+      artist: genreProfileForm.artist.trim(),
+      family: genreProfileForm.family.trim(),
+      primary: genreProfileForm.primary.trim(),
+      subgenres,
+      notes: genreProfileForm.notes.trim()
+    });
+    setGenreProfileMessage(`saved manual genre profile for ${genreProfileForm.name.trim()}.`);
+    refreshCorrections();
+  };
+  const clearCurrentGenreProfile = () => {
+    if (!genreProfileForm.name.trim()) {
+      setGenreProfileMessage('enter the genre profile name to clear it.');
+      return;
+    }
+    const cleared = clearGenreProfile(genreProfileForm.type, genreProfileForm.name.trim(), genreProfileForm.artist.trim());
+    setGenreProfileMessage(cleared ? 'manual genre profile cleared.' : 'genre profile not found.');
+    refreshCorrections();
+  };
+  const loadGenreProfile = (profile: GenreProfile) => {
+    setGenreProfileForm({
+      type: profile.type || 'artist',
+      name: profile.name || '',
+      artist: profile.artist || '',
+      family: profile.family || '',
+      primary: profile.primary || '',
+      subgenres: (profile.subgenres || []).join(', '),
+      notes: profile.notes || ''
+    });
+    setGenreProfileMessage(`loaded ${profile.name || 'genre profile'} for editing.`);
   };
 
   return (
@@ -265,6 +398,134 @@ function SettingsScreen() {
         </article>
       )}
 
+      {activeTab === 'corrections' && (
+        <div className="settings-corrections-grid">
+          <article className="stats-panel settings-panel">
+            <div className="panel-head">
+              <div>
+                <h2>spotify link corrections</h2>
+                <p>manual overrides when fuzzy Spotify matching points at the wrong item</p>
+              </div>
+            </div>
+            <div className="settings-form-grid">
+              <select
+                className="settings-input"
+                value={spotifyCorrectionForm.type}
+                onChange={event => setSpotifyCorrectionForm(form => ({ ...form, type: event.target.value as SpotifyCorrectionType }))}
+              >
+                <option value="track">track</option>
+                <option value="artist">artist</option>
+                <option value="album">album</option>
+              </select>
+              <input
+                className="settings-input"
+                placeholder="track, artist, or album name"
+                value={spotifyCorrectionForm.name}
+                onChange={event => setSpotifyCorrectionForm(form => ({ ...form, name: event.target.value }))}
+              />
+              <input
+                className="settings-input"
+                placeholder="artist name if needed"
+                value={spotifyCorrectionForm.artist}
+                onChange={event => setSpotifyCorrectionForm(form => ({ ...form, artist: event.target.value }))}
+              />
+            </div>
+            <input
+              className="settings-input"
+              placeholder="correct open.spotify.com or spotify: url"
+              value={spotifyCorrectionForm.url}
+              onChange={event => setSpotifyCorrectionForm(form => ({ ...form, url: event.target.value }))}
+            />
+            <div className="settings-maintenance-actions">
+              <button className="status-chip is-button" type="button" onClick={saveSpotifyLinkCorrection}>apply correction</button>
+              <button className="status-chip is-button" type="button" onClick={clearCurrentSpotifyCorrection}>clear correction</button>
+              <button className="status-chip is-button" type="button" onClick={refreshCorrections}>refresh list</button>
+            </div>
+            <p className="settings-maintenance-status">{spotifyCorrectionMessage}</p>
+            <CorrectionList
+              emptyText="no manual spotify corrections saved yet."
+              entries={spotifyCorrections.slice(0, 20)}
+              renderMeta={entry => entry.artist || entry.url || 'manual spotify override'}
+              renderTags={entry => entry.type || 'item'}
+              onEdit={loadSpotifyCorrection}
+            />
+          </article>
+
+          <article className="stats-panel settings-panel">
+            <div className="panel-head">
+              <div>
+                <h2>genre corrections</h2>
+                <p>manual genre and subgenre profiles layered above API suggestions</p>
+              </div>
+            </div>
+            <div className="settings-form-grid">
+              <select
+                className="settings-input"
+                value={genreProfileForm.type}
+                onChange={event => setGenreProfileForm(form => ({ ...form, type: event.target.value as GenreProfileType }))}
+              >
+                <option value="artist">artist</option>
+                <option value="album">album</option>
+                <option value="track">track</option>
+              </select>
+              <input
+                className="settings-input"
+                placeholder="artist, album, or track name"
+                value={genreProfileForm.name}
+                onChange={event => setGenreProfileForm(form => ({ ...form, name: event.target.value }))}
+              />
+              <input
+                className="settings-input"
+                placeholder="artist name if needed"
+                value={genreProfileForm.artist}
+                onChange={event => setGenreProfileForm(form => ({ ...form, artist: event.target.value }))}
+              />
+            </div>
+            <div className="settings-form-grid">
+              <input
+                className="settings-input"
+                placeholder="genre family"
+                value={genreProfileForm.family}
+                onChange={event => setGenreProfileForm(form => ({ ...form, family: event.target.value }))}
+              />
+              <input
+                className="settings-input"
+                placeholder="primary genre"
+                value={genreProfileForm.primary}
+                onChange={event => setGenreProfileForm(form => ({ ...form, primary: event.target.value }))}
+              />
+              <input
+                className="settings-input"
+                placeholder="subgenres, comma separated"
+                value={genreProfileForm.subgenres}
+                onChange={event => setGenreProfileForm(form => ({ ...form, subgenres: event.target.value }))}
+              />
+            </div>
+            <input
+              className="settings-input"
+              placeholder="notes or source context"
+              value={genreProfileForm.notes}
+              onChange={event => setGenreProfileForm(form => ({ ...form, notes: event.target.value }))}
+            />
+            <div className="settings-maintenance-actions">
+              <button className="status-chip is-button" type="button" onClick={saveManualGenreProfile}>save genre</button>
+              <button className="status-chip is-button" type="button" onClick={clearCurrentGenreProfile}>clear genre</button>
+              <button className="status-chip is-button" type="button" onClick={refreshCorrections}>refresh list</button>
+            </div>
+            <p className="settings-maintenance-status">
+              {genreProfileMessage} · {genreCounts.total.toLocaleString()} saved · {genreCounts.artist} artists · {genreCounts.album} albums · {genreCounts.track} tracks
+            </p>
+            <CorrectionList
+              emptyText="no manual genre profiles yet."
+              entries={genreProfiles.slice(0, 20)}
+              renderMeta={entry => [entry.artist && entry.type !== 'artist' ? entry.artist : '', entry.family, entry.primary].filter(Boolean).join(' · ') || 'manual genre profile'}
+              renderTags={entry => (entry.subgenres || []).join(', ') || entry.primary || entry.family || 'manual'}
+              onEdit={loadGenreProfile}
+            />
+          </article>
+        </div>
+      )}
+
       {activeTab === 'appearance' && (
         <article className="stats-panel settings-panel">
           <div className="panel-head">
@@ -296,6 +557,39 @@ function DataMetric({ label, value }: { label: string; value: string }) {
       <span>{label}</span>
       <strong>{value}</strong>
     </section>
+  );
+}
+
+function CorrectionList<T extends { key: string; name?: string; type?: string }>({
+  emptyText,
+  entries,
+  renderMeta,
+  renderTags,
+  onEdit
+}: {
+  emptyText: string;
+  entries: T[];
+  renderMeta: (entry: T) => string;
+  renderTags: (entry: T) => string;
+  onEdit: (entry: T) => void;
+}) {
+  if (!entries.length) {
+    return <div className="settings-correction-empty">{emptyText}</div>;
+  }
+  return (
+    <div className="settings-correction-list">
+      {entries.map(entry => (
+        <section className="settings-correction-row" key={entry.key}>
+          <span className="settings-correction-kind">{entry.type || 'item'}</span>
+          <span className="settings-correction-name">
+            <strong>{entry.name || 'corrected item'}</strong>
+            <small>{renderMeta(entry)}</small>
+          </span>
+          <em>{renderTags(entry)}</em>
+          <button className="status-chip is-button" type="button" onClick={() => onEdit(entry)}>edit</button>
+        </section>
+      ))}
+    </div>
   );
 }
 

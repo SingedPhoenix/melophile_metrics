@@ -50,7 +50,7 @@ Still To Recover:
 Recommended migration order:
 
 1. Reconnect artist genre/image hydration after the detail view is stable.
-2. Recover correction tooling from legacy Settings: Spotify link corrections and genre profiles.
+2. Recover Last.fm data integrity controls and local import/sync actions in React Settings/Data.
 3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
@@ -60,4 +60,4 @@ Recommended migration order:
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: not-heard queues, thresholds, skip controls, Spotify playback.
 - Frisson: emotional attachment rankings and shared ranked-bar styling.
-- Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, and Spotify maintenance controls. Still recover Spotify link corrections and genre profiles.
+- Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, Spotify maintenance controls, Spotify link corrections, and genre profiles. Still recover Last.fm data integrity controls and local import/sync actions.

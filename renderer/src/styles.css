@@ -1188,6 +1188,7 @@ h1 {
 
 .settings-service-grid,
 .settings-data-grid,
+.settings-corrections-grid,
 .theme-library-grid {
   display: grid;
   gap: 12px;
@@ -1232,6 +1233,81 @@ h1 {
 .settings-data-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-bottom: 16px;
+}
+
+.settings-corrections-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: 0.65fr 1.35fr 1fr;
+  gap: 10px;
+}
+
+.settings-input {
+  min-width: 0;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid rgba(204, 204, 204, 0.12);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.16);
+  color: rgba(238, 238, 238, 0.86);
+  font: inherit;
+}
+
+.settings-input::placeholder {
+  color: rgba(204, 204, 204, 0.34);
+}
+
+.settings-correction-list {
+  display: grid;
+  gap: 8px;
+}
+
+.settings-correction-row {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) minmax(120px, 0.65fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.settings-correction-kind,
+.settings-correction-name small,
+.settings-correction-row em,
+.settings-correction-empty {
+  color: rgba(204, 204, 204, 0.46);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.settings-correction-name {
+  min-width: 0;
+}
+
+.settings-correction-name strong,
+.settings-correction-name small,
+.settings-correction-row em {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-correction-name strong {
+  color: rgba(238, 238, 238, 0.86);
+}
+
+.settings-correction-empty {
+  padding: 14px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.1);
 }
 
 .settings-data-metric {
