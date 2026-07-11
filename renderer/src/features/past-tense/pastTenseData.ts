@@ -99,8 +99,13 @@ export type PastTenseMatchStats = {
 const playlistCacheKey = 'melophile.pastTense.playlists.v2';
 const trackCacheKey = 'melophile.pastTense.tracks.v1';
 const artistGenreCacheKey = 'melophile.pastTense.artistGenres.v1';
+const cacheScheduleKey = 'melophile.pastTense.cacheSchedule.v1';
+const trackCacheTtlMs = 7 * 86_400_000;
 const artistGenreCacheTtlMs = 30 * 86_400_000;
 const trackCacheVersion = 2;
+const scheduledDays = [0, 2, 4];
+const scheduledHour = 21;
+const scheduledMinute = 1;
 
 export type PastTenseRefreshProgress = {
   current: number;
@@ -112,6 +117,16 @@ export type PastTenseRefreshResult = {
   cachedPlaylists: number;
   cachedTracks: number;
   refreshedPlaylists: number;
+};
+
+export type PastTenseCacheSchedule = {
+  enabled: boolean;
+  days: number[];
+  hour: number;
+  minute: number;
+  lastRefreshMs: number;
+  nextRefreshMs: number;
+  lastStatus: string;
 };
 
 const playlistIds: Record<number, string> = {
@@ -301,6 +316,86 @@ export function readPastTenseArtistMetadata(): Record<string, PastTenseArtistMet
   return readJson<Record<string, PastTenseArtistMetadata>>(artistGenreCacheKey, {});
 }
 
+export function pastTenseTrackCacheNeedsRefresh(maxAgeMs = trackCacheTtlMs) {
+  const trackStore = readJson<CachedTrackStore>(trackCacheKey, { playlists: {} });
+  const playlists = trackStore.playlists || {};
+  if (pastTensePlaylists.some(playlist => !Array.isArray(playlists[playlist.id]?.tracks))) return true;
+  return Date.now() - (Number(trackStore.updatedAtMs) || 0) > maxAgeMs;
+}
+
+export function readPastTenseCacheSchedule(): PastTenseCacheSchedule {
+  const stored = readJson<Partial<PastTenseCacheSchedule> | null>(cacheScheduleKey, null);
+  const fallbackNext = nextPastTenseCacheRefreshMs(new Date());
+  return {
+    enabled: stored?.enabled ?? true,
+    days: Array.isArray(stored?.days) && stored.days.length ? stored.days : scheduledDays,
+    hour: Number.isFinite(stored?.hour) ? Number(stored?.hour) : scheduledHour,
+    minute: Number.isFinite(stored?.minute) ? Number(stored?.minute) : scheduledMinute,
+    lastRefreshMs: Number(stored?.lastRefreshMs) || 0,
+    nextRefreshMs: Number(stored?.nextRefreshMs) || fallbackNext,
+    lastStatus: stored?.lastStatus || 'scheduled refreshes wait for cached Spotify authorization.'
+  };
+}
+
+export function writePastTenseCacheSchedule(schedule: PastTenseCacheSchedule) {
+  writeJson(cacheScheduleKey, schedule);
+  window.dispatchEvent(new Event('melophile:past-tense-cache-schedule-updated'));
+}
+
+export function normalizePastTenseCacheSchedule() {
+  const schedule = readPastTenseCacheSchedule();
+  if (!schedule.nextRefreshMs || schedule.nextRefreshMs < Date.now() - 60_000) {
+    const nextRefreshMs = nextPastTenseCacheRefreshMs(new Date(schedule.lastRefreshMs || Date.now()));
+    const normalized = {
+      ...schedule,
+      nextRefreshMs: nextRefreshMs < Date.now() ? Date.now() + 5000 : nextRefreshMs
+    };
+    writePastTenseCacheSchedule(normalized);
+    return normalized;
+  }
+  return schedule;
+}
+
+export function updatePastTenseCacheScheduleAfterRun(refreshedPlaylists: number) {
+  const schedule = readPastTenseCacheSchedule();
+  const nextRefreshMs = nextPastTenseCacheRefreshMs(new Date());
+  const nextSchedule = {
+    ...schedule,
+    lastRefreshMs: Date.now(),
+    nextRefreshMs,
+    lastStatus: `${refreshedPlaylists.toLocaleString()} playlists refreshed · next refresh ${formatPastTenseCacheRefreshDate(nextRefreshMs)}`
+  };
+  writePastTenseCacheSchedule(nextSchedule);
+  return nextSchedule;
+}
+
+export function nextPastTenseCacheRefreshMs(fromDate: Date) {
+  const from = fromDate instanceof Date ? fromDate : new Date();
+  for (let offset = 0; offset <= 7; offset += 1) {
+    const candidate = new Date(from);
+    candidate.setDate(from.getDate() + offset);
+    candidate.setHours(scheduledHour, scheduledMinute, 0, 0);
+    if (scheduledDays.includes(candidate.getDay()) && candidate.getTime() > from.getTime()) {
+      return candidate.getTime();
+    }
+  }
+  const fallback = new Date(from);
+  fallback.setDate(from.getDate() + 1);
+  fallback.setHours(scheduledHour, scheduledMinute, 0, 0);
+  return fallback.getTime();
+}
+
+export function formatPastTenseCacheRefreshDate(ms: number) {
+  if (!ms) return 'not scheduled';
+  return new Date(ms).toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
 export async function hydratePastTenseArtistMetadata({
   tracks,
   clientId,
@@ -363,7 +458,8 @@ export async function refreshPastTenseCache({
   for (let index = 0; index < pastTensePlaylists.length; index += 1) {
     const playlist = pastTensePlaylists[index];
     const cachedTrackEntry = trackStore.playlists[playlist.id];
-    if (!force && Array.isArray(cachedTrackEntry?.tracks) && cachedTrackEntry.tracks.length) continue;
+    const stale = Date.now() - (Number(cachedTrackEntry?.updatedAtMs) || 0) > trackCacheTtlMs;
+    if (!force && Array.isArray(cachedTrackEntry?.tracks) && cachedTrackEntry.tracks.length && !stale) continue;
 
     onProgress?.({ current: index + 1, total: pastTensePlaylists.length, label: playlist.name });
     const details = await spotifyFetch(

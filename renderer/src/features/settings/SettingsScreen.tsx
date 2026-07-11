@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
 import {
+  formatPastTenseCacheRefreshDate,
+  normalizePastTenseCacheSchedule,
+  pastTenseTrackCacheNeedsRefresh,
+  readPastTenseCacheSchedule,
   readPastTenseLiveSnapshot,
   refreshPastTenseCache,
+  updatePastTenseCacheScheduleAfterRun,
+  type PastTenseCacheSchedule,
   type PastTenseRefreshProgress
 } from '../past-tense/pastTenseData';
 import {
@@ -69,6 +75,7 @@ function SettingsScreen() {
   const [pastTenseRefreshState, setPastTenseRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [pastTenseProgress, setPastTenseProgress] = useState<PastTenseRefreshProgress | null>(null);
   const [pastTenseMessage, setPastTenseMessage] = useState('');
+  const [pastTenseSchedule, setPastTenseSchedule] = useState<PastTenseCacheSchedule>(() => readPastTenseCacheSchedule());
   const [lastfmCacheSnapshot, setLastfmCacheSnapshot] = useState<LastfmCacheSnapshot>({ cacheCount: 0, latestUts: 0, lastSyncAt: '', lastRebuildAt: '' });
   const [lastfmProfileCount, setLastfmProfileCount] = useState<number | null>(null);
   const [lastfmIntegrityMessage, setLastfmIntegrityMessage] = useState('local cache status has not been checked yet.');
@@ -162,6 +169,23 @@ function SettingsScreen() {
       setLastfmIntegrityMessage('the local Last.fm cache could not be opened.');
     });
   }, []);
+  useEffect(() => {
+    const normalized = normalizePastTenseCacheSchedule();
+    setPastTenseSchedule(normalized);
+    const timer = window.setInterval(() => {
+      const schedule = normalizePastTenseCacheSchedule();
+      setPastTenseSchedule(schedule);
+      if (
+        schedule.enabled &&
+        Date.now() >= schedule.nextRefreshMs &&
+        pastTenseTrackCacheNeedsRefresh() &&
+        pastTenseRefreshState !== 'running'
+      ) {
+        void runScheduledPastTenseRefresh();
+      }
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, [pastTenseRefreshState]);
   const refreshPastTense = async () => {
     setPastTenseRefreshState('running');
     setPastTenseMessage('starting past tense cache refresh');
@@ -176,11 +200,36 @@ function SettingsScreen() {
         }
       });
       setPastTenseSnapshot(readPastTenseLiveSnapshot());
+      setPastTenseSchedule(updatePastTenseCacheScheduleAfterRun(result.refreshedPlaylists));
       setPastTenseRefreshState('complete');
       setPastTenseMessage(`${result.cachedPlaylists.toLocaleString()} playlists · ${result.cachedTracks.toLocaleString()} tracks cached`);
     } catch (error) {
       setPastTenseRefreshState('error');
       setPastTenseMessage(error instanceof Error ? error.message : 'past tense cache refresh failed');
+    }
+  };
+  const runScheduledPastTenseRefresh = async () => {
+    setPastTenseRefreshState('running');
+    setPastTenseMessage('checking scheduled past tense cache refresh');
+    setPastTenseProgress(null);
+    try {
+      const result = await refreshPastTenseCache({
+        clientId: config?.spotify?.clientId,
+        force: false,
+        onProgress: progress => {
+          setPastTenseProgress(progress);
+          setPastTenseMessage(`refreshing ${progress.label} · ${progress.current}/${progress.total}`);
+        }
+      });
+      setPastTenseSnapshot(readPastTenseLiveSnapshot());
+      setPastTenseSchedule(updatePastTenseCacheScheduleAfterRun(result.refreshedPlaylists));
+      setPastTenseRefreshState('complete');
+      setPastTenseMessage(result.refreshedPlaylists
+        ? `${result.refreshedPlaylists.toLocaleString()} stale playlists refreshed`
+        : 'past tense cache is fresh; next refresh scheduled');
+    } catch (error) {
+      setPastTenseRefreshState('error');
+      setPastTenseMessage(error instanceof Error ? error.message : 'scheduled past tense refresh failed');
     }
   };
   const checkLastfmIntegrity = async () => {
@@ -554,6 +603,9 @@ function SettingsScreen() {
               <DataMetric label="cached playlists" value={formatNumber(pastTenseSnapshot.stats.cachedPlaylists)} />
               <DataMetric label="cached tracks" value={formatNumber(pastTenseSnapshot.stats.cachedTracks)} />
               <DataMetric label="last refreshed" value={formatDateFromMs(pastTenseSnapshot.stats.updatedAtMs)} />
+              <DataMetric label="cache status" value={pastTenseTrackCacheNeedsRefresh() ? 'refresh needed' : 'fresh'} />
+              <DataMetric label="next refresh" value={pastTenseSchedule.enabled ? formatPastTenseCacheRefreshDate(pastTenseSchedule.nextRefreshMs) : 'paused'} />
+              <DataMetric label="last scheduled" value={formatDateFromMs(pastTenseSchedule.lastRefreshMs)} />
             </div>
             {pastTenseProgress && (
               <span className="settings-progress" aria-label="Past Tense refresh progress">
@@ -569,8 +621,16 @@ function SettingsScreen() {
               >
                 {pastTenseRefreshState === 'running' ? 'refreshing past tense cache' : 'refresh past tense cache'}
               </button>
+              <button
+                className="status-chip is-button"
+                disabled={pastTenseRefreshState === 'running'}
+                type="button"
+                onClick={runScheduledPastTenseRefresh}
+              >
+                run scheduled refresh now
+              </button>
               <span className={`settings-maintenance-status ${pastTenseRefreshState}`}>
-                {pastTenseMessage || 'uses the existing local Spotify authorization cache'}
+                {pastTenseMessage || pastTenseScheduleStatus(pastTenseSchedule)}
               </span>
             </div>
           </section>
@@ -824,6 +884,12 @@ function scanScheduleStatus(schedule: FreshScanSchedule) {
   if (!schedule.enabled) return 'scheduled scans paused';
   const next = schedule.nextScanMs ? `next scan ${formatFreshScanDate(schedule.nextScanMs)}` : 'next scan not scheduled';
   return `${schedule.lastStatus || 'scheduled scans active'} · ${next}`;
+}
+
+function pastTenseScheduleStatus(schedule: PastTenseCacheSchedule) {
+  if (!schedule.enabled) return 'scheduled past tense refresh paused';
+  const next = schedule.nextRefreshMs ? `next refresh ${formatPastTenseCacheRefreshDate(schedule.nextRefreshMs)}` : 'next refresh not scheduled';
+  return `${schedule.lastStatus || 'scheduled past tense refresh active'} · ${next}`;
 }
 
 export default SettingsScreen;

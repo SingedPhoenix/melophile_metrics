@@ -39,22 +39,24 @@ Restored in React:
 - Spotify artist genre/image hydration for Past Tense detail views.
 - Per-playlist track gem badges from SQLite all-time rank bands.
 - Manual Past Tense cache refresh controls in the React Settings/Data area.
+- Scheduled Past Tense cache refresh controls in the React Settings/Data area.
 - Last.fm data integrity panel in React Settings/Data with local IndexedDB cache inspection, profile-vs-cache delta checks, latest cached scrobble metadata, and cache-to-SQLite import action.
 - Direct Last.fm recent sync and full cache rebuild actions in React Settings/Data, with refreshed cache rows copied into SQLite.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
 - Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, track opening, top genre, artist image, and gem badge.
 - Smoke coverage for Spotify artist genre/image hydration in Past Tense detail views.
 - Smoke coverage for React Settings/Data Past Tense cache refresh.
+- Smoke coverage for React Settings/Data scheduled Past Tense cache refresh controls.
 - Smoke coverage for React Settings/Data Last.fm cache loading and local SQLite import.
 - Smoke coverage for React Settings/Data Last.fm network sync, cache update, and SQLite import.
 
 Still To Recover:
 
-- Scheduled Past Tense cache refresh controls in the React Settings/Data area.
+- Final smoke rerun for the scheduled Past Tense test selector fix after the Codex usage cap resets.
 
 Recommended migration order:
 
-1. Recover scheduled Past Tense cache refresh controls in React Settings/Data.
+1. Rerun smoke after the Codex usage cap resets to close the scheduled Past Tense selector-only test fix.
 2. Inventory the remaining Pulse/Gem Mines/Ghosted/Frisson feature gaps after the main data paths are stable.
 3. Inventory and recover Fresh seed/harvest workflows next.
 

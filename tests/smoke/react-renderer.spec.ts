@@ -694,12 +694,20 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await page.getByRole('button', { name: 'run seed scan now' }).click();
   await expect(page.getByText('2 seed releases stored')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'past tense cache' })).toBeVisible();
+  await expect(page.getByText('refresh needed')).toBeVisible();
+  await expect(page.locator('section[aria-labelledby="past-tense-cache-title"]').getByText('next refresh', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'refresh past tense cache' }).click();
   await expect(page.getByText('57 playlists · 57 tracks cached')).toBeVisible({ timeout: 12000 });
   await expect.poll(() => page.evaluate(() => {
     const stored = JSON.parse(localStorage.getItem('melophile.pastTense.tracks.v1') || '{}');
     return Object.keys(stored.playlists || {}).length;
   })).toBe(57);
+  await page.getByRole('button', { name: 'run scheduled refresh now' }).click();
+  await expect(page.getByText('past tense cache is fresh; next refresh scheduled')).toBeVisible({ timeout: 12000 });
+  await expect.poll(() => page.evaluate(() => {
+    const schedule = JSON.parse(localStorage.getItem('melophile.pastTense.cacheSchedule.v1') || '{}');
+    return Boolean(schedule.lastRefreshMs && schedule.nextRefreshMs && /next refresh/.test(schedule.lastStatus || ''));
+  })).toBe(true);
   await page.getByRole('button', { name: 'corrections' }).click();
   await expect(page.getByRole('heading', { name: 'spotify link corrections' })).toBeVisible();
   await page.getByPlaceholder('track, artist, or album name').fill('settings test song');
