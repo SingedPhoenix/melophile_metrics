@@ -142,6 +142,64 @@ function yearlyListeningRollups() {
   return { years, topYears };
 }
 
+function yearlyEntityRankings(options = {}) {
+  const openedDb = requireDb();
+  const year = Number.parseInt(options.year, 10);
+  const type = ['tracks', 'artists', 'albums'].includes(options.type) ? options.type : 'tracks';
+  const safeLimit = Math.max(1, Math.min(Number.parseInt(options.limit, 10) || 50, 500));
+  if (!Number.isFinite(year) || year < 1900 || year > 3000) {
+    return { year: 0, type, rows: [] };
+  }
+
+  if (type === 'artists') {
+    const rows = rankRows(openedDb.prepare(`
+      SELECT artist, COUNT(*) AS listens
+      FROM scrobbles
+      WHERE missing_from_source = 0 AND CAST(substr(played_at_iso, 1, 4) AS INTEGER) = ?
+      GROUP BY artist
+      ORDER BY listens DESC, artist ASC
+      LIMIT ?
+    `).all(year, safeLimit).map(row => ({
+      artist: row.artist,
+      listens: Number(row.listens || 0)
+    })));
+    return { year, type, rows };
+  }
+
+  if (type === 'albums') {
+    const rows = rankRows(openedDb.prepare(`
+      SELECT artist, album, COUNT(*) AS listens
+      FROM scrobbles
+      WHERE missing_from_source = 0
+        AND CAST(substr(played_at_iso, 1, 4) AS INTEGER) = ?
+        AND trim(album) <> ''
+      GROUP BY artist, album
+      ORDER BY listens DESC, artist ASC, album ASC
+      LIMIT ?
+    `).all(year, safeLimit).map(row => ({
+      artist: row.artist,
+      album: row.album,
+      listens: Number(row.listens || 0)
+    })));
+    return { year, type, rows };
+  }
+
+  const rows = rankRows(openedDb.prepare(`
+    SELECT artist, track, COUNT(*) AS listens
+    FROM scrobbles
+    WHERE missing_from_source = 0 AND CAST(substr(played_at_iso, 1, 4) AS INTEGER) = ?
+    GROUP BY artist, track
+    ORDER BY listens DESC, artist ASC, track ASC
+    LIMIT ?
+  `).all(year, safeLimit).map(row => ({
+    artist: row.artist,
+    track: row.track,
+    listens: Number(row.listens || 0)
+  })));
+
+  return { year, type, rows };
+}
+
 function listeningRollups() {
   const openedDb = requireDb();
   const topArtists = rankRows(openedDb.prepare(`
@@ -736,5 +794,6 @@ module.exports = {
   openMelophileDatabase,
   recentListening,
   trackPlayCounts,
+  yearlyEntityRankings,
   yearlyListeningRollups
 };

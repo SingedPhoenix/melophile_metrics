@@ -1,18 +1,47 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import MetricToggle from '../../shared/MetricToggle';
+import RankedBarList from '../../shared/RankedBarList';
 import { openSpotifySearch } from '../../shared/spotifyLinks';
-import { RecentScrobble, useListeningRollups, useRecentListening } from '../../shared/useDesktopStatus';
+import StatusPanel from '../../shared/StatusPanel';
+import {
+  RecentScrobble,
+  useListeningRollups,
+  useRecentListening,
+  useYearlyEntityRankings,
+  useYearlyListeningRollups,
+  YearlyEntityRankingType
+} from '../../shared/useDesktopStatus';
+
+const momentousModes = [
+  { value: 'tracks', label: 'tracks' },
+  { value: 'artists', label: 'artists' },
+  { value: 'albums', label: 'albums' }
+] satisfies Array<{ value: YearlyEntityRankingType; label: string }>;
 
 function PulseScreen() {
+  const [momentousType, setMomentousType] = useState<YearlyEntityRankingType>('tracks');
+  const [momentousYear, setMomentousYear] = useState<number | undefined>();
   const rollups = useListeningRollups();
+  const yearly = useYearlyListeningRollups();
   const recent = useRecentListening(12);
+  const momentous = useYearlyEntityRankings(momentousYear, momentousType, 50);
   const topTracks = rollups.data?.topTracks.slice(0, 8) || [];
   const topArtists = rollups.data?.topArtists.slice(0, 8) || [];
   const recentScrobbles = recent.data?.scrobbles || [];
+  const years = useMemo(() => yearly.data?.years.map(row => row.year) || [], [yearly.data?.years]);
   const monthBars = useMemo(() => {
     const months = rollups.data?.months || [];
     return months.slice(-18);
   }, [rollups.data?.months]);
   const maxMonth = Math.max(...monthBars.map(month => month.listens), 1);
+  const momentousRows = momentous.data?.rows || [];
+  const maxMomentous = Math.max(...momentousRows.map(row => row.listens), 1);
+
+  useEffect(() => {
+    if (momentousYear || !years.length) return;
+    const currentYear = new Date().getFullYear();
+    setMomentousYear(years.includes(currentYear) ? currentYear : years[years.length - 1]);
+  }, [momentousYear, years]);
 
   return (
     <section className="pulse-screen" aria-labelledby="pulse-title">
@@ -130,8 +159,70 @@ function PulseScreen() {
           })}
         </div>
       </article>
+
+      <article className="stats-panel pulse-momentous-panel" aria-labelledby="momentous-title">
+        <div className="panel-head">
+          <div>
+            <h2 id="momentous-title">momentous</h2>
+            <p>{momentousYear ? `${momentousYear === new Date().getFullYear() ? 'current year' : momentousYear} · top ${momentousType}` : 'fixed-year rankings'}</p>
+          </div>
+          <MetricToggle label="Momentous ranking mode" value={momentousType} options={momentousModes} onChange={setMomentousType} />
+        </div>
+
+        <div className="momentous-year-row" role="group" aria-label="Momentous year">
+          {years.map(year => (
+            <button
+              className={year === momentousYear ? 'pill active' : 'pill'}
+              key={year}
+              type="button"
+              onClick={() => setMomentousYear(year)}
+            >
+              {year === new Date().getFullYear() ? 'current year' : year}
+            </button>
+          ))}
+        </div>
+
+        {momentousRows.length ? (
+          <RankedBarList
+            ariaLabel={`Top ${momentousType} for ${momentousYear}`}
+            maxValue={maxMomentous}
+            rows={momentousRows.map(row => ({
+              barLabel: row.listens.toLocaleString(),
+              key: `${momentousType}-${momentousYear}-${row.rank}-${row.artist}-${row.track || row.album || ''}`,
+              onOpen: () => {
+                if (momentousType === 'artists') {
+                  openSpotifySearch('artist', row.artist);
+                } else if (momentousType === 'albums') {
+                  openSpotifySearch('album', row.album || '', row.artist);
+                } else {
+                  openSpotifySearch('track', row.track || '', row.artist);
+                }
+              },
+              rank: row.rank,
+              subtitle: momentousType === 'artists' ? 'artist' : row.artist,
+              title: momentousTitle(row, momentousType),
+              value: row.listens
+            }))}
+          />
+        ) : (
+          <StatusPanel
+            detail="Momentous rankings appear after yearly listening rows are available in the local SQLite archive."
+            title={momentous.isFetching ? 'loading fixed-year rankings' : 'no momentous rows found'}
+            variant={momentous.isFetching ? 'loading' : 'empty'}
+          />
+        )}
+      </article>
     </section>
   );
+}
+
+function momentousTitle(
+  row: { artist: string; track?: string; album?: string },
+  type: YearlyEntityRankingType
+) {
+  if (type === 'artists') return row.artist;
+  if (type === 'albums') return row.album || 'untitled album';
+  return row.track || 'untitled track';
 }
 
 function RecentListenItem({ scrobble }: { scrobble: RecentScrobble }) {

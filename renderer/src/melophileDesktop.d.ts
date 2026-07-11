@@ -10,6 +10,8 @@ import type {
   ListeningRollups,
   LocalServiceConfig,
   RecentListening,
+  YearlyEntityRankings,
+  YearlyEntityRankingType,
   YearlyListeningRollups
 } from './shared/useDesktopStatus';
 
@@ -25,6 +27,11 @@ declare global {
       importLastfmScrobbles: (rows: unknown[]) => Promise<unknown>;
       trackPlayCounts: (tracks: PastTenseTrackRef[]) => Promise<TrackPlayCountResult>;
       yearlyListeningRollups: () => Promise<YearlyListeningRollups>;
+      yearlyEntityRankings: (options?: {
+        year?: number;
+        type?: YearlyEntityRankingType;
+        limit?: number;
+      }) => Promise<YearlyEntityRankings>;
       listeningRollups: () => Promise<ListeningRollups>;
       recentListening: (limit?: number) => Promise<RecentListening>;
       ghostedTracks: (options?: { limit?: number; minListens?: number }) => Promise<GhostedTracks>;

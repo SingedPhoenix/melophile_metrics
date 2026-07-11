@@ -2126,6 +2126,21 @@ img.playlist-cover {
   white-space: nowrap;
 }
 
+.pulse-momentous-panel {
+  margin-top: 16px;
+}
+
+.momentous-year-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 10px;
+}
+
+.momentous-year-row .pill {
+  min-width: 64px;
+}
+
 .dashboard-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

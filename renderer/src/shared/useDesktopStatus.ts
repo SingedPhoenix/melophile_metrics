@@ -64,6 +64,22 @@ export type ListeningRollups = {
   months: MonthlyListeningRollup[];
 };
 
+export type YearlyEntityRankingType = 'tracks' | 'artists' | 'albums';
+
+export type YearlyEntityRankingRow = {
+  rank: number;
+  artist: string;
+  track?: string;
+  album?: string;
+  listens: number;
+};
+
+export type YearlyEntityRankings = {
+  year: number;
+  type: YearlyEntityRankingType;
+  rows: YearlyEntityRankingRow[];
+};
+
 export type RecentScrobble = {
   playedAtUts: number;
   playedAtIso: string;
@@ -232,6 +248,18 @@ export function useListeningRollups() {
     queryFn: async (): Promise<ListeningRollups | null> => {
       if (!window.melophileDesktop?.listeningRollups) return null;
       return window.melophileDesktop.listeningRollups();
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useYearlyEntityRankings(year?: number, type: YearlyEntityRankingType = 'tracks', limit = 50) {
+  return useQuery({
+    enabled: Boolean(year),
+    queryKey: ['desktop', 'yearly-entity-rankings', year, type, limit],
+    queryFn: async (): Promise<YearlyEntityRankings | null> => {
+      if (!window.melophileDesktop?.yearlyEntityRankings || !year) return null;
+      return window.melophileDesktop.yearlyEntityRankings({ year, type, limit });
     },
     staleTime: 60_000
   });

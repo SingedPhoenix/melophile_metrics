@@ -15,6 +15,7 @@ const {
   openMelophileDatabase,
   recentListening,
   trackPlayCounts,
+  yearlyEntityRankings,
   yearlyListeningRollups
 } = require('./database');
 
@@ -125,6 +126,8 @@ function registerDesktopHandlers() {
   });
 
   ipcMain.handle('melophile:yearly-listening-rollups', async () => yearlyListeningRollups());
+
+  ipcMain.handle('melophile:yearly-entity-rankings', async (_event, payload = {}) => yearlyEntityRankings(payload));
 
   ipcMain.handle('melophile:listening-rollups', async () => listeningRollups());
 

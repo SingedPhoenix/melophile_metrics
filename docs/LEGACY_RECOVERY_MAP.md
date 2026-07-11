@@ -63,6 +63,7 @@ Legacy source anchors:
 React coverage now:
 
 - Pulse renders recent SQLite scrobbles, all-time top tracks/artists, monthly activity, and Spotify opening for rows.
+- Momentous renders fixed-year SQLite rankings inside Pulse with year pills, track/artist/album mode, shared ranked bars, and Spotify opening.
 - Gem Mines renders all-time top tracks/artists/albums, a current leader panel, shared ranked bars, and Spotify opening.
 - Ghosted renders a SQLite-backed quiet-track queue with minimum-listen thresholds and Spotify opening.
 - Frisson renders repeated, enduring, and recent attachment rankings from SQLite-backed overview data.
@@ -70,7 +71,7 @@ React coverage now:
 High-impact gaps still to recover:
 
 - Pulse is missing the legacy Pulse sub-navigation relationship between `last...` and `momentous`.
-- Momentous is not yet rebuilt in React: fixed-year rankings, year pills, track/artist/album toggle, top-500 cap, paging, and Spotify opening from year-specific rankings.
+- Momentous still needs full legacy paging/top-500 browsing beyond the first 50 restored rows.
 - Gem Mines is missing legacy metallurgy controls: all-time/year scope pills, gem-band filters, multiple gem selections, gem range labels, and rank-banded mine lists.
 - Ghosted is missing the legacy hub split between `long time...no hear...` and `apotheosis`.
 - Long Time...No Hear is missing window pills, track/artist/album mode, reshuffle, skip queue, top-100 queue labeling, and expansion watchlist.
@@ -79,18 +80,18 @@ High-impact gaps still to recover:
 
 Recommended next slices:
 
-1. Restore Momentous as a Pulse subview with fixed-year track/artist/album rankings.
-2. Restore Gem Mines gem-band filters for all-time rankings, then add yearly scope once the backend exposes year-specific entity rollups.
+1. Restore Gem Mines gem-band filters for all-time rankings, then add yearly scope once the backend exposes year-specific entity rollups.
+2. Add full Momentous paging/top-500 browsing if the first 50 rows feel too constrained.
 3. Restore Ghosted window/type/skip controls for tracks first, then extend to artists/albums.
 4. Restore Apotheosis as a favorite-artist watchlist after Ghosted queue behavior is stable.
 5. Revisit Frisson design parity once the ranking/list surfaces are fully reusable.
 
 Recommended migration order:
 
-1. Restore Momentous as the next highest-impact missing Pulse behavior.
-2. Restore Gem Mines gem-band filtering.
-3. Restore Ghosted window/type/skip controls.
-3. Inventory and recover Fresh seed/harvest workflows next.
+1. Restore Gem Mines gem-band filtering.
+2. Restore Ghosted window/type/skip controls.
+3. Add full Momentous paging/top-500 browsing if needed.
+4. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
 

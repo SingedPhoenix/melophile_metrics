@@ -269,6 +269,15 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
         years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
         topYears: [{ year: 2020, listens: 25468, rank: 1 }]
       }),
+      yearlyEntityRankings: async ({ year = 2022, type = 'tracks' } = {}) => ({
+        year,
+        type,
+        rows: type === 'artists'
+          ? [{ rank: 1, artist: 'the midnight', listens: 480 }]
+          : type === 'albums'
+            ? [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 260 }]
+            : [{ rank: 1, artist: 'health', track: year === 2020 ? 'feel nothing' : 'you died', listens: 128 }]
+      }),
       listeningRollups: async () => ({
         topArtists: [{ rank: 1, artist: 'the midnight', listens: 2048 }],
         topTracks: [{ rank: 1, artist: 'health', track: 'you died', listens: 512 }],
@@ -305,6 +314,15 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
   await expect(page.locator('.pulse-recent-panel').getByText('you died')).toBeVisible();
   await expect(page.locator('.pulse-recent-panel').getByText('health · rat wars')).toBeVisible();
   await expect(page.getByText('the midnight')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'momentous' })).toBeVisible();
+  await expect(page.locator('.pulse-momentous-panel').getByText('2022 · top tracks')).toBeVisible();
+  await expect(page.locator('.pulse-momentous-panel').getByText('128')).toBeVisible();
+
+  await page.locator('.pulse-momentous-panel').getByRole('button', { name: '2020' }).click();
+  await expect(page.locator('.pulse-momentous-panel').getByText('feel nothing')).toBeVisible();
+
+  await page.locator('.pulse-momentous-panel').getByRole('button', { name: 'artists' }).click();
+  await expect(page.locator('.pulse-momentous-panel').getByText('480')).toBeVisible();
 });
 
 test('react renderer opens migrated Dashboard slice', async ({ page }) => {
