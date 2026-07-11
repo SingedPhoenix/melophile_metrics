@@ -414,6 +414,23 @@ test('react renderer opens migrated Gem Mines slice', async ({ page }) => {
         topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024 }],
         months: [{ month: '2026-01', listens: 900 }]
       }),
+      entityRankings: async ({ type = 'tracks' } = {}) => ({
+        type,
+        rows: type === 'artists'
+          ? [
+              { rank: 1, artist: 'the midnight', listens: 2048 },
+              { rank: 14, artist: 'health', listens: 900 }
+            ]
+          : type === 'albums'
+            ? [
+                { rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024 },
+                { rank: 11, artist: 'health', album: 'rat wars', listens: 420 }
+              ]
+            : [
+                { rank: 1, artist: 'health', track: 'you died', listens: 512 },
+                { rank: 26, artist: 'the midnight', track: 'los angeles', listens: 320 }
+              ]
+      }),
       recentListening: async () => ({
         scrobbles: [{
           playedAtUts: 1783468800,
@@ -436,10 +453,15 @@ test('react renderer opens migrated Gem Mines slice', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'gem mines' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'ranked gems' })).toBeVisible();
+  await expect(page.locator('.gem-list-panel').getByText('black opal (#1-#30)')).toBeVisible();
   await expect(page.locator('.gem-list-panel').getByText('you died')).toBeVisible();
   await expect(page.locator('.gem-list-panel').getByText('512')).toBeVisible();
   await page.locator('.gem-list-panel .spotify-open-row').first().click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toContain('spotify:search:you%20died%20health');
+
+  await page.locator('.gem-list-panel').getByRole('button', { name: 'diamond' }).click();
+  await expect(page.locator('.gem-list-panel').getByText('los angeles')).toBeVisible();
+  await expect(page.locator('.gem-list-panel').getByText('320')).toBeVisible();
 
   await page.getByRole('button', { name: 'albums' }).click();
   await expect(page.getByRole('button', { name: 'albums' })).toHaveClass(/active/);
@@ -647,6 +669,7 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
       trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
       yearlyListeningRollups: async () => ({ years: [], topYears: [] }),
       listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
+      entityRankings: async ({ type = 'tracks' } = {}) => ({ type, rows: [] }),
       recentListening: async () => ({ scrobbles: [] }),
       ghostedTracks: async () => ({ minListens: 5, tracks: [] }),
       freshOverview: async () => ({
@@ -980,7 +1003,7 @@ test('react renderer shows shared empty states for missing rollups', async ({ pa
   await expect(page.getByText('no album rankings yet')).toBeVisible();
 
   await page.getByRole('button', { name: 'gem mines' }).click();
-  await expect(page.getByText('no tracks rankings yet')).toBeVisible();
+  await expect(page.getByText('no entries found in this mine')).toBeVisible();
 });
 
 test('react renderer opens migrated Frisson slice', async ({ page }) => {

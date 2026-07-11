@@ -2011,6 +2011,25 @@ img.playlist-cover {
   box-shadow: 0 0 10px color-mix(in srgb, var(--gem-color, currentColor) 36%, transparent);
 }
 
+.gem-band-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0 10px;
+}
+
+.pill-gem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.gem-row-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .pulse-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);

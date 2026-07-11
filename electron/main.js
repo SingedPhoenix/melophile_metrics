@@ -6,6 +6,7 @@ const { pathToFileURL } = require('node:url');
 const {
   closeMelophileDatabase,
   databaseStatus,
+  entityRankings,
   freshOverview,
   frissonOverview,
   ghostedTracks,
@@ -130,6 +131,8 @@ function registerDesktopHandlers() {
   ipcMain.handle('melophile:yearly-entity-rankings', async (_event, payload = {}) => yearlyEntityRankings(payload));
 
   ipcMain.handle('melophile:listening-rollups', async () => listeningRollups());
+
+  ipcMain.handle('melophile:entity-rankings', async (_event, payload = {}) => entityRankings(payload));
 
   ipcMain.handle('melophile:recent-listening', async (_event, payload = {}) => {
     return recentListening(payload.limit);

@@ -80,6 +80,11 @@ export type YearlyEntityRankings = {
   rows: YearlyEntityRankingRow[];
 };
 
+export type EntityRankings = {
+  type: YearlyEntityRankingType;
+  rows: YearlyEntityRankingRow[];
+};
+
 export type RecentScrobble = {
   playedAtUts: number;
   playedAtIso: string;
@@ -248,6 +253,17 @@ export function useListeningRollups() {
     queryFn: async (): Promise<ListeningRollups | null> => {
       if (!window.melophileDesktop?.listeningRollups) return null;
       return window.melophileDesktop.listeningRollups();
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useEntityRankings(type: YearlyEntityRankingType = 'tracks', limit = 50) {
+  return useQuery({
+    queryKey: ['desktop', 'entity-rankings', type, limit],
+    queryFn: async (): Promise<EntityRankings | null> => {
+      if (!window.melophileDesktop?.entityRankings) return null;
+      return window.melophileDesktop.entityRankings({ type, limit });
     },
     staleTime: 60_000
   });

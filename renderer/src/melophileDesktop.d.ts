@@ -1,6 +1,7 @@
 import type { PastTenseTrackRef, TrackPlayCountResult } from './features/past-tense/pastTenseData';
 import type {
   DesktopDatabaseStatus,
+  EntityRankings,
   FreshOverview,
   FreshHarvestRankings,
   FreshHarvestRankType,
@@ -33,6 +34,10 @@ declare global {
         limit?: number;
       }) => Promise<YearlyEntityRankings>;
       listeningRollups: () => Promise<ListeningRollups>;
+      entityRankings: (options?: {
+        type?: YearlyEntityRankingType;
+        limit?: number;
+      }) => Promise<EntityRankings>;
       recentListening: (limit?: number) => Promise<RecentListening>;
       ghostedTracks: (options?: { limit?: number; minListens?: number }) => Promise<GhostedTracks>;
       freshOverview: (options?: { albumLimit?: number; artistLimit?: number }) => Promise<FreshOverview>;

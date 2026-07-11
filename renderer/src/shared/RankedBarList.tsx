@@ -1,7 +1,8 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
 export type RankedBarListRow = {
   barLabel: string;
+  barStyle?: CSSProperties;
   key: string;
   meta?: ReactNode;
   onOpen?: () => void;
@@ -47,7 +48,7 @@ function RankedBarList({ ariaLabel, maxValue, rows }: RankedBarListProps) {
             </span>
             {row.meta && <span className="ranked-row-meta">{row.meta}</span>}
             <span className="ranked-bar-track">
-              <span className="ranked-bar-fill" style={{ width: `${width}%` }}>
+              <span className="ranked-bar-fill" style={{ width: `${width}%`, ...row.barStyle }}>
                 <span>{row.barLabel}</span>
               </span>
             </span>
