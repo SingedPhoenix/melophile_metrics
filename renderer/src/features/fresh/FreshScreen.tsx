@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
 import StatusPanel from '../../shared/StatusPanel';
 import { openSpotifySearch, openSpotifyUrl } from '../../shared/spotifyLinks';
@@ -13,16 +13,21 @@ import {
 } from '../../shared/useDesktopStatus';
 import {
   readFreshPlaylistSnapshot,
+  formatFreshScanDate,
   loadFreshPlaylistTracks,
+  normalizeFreshScanSchedule,
   readFreshReleaseSnapshot,
+  readFreshScanSchedule,
   refreshFreshDecisionIndex,
   refreshFreshPlaylistInventory,
   refreshFreshReleaseDiscovery,
+  updateFreshScanScheduleAfterRun,
   type FreshRelease,
   type FreshReleaseCandidate,
   type FreshReleaseProgress,
   type FreshReleaseSnapshot,
   type FreshPlaylistSnapshot,
+  type FreshScanSchedule,
   type FreshSpotifyPlaylist,
   type FreshSpotifyTrack
 } from './freshData';
@@ -54,12 +59,14 @@ function FreshScreen() {
   const [releaseScanState, setReleaseScanState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [releaseScanProgress, setReleaseScanProgress] = useState<FreshReleaseProgress | null>(null);
   const [releaseScanMessage, setReleaseScanMessage] = useState('');
+  const [scanSchedule, setScanSchedule] = useState<FreshScanSchedule>(() => readFreshScanSchedule());
   const [decisionIndexState, setDecisionIndexState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [decisionIndexMessage, setDecisionIndexMessage] = useState('');
   const fresh = useFreshOverview(16, 12);
   const harvestRankings = useFreshHarvestRankings(harvestType, harvestWindow, 50);
   const yearly = useYearlyListeningRollups();
   const localConfig = useLocalServiceConfig();
+  const spotifyClientId = localConfig.data?.spotify?.clientId;
   const overview = fresh.data;
   const currentYear = new Date().getFullYear();
   const yearRows = useMemo(() => {
@@ -89,7 +96,7 @@ function FreshScreen() {
     setPlaylistRefreshState('running');
     setPlaylistRefreshMessage('loading spotify playlists');
     try {
-      const nextSnapshot = await refreshFreshPlaylistInventory(localConfig.data?.spotify?.clientId);
+      const nextSnapshot = await refreshFreshPlaylistInventory(spotifyClientId);
       setPlaylistSnapshot(nextSnapshot);
       setPlaylistRefreshState('complete');
       setPlaylistRefreshMessage(`${nextSnapshot.playlists.length.toLocaleString()} spotify playlists loaded`);
@@ -98,32 +105,33 @@ function FreshScreen() {
       setPlaylistRefreshMessage(error instanceof Error ? error.message : 'spotify playlist loading failed');
     }
   };
-  const scanReleases = async () => {
+  const scanReleases = useCallback(async (source: 'manual' | 'scheduled' = 'manual') => {
     setReleaseScanState('running');
-    setReleaseScanMessage('starting release scan');
+    setReleaseScanMessage(source === 'scheduled' ? 'scheduled release scan starting' : 'starting release scan');
     setReleaseScanProgress(null);
     try {
       const nextSnapshot = await refreshFreshReleaseDiscovery({
         candidates: releaseCandidates,
-        clientId: localConfig.data?.spotify?.clientId,
+        clientId: spotifyClientId,
         onProgress: progress => {
           setReleaseScanProgress(progress);
           setReleaseScanMessage(`scanning ${progress.label} · ${progress.current}/${progress.total}`);
         }
       });
       setReleaseSnapshot(nextSnapshot);
+      setScanSchedule(updateFreshScanScheduleAfterRun(nextSnapshot.releases.length));
       setReleaseScanState('complete');
       setReleaseScanMessage(`${nextSnapshot.releases.length.toLocaleString()} fresh releases scanned`);
     } catch (error) {
       setReleaseScanState('error');
       setReleaseScanMessage(error instanceof Error ? error.message : 'fresh release scan failed');
     }
-  };
+  }, [releaseCandidates, spotifyClientId]);
   const refreshDecisionIndex = async () => {
     setDecisionIndexState('running');
     setDecisionIndexMessage('refreshing decision index');
     try {
-      const index = await refreshFreshDecisionIndex(playlistSnapshot.harvestPlaylists, localConfig.data?.spotify?.clientId);
+      const index = await refreshFreshDecisionIndex(playlistSnapshot.harvestPlaylists, spotifyClientId);
       const nextSnapshot = readFreshReleaseSnapshot();
       setReleaseSnapshot(nextSnapshot);
       setReleaseScanMessage('');
@@ -144,13 +152,42 @@ function FreshScreen() {
     window.addEventListener('melophile:fresh-playlists-updated', refreshSnapshot);
     window.addEventListener('melophile:fresh-releases-updated', refreshSnapshot);
     window.addEventListener('melophile:fresh-decision-index-updated', refreshSnapshot);
+    window.addEventListener('melophile:fresh-scan-schedule-updated', refreshSnapshot);
     return () => {
       window.removeEventListener('storage', refreshSnapshot);
       window.removeEventListener('melophile:fresh-playlists-updated', refreshSnapshot);
       window.removeEventListener('melophile:fresh-releases-updated', refreshSnapshot);
       window.removeEventListener('melophile:fresh-decision-index-updated', refreshSnapshot);
+      window.removeEventListener('melophile:fresh-scan-schedule-updated', refreshSnapshot);
     };
   }, []);
+
+  useEffect(() => {
+    const refreshSchedule = () => setScanSchedule(readFreshScanSchedule());
+    window.addEventListener('storage', refreshSchedule);
+    window.addEventListener('melophile:fresh-scan-schedule-updated', refreshSchedule);
+    return () => {
+      window.removeEventListener('storage', refreshSchedule);
+      window.removeEventListener('melophile:fresh-scan-schedule-updated', refreshSchedule);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!scanSchedule.enabled || releaseScanState === 'running') return undefined;
+    const schedule = normalizeFreshScanSchedule();
+    setScanSchedule(schedule);
+    if (!releaseCandidates.length) return undefined;
+
+    const delay = Math.min(Math.max(schedule.nextScanMs - Date.now(), 2500), 3600000);
+    const timer = window.setTimeout(() => {
+      const latest = normalizeFreshScanSchedule();
+      setScanSchedule(latest);
+      if (latest.enabled && Date.now() >= latest.nextScanMs) {
+        void scanReleases('scheduled');
+      }
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [releaseCandidates.length, releaseScanState, scanReleases, scanSchedule.enabled, scanSchedule.nextScanMs]);
 
   return (
     <section className="fresh-screen" aria-labelledby="fresh-title">
@@ -202,6 +239,7 @@ function FreshScreen() {
           releaseScanProgress={releaseScanProgress}
           releaseScanState={releaseScanState}
           releaseSnapshot={releaseSnapshot}
+          scanSchedule={scanSchedule}
           topAlbums={topAlbums}
           onBack={() => setActivePath('hub')}
           onHarvestTypeChange={setHarvestType}
@@ -365,6 +403,7 @@ function FreshPathPanel({
   releaseScanProgress,
   releaseScanState,
   releaseSnapshot,
+  scanSchedule,
   topAlbums,
   onBack,
   onHarvestTypeChange,
@@ -392,6 +431,7 @@ function FreshPathPanel({
   releaseScanProgress: FreshReleaseProgress | null;
   releaseScanState: 'idle' | 'running' | 'complete' | 'error';
   releaseSnapshot: FreshReleaseSnapshot;
+  scanSchedule: FreshScanSchedule;
   topAlbums: { rank: number; artist: string; album: string; listens: number }[];
   onBack: () => void;
   onHarvestTypeChange: (type: FreshHarvestRankType) => void;
@@ -532,6 +572,7 @@ function FreshPathPanel({
           releaseScanMessage={releaseScanMessage}
           releaseScanProgress={releaseScanProgress}
           releaseScanState={releaseScanState}
+          scanSchedule={scanSchedule}
           snapshot={releaseSnapshot}
           decisionIndexMessage={decisionIndexMessage}
           decisionIndexState={decisionIndexState}
@@ -757,6 +798,7 @@ function FreshReleaseIndex({
   releaseScanMessage,
   releaseScanProgress,
   releaseScanState,
+  scanSchedule,
   snapshot,
   onRefreshDecisionIndex,
   onScanReleases
@@ -767,6 +809,7 @@ function FreshReleaseIndex({
   releaseScanMessage: string;
   releaseScanProgress: FreshReleaseProgress | null;
   releaseScanState: 'idle' | 'running' | 'complete' | 'error';
+  scanSchedule: FreshScanSchedule;
   snapshot: FreshReleaseSnapshot;
   onRefreshDecisionIndex: () => void;
   onScanReleases: () => void;
@@ -777,6 +820,7 @@ function FreshReleaseIndex({
         <div>
           <h3>new release index</h3>
           <p>{releaseStatus(snapshot, candidates, releaseScanMessage, decisionIndexMessage)}</p>
+          <p className="fresh-schedule-note">{scanScheduleStatus(scanSchedule)}</p>
         </div>
         <div className="fresh-path-actions">
           <button
@@ -918,6 +962,12 @@ function releaseStatus(snapshot: FreshReleaseSnapshot, candidates: FreshReleaseC
     : ' · decision index pending';
   if (snapshot.releases.length) return `${snapshot.releases.length.toLocaleString()} cached releases · ${candidates.length.toLocaleString()} artists eligible${decisionText}`;
   return `${candidates.length.toLocaleString()} artists eligible · last 6 months${decisionText}`;
+}
+
+function scanScheduleStatus(schedule: FreshScanSchedule) {
+  if (!schedule.enabled) return 'scheduled scans paused';
+  const next = schedule.nextScanMs ? `next scan ${formatFreshScanDate(schedule.nextScanMs)}` : 'next scan not scheduled';
+  return `${schedule.lastStatus || 'scheduled scans active'} · ${next}`;
 }
 
 function formatDateFromMs(value: number) {

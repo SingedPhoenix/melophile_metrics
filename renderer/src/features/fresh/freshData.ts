@@ -4,8 +4,12 @@ const freshPlaylistCacheKey = 'melophile.fresh.spotifyPlaylists.v1';
 const freshReleaseCacheKey = 'melophile.fresh.releases.v1';
 const freshPlaylistTrackCacheKey = 'melophile.fresh.playlistTracks.v1';
 const freshDecisionIndexKey = 'melophile.fresh.decisionIndex.v1';
+const freshScanScheduleKey = 'melophile.fresh.seedScanSchedule.v1';
 const spotifyArtistMatchKey = 'melophile.spotify.artistMatches.v1';
 const compostPlaylistId = '1LQdBqvVyYOWWXE7wkh7Cf';
+const freshScanDays = [0, 2, 4];
+const freshScanHour = 21;
+const freshScanMinute = 1;
 
 export type FreshSpotifyPlaylist = {
   id: string;
@@ -86,6 +90,16 @@ export type FreshReleaseSnapshot = {
   hiddenByDecisionCount: number;
 };
 
+export type FreshScanSchedule = {
+  enabled: boolean;
+  days: number[];
+  hour: number;
+  minute: number;
+  lastScanMs: number;
+  nextScanMs: number;
+  lastStatus: string;
+};
+
 type SpotifyReleaseItem = {
   id?: string;
   name?: string;
@@ -160,6 +174,82 @@ export function readFreshDecisionIndex(): FreshDecisionIndex {
     playlistIds: Array.isArray(stored.playlistIds) ? stored.playlistIds : [],
     includesCompost: Boolean(stored.includesCompost)
   };
+}
+
+export function readFreshScanSchedule(): FreshScanSchedule {
+  const stored = readJson<Partial<FreshScanSchedule> | null>(freshScanScheduleKey, null);
+  const fallbackNext = nextFreshScanMs(new Date());
+  const storedHour = stored?.hour;
+  const storedMinute = stored?.minute;
+  return {
+    enabled: stored?.enabled ?? true,
+    days: Array.isArray(stored?.days) && stored.days.length ? stored.days : freshScanDays,
+    hour: Number.isFinite(storedHour) ? Number(storedHour) : freshScanHour,
+    minute: Number.isFinite(storedMinute) ? Number(storedMinute) : freshScanMinute,
+    lastScanMs: Number(stored?.lastScanMs) || 0,
+    nextScanMs: Number(stored?.nextScanMs) || fallbackNext,
+    lastStatus: stored?.lastStatus || 'scheduled scans wait for listening history and a valid Spotify connection.'
+  };
+}
+
+export function writeFreshScanSchedule(schedule: FreshScanSchedule) {
+  writeJson(freshScanScheduleKey, schedule);
+  window.dispatchEvent(new Event('melophile:fresh-scan-schedule-updated'));
+}
+
+export function updateFreshScanScheduleAfterRun(releaseCount: number) {
+  const schedule = readFreshScanSchedule();
+  const nextScanMs = nextFreshScanMs(new Date());
+  const nextScan = formatFreshScanDate(nextScanMs);
+  const nextSchedule = {
+    ...schedule,
+    lastScanMs: Date.now(),
+    nextScanMs,
+    lastStatus: `${releaseCount.toLocaleString()} releases stored · next scan ${nextScan}`
+  };
+  writeFreshScanSchedule(nextSchedule);
+  return nextSchedule;
+}
+
+export function normalizeFreshScanSchedule() {
+  const schedule = readFreshScanSchedule();
+  if (!schedule.nextScanMs || schedule.nextScanMs < Date.now() - 60000) {
+    const nextScanMs = nextFreshScanMs(new Date(schedule.lastScanMs || Date.now()));
+    const normalized = {
+      ...schedule,
+      nextScanMs: nextScanMs < Date.now() ? Date.now() + 5000 : nextScanMs
+    };
+    writeFreshScanSchedule(normalized);
+    return normalized;
+  }
+  return schedule;
+}
+
+export function nextFreshScanMs(fromDate: Date) {
+  const from = fromDate instanceof Date ? fromDate : new Date();
+  for (let offset = 0; offset <= 7; offset += 1) {
+    const candidate = new Date(from);
+    candidate.setDate(from.getDate() + offset);
+    candidate.setHours(freshScanHour, freshScanMinute, 0, 0);
+    if (freshScanDays.includes(candidate.getDay()) && candidate.getTime() > from.getTime()) {
+      return candidate.getTime();
+    }
+  }
+  const fallback = new Date(from);
+  fallback.setDate(from.getDate() + 1);
+  fallback.setHours(freshScanHour, freshScanMinute, 0, 0);
+  return fallback.getTime();
+}
+
+export function formatFreshScanDate(ms: number) {
+  if (!ms) return 'not scheduled';
+  return new Date(ms).toLocaleString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
 }
 
 export async function refreshFreshPlaylistInventory(clientId?: string) {

@@ -719,6 +719,7 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByRole('button', { name: /harvest/i })).toBeVisible();
   await page.getByRole('button', { name: /seed/i }).click();
   await expect(page.getByRole('heading', { name: 'seed playlists' })).toBeVisible();
+  await expect(page.getByText(/scheduled scans wait/)).toBeVisible();
   await page.getByRole('button', { name: 'load spotify playlists' }).click();
   await expect(page.getByText('2 spotify playlists loaded')).toBeVisible();
   await expect(page.getByRole('button', { name: /Fresh Seeds Vol\. 1/i })).toBeVisible();
@@ -729,6 +730,7 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:playlist:fresh-seeds-one');
   await page.getByRole('button', { name: 'scan releases' }).click();
   await expect(page.getByText('2 fresh releases scanned')).toBeVisible();
+  await expect(page.getByText(/2 releases stored/)).toBeVisible();
   await expect(page.getByRole('button', { name: /Moonlit Test Single/i })).toBeVisible();
   await page.getByRole('button', { name: /Moonlit Test Single/i }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:album:moonlit-test-single');
