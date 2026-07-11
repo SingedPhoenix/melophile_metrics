@@ -522,7 +522,24 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
           window: options?.window || 6
         };
       },
-      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
+      apotheosisWatchlist: async () => ({
+        anchorUts: 1783468800,
+        windowMonths: 6,
+        artists: [{
+          rank: 1,
+          key: 'tears for fears',
+          artist: 'tears for fears',
+          listens: 404,
+          newestTrack: 'everybody wants to rule the world',
+          newestTrackUts: 1640995200,
+          monthsSinceNewestTrack: 49
+        }]
+      }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] }),
+      openSpotify: async url => {
+        window.__lastSpotifyUrl = url;
+        return { opened: true, url };
+      }
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -543,8 +560,20 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
   await expect(page.locator('.ghosted-list-panel').getByText('artist · last heard 1,586 days ago')).toBeVisible();
   await page.locator('.ghosted-list-panel').getByRole('button', { name: 'skip', exact: true }).click();
   await expect(page.getByText('no quiet favorites found')).toBeVisible();
-  await page.getByRole('button', { name: 'reset skipped' }).click();
+  await page.locator('.ghosted-list-panel').getByRole('button', { name: 'reset skipped' }).click();
   await expect(page.locator('.ghosted-list-panel').getByText('artist · last heard 1,586 days ago')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'apotheosis' })).toBeVisible();
+  await expect(page.locator('.apotheosis-panel').getByText('top 100 artists · no newly-added track in the last 6 months')).toBeVisible();
+  await expect(page.locator('.apotheosis-panel').getByText('tears for fears')).toBeVisible();
+  await expect(page.locator('.apotheosis-panel').getByText('newest track logged 49 months ago · everybody wants to rule the world')).toBeVisible();
+  await page.locator('.apotheosis-panel .spotify-open-row').first().click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toContain('spotify:search:tears%20for%20fears');
+  await page.locator('.apotheosis-panel').getByRole('button', { name: 'shuffle' }).click();
+  await expect(page.locator('.apotheosis-panel').getByText('shuffled 100 artists · no newly-added track in the last 6 months')).toBeVisible();
+  await page.locator('.apotheosis-panel').getByRole('button', { name: 'skip', exact: true }).click();
+  await expect(page.getByText('no artists found for this watchlist')).toBeVisible();
+  await page.locator('.apotheosis-panel').getByRole('button', { name: 'reset skipped' }).click();
+  await expect(page.locator('.apotheosis-panel').getByText('tears for fears')).toBeVisible();
 });
 
 test('react renderer opens migrated Settings slice', async ({ page }) => {

@@ -1,5 +1,6 @@
 import type { PastTenseTrackRef, TrackPlayCountResult } from './features/past-tense/pastTenseData';
 import type {
+  ApotheosisWatchlist,
   DesktopDatabaseStatus,
   EntityRankings,
   FreshOverview,
@@ -47,6 +48,10 @@ declare global {
         type?: GhostedType;
         window?: GhostedWindow;
       }) => Promise<GhostedTracks>;
+      apotheosisWatchlist: (options?: {
+        limit?: number;
+        windowMonths?: number;
+      }) => Promise<ApotheosisWatchlist>;
       freshOverview: (options?: { albumLimit?: number; artistLimit?: number }) => Promise<FreshOverview>;
       harvestRankings: (options?: {
         type?: FreshHarvestRankType;

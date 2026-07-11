@@ -124,6 +124,22 @@ export type GhostedTracks = {
   anchorUts: number;
 };
 
+export type ApotheosisArtist = {
+  rank: number;
+  key: string;
+  artist: string;
+  listens: number;
+  newestTrack: string;
+  newestTrackUts: number;
+  monthsSinceNewestTrack: number;
+};
+
+export type ApotheosisWatchlist = {
+  artists: ApotheosisArtist[];
+  anchorUts: number;
+  windowMonths: number;
+};
+
 export type FreshAlbum = {
   rank: number;
   artist: string;
@@ -298,6 +314,17 @@ export function useGhostedTracks(limit = 50, minListens = 5, type: GhostedType =
     queryFn: async (): Promise<GhostedTracks | null> => {
       if (!window.melophileDesktop?.ghostedTracks) return null;
       return window.melophileDesktop.ghostedTracks({ limit, minListens, type, window: windowKey });
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useApotheosisWatchlist(limit = 100, windowMonths = 6) {
+  return useQuery({
+    queryKey: ['desktop', 'apotheosis-watchlist', limit, windowMonths],
+    queryFn: async (): Promise<ApotheosisWatchlist | null> => {
+      if (!window.melophileDesktop?.apotheosisWatchlist) return null;
+      return window.melophileDesktop.apotheosisWatchlist({ limit, windowMonths });
     },
     staleTime: 60_000
   });

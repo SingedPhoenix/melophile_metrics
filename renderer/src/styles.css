@@ -2584,6 +2584,17 @@ img.playlist-cover {
   margin-top: 14px;
 }
 
+.apotheosis-panel {
+  margin-top: 16px;
+}
+
+.apotheosis-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
   .home-overview,
   .section-grid,

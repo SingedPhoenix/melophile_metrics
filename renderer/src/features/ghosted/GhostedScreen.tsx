@@ -3,7 +3,14 @@ import MetricToggle from '../../shared/MetricToggle';
 import RankedBarList from '../../shared/RankedBarList';
 import { openSpotifySearch } from '../../shared/spotifyLinks';
 import StatusPanel from '../../shared/StatusPanel';
-import { GhostedEntry, GhostedType, GhostedWindow, useGhostedTracks } from '../../shared/useDesktopStatus';
+import {
+  ApotheosisArtist,
+  GhostedEntry,
+  GhostedType,
+  GhostedWindow,
+  useApotheosisWatchlist,
+  useGhostedTracks
+} from '../../shared/useDesktopStatus';
 
 const thresholds = [3, 5, 10, 25];
 const ghostedTypes = [
@@ -28,11 +35,23 @@ function GhostedScreen() {
   const [type, setType] = useState<GhostedType>('tracks');
   const [windowKey, setWindowKey] = useState<GhostedWindow>(6);
   const [skippedKeys, setSkippedKeys] = useState<string[]>([]);
+  const [apotheosisSkipped, setApotheosisSkipped] = useState<string[]>([]);
+  const [apotheosisShuffleSeed, setApotheosisShuffleSeed] = useState(0);
   const ghosted = useGhostedTracks(100, minListens, type, windowKey);
+  const apotheosis = useApotheosisWatchlist(100, 6);
   const entries = (ghosted.data?.entries || ghosted.data?.tracks || []).filter(entry => !skippedKeys.includes(entry.key));
+  const apotheosisArtists = useMemo(() => {
+    const artists = (apotheosis.data?.artists || []).filter(artist => !apotheosisSkipped.includes(artist.key));
+    if (!apotheosisShuffleSeed) return artists;
+    return artists
+      .slice()
+      .sort((a, b) => seededSortValue(a.key, apotheosisShuffleSeed) - seededSortValue(b.key, apotheosisShuffleSeed));
+  }, [apotheosis.data?.artists, apotheosisShuffleSeed, apotheosisSkipped]);
   const longestGone = entries[0];
   const visibleEntries = entries.slice(0, 60);
+  const visibleApotheosis = apotheosisArtists.slice(0, 60);
   const maxListens = Math.max(...visibleEntries.map(entry => entry.listens), 1);
+  const maxApotheosisListens = Math.max(...visibleApotheosis.map(artist => artist.listens), 1);
   const averageDays = useMemo(() => {
     if (!visibleEntries.length) return 0;
     return Math.round(visibleEntries.reduce((sum, entry) => sum + entry.daysSinceLastPlayed, 0) / visibleEntries.length);
@@ -144,6 +163,60 @@ function GhostedScreen() {
           </button>
         )}
       </article>
+
+      <article className="stats-panel apotheosis-panel" aria-labelledby="apotheosis-title">
+        <div className="panel-head">
+          <div>
+            <h2 id="apotheosis-title">apotheosis</h2>
+            <p>{apotheosisShuffleSeed ? 'shuffled 100 artists' : 'top 100 artists'} · no newly-added track in the last 6 months</p>
+          </div>
+          <div className="apotheosis-actions">
+            <button
+              className={apotheosisShuffleSeed ? 'pill active' : 'pill'}
+              type="button"
+              onClick={() => setApotheosisShuffleSeed(Date.now())}
+            >
+              shuffle
+            </button>
+            <button
+              className="pill"
+              type="button"
+              onClick={() => {
+                setApotheosisSkipped([]);
+                setApotheosisShuffleSeed(0);
+              }}
+            >
+              reset skipped
+            </button>
+          </div>
+        </div>
+
+        {visibleApotheosis.length ? (
+          <RankedBarList
+            ariaLabel="Apotheosis artist watchlist"
+            maxValue={maxApotheosisListens}
+            rows={visibleApotheosis.map((artist, index) => ({
+              barLabel: artist.listens.toLocaleString(),
+              key: artist.key,
+              meta: <button className="ghost-skip" type="button" onClick={event => {
+                event.stopPropagation();
+                setApotheosisSkipped(current => [...current, artist.key]);
+              }}>skip</button>,
+              onOpen: () => openSpotifySearch('artist', artist.artist),
+              rank: apotheosisShuffleSeed ? index + 1 : artist.rank,
+              subtitle: apotheosisSubtitle(artist),
+              title: artist.artist,
+              value: artist.listens
+            }))}
+          />
+        ) : (
+          <StatusPanel
+            detail="Artists appear here when their newest first-seen track is older than the watchlist window."
+            title={apotheosis.isFetching ? 'building artist watchlist' : 'no artists found for this watchlist'}
+            variant={apotheosis.isFetching ? 'loading' : 'empty'}
+          />
+        )}
+      </article>
     </section>
   );
 }
@@ -156,6 +229,20 @@ function openGhostedEntry(entry: GhostedEntry) {
   } else {
     openSpotifySearch('track', entry.track, entry.artist);
   }
+}
+
+function apotheosisSubtitle(artist: ApotheosisArtist) {
+  const months = artist.monthsSinceNewestTrack;
+  const age = months ? `${months.toLocaleString()} months ago` : 'recently';
+  return `newest track logged ${age} · ${artist.newestTrack}`;
+}
+
+function seededSortValue(key: string, seed: number) {
+  let hash = seed || 1;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
 }
 
 export default GhostedScreen;

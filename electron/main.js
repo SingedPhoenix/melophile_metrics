@@ -4,6 +4,7 @@ const http = require('node:http');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const {
+  apotheosisWatchlist,
   closeMelophileDatabase,
   databaseStatus,
   entityRankings,
@@ -139,6 +140,8 @@ function registerDesktopHandlers() {
   });
 
   ipcMain.handle('melophile:ghosted-tracks', async (_event, payload = {}) => ghostedTracks(payload));
+
+  ipcMain.handle('melophile:apotheosis-watchlist', async (_event, payload = {}) => apotheosisWatchlist(payload));
 
   ipcMain.handle('melophile:fresh-overview', async (_event, payload = {}) => freshOverview(payload));
 

@@ -392,6 +392,62 @@ function ghostedTracks(options = {}) {
   return { entries, tracks: type === 'tracks' ? entries : [], type, window: windowMonths, minListens, anchorUts };
 }
 
+function apotheosisWatchlist(options = {}) {
+  const openedDb = requireDb();
+  const safeLimit = Math.max(1, Math.min(Number.parseInt(options.limit, 10) || 100, 200));
+  const windowMonths = Math.max(1, Math.min(Number.parseInt(options.windowMonths, 10) || 6, 120));
+  const anchorUts = Number(openedDb.prepare(`
+    SELECT MAX(played_at_uts) AS anchor_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+  `).get()?.anchor_uts || Math.floor(Date.now() / 1000));
+  const cutoffUts = addUtcMonths(anchorUts, -windowMonths);
+
+  const rows = openedDb.prepare(`
+    WITH artist_counts AS (
+      SELECT artist, COUNT(*) AS listens
+      FROM scrobbles
+      WHERE missing_from_source = 0
+      GROUP BY artist
+    ),
+    track_firsts AS (
+      SELECT artist, track, MIN(played_at_uts) AS first_seen_uts
+      FROM scrobbles
+      WHERE missing_from_source = 0 AND trim(track) <> ''
+      GROUP BY artist, track
+    ),
+    newest_track_dates AS (
+      SELECT artist, MAX(first_seen_uts) AS newest_track_uts
+      FROM track_firsts
+      GROUP BY artist
+    ),
+    newest_tracks AS (
+      SELECT tf.artist, MIN(tf.track) AS newest_track, ntd.newest_track_uts
+      FROM track_firsts tf
+      JOIN newest_track_dates ntd
+        ON ntd.artist = tf.artist
+       AND ntd.newest_track_uts = tf.first_seen_uts
+      GROUP BY tf.artist, ntd.newest_track_uts
+    )
+    SELECT ac.artist, ac.listens, nt.newest_track, nt.newest_track_uts
+    FROM artist_counts ac
+    JOIN newest_tracks nt ON nt.artist = ac.artist
+    WHERE nt.newest_track_uts < ?
+    ORDER BY ac.listens DESC, ac.artist ASC
+    LIMIT ?
+  `).all(cutoffUts, safeLimit).map((row, index) => ({
+    rank: index + 1,
+    key: normalizeText(row.artist),
+    artist: row.artist,
+    listens: Number(row.listens || 0),
+    newestTrack: row.newest_track || '',
+    newestTrackUts: Number(row.newest_track_uts || 0),
+    monthsSinceNewestTrack: Math.max(0, Math.floor((anchorUts - Number(row.newest_track_uts || anchorUts)) / 2629800))
+  }));
+
+  return { artists: rows, anchorUts, windowMonths };
+}
+
 function freshOverview(options = {}) {
   const openedDb = requireDb();
   const albumLimit = Math.max(1, Math.min(Number.parseInt(options.albumLimit, 10) || 16, 50));
@@ -880,6 +936,7 @@ function requireDb() {
 }
 
 module.exports = {
+  apotheosisWatchlist,
   closeMelophileDatabase,
   databaseStatus,
   entityRankings,
