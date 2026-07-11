@@ -2465,6 +2465,14 @@ img.playlist-cover {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 12px;
+}
+
+.ghosted-window-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .ghosted-mini-stat {
@@ -2552,6 +2560,28 @@ img.playlist-cover {
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.ghost-skip {
+  min-height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(204, 204, 204, 0.1);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.12);
+  color: rgba(204, 204, 204, 0.54);
+  cursor: pointer;
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.ghost-skip:hover,
+.ghost-skip:focus-visible {
+  border-color: rgba(238, 238, 238, 0.2);
+  color: rgba(238, 238, 238, 0.82);
+}
+
+.ghosted-reset-skips {
+  margin-top: 14px;
 }
 
 @media (max-width: 900px) {

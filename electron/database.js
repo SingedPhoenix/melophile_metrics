@@ -330,27 +330,66 @@ function ghostedTracks(options = {}) {
   const openedDb = requireDb();
   const safeLimit = Math.max(1, Math.min(Number.parseInt(options.limit, 10) || 50, 200));
   const minListens = Math.max(1, Math.min(Number.parseInt(options.minListens, 10) || 5, 1000));
-  const nowUts = Math.floor(Date.now() / 1000);
-  const tracks = openedDb.prepare(`
-    SELECT artist, track, album, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+  const type = ['tracks', 'artists', 'albums'].includes(options.type) ? options.type : 'tracks';
+  const windowMonths = options.window === 'all'
+    ? 'all'
+    : Math.max(1, Math.min(Number.parseInt(options.window, 10) || 6, 240));
+  const anchorUts = Number(openedDb.prepare(`
+    SELECT MAX(played_at_uts) AS anchor_uts
     FROM scrobbles
     WHERE missing_from_source = 0
-    GROUP BY artist, track
-    HAVING listens >= ?
-    ORDER BY last_played_uts ASC, listens DESC, artist ASC, track ASC
-    LIMIT ?
-  `).all(minListens, safeLimit).map((row, index) => ({
+  `).get()?.anchor_uts || Math.floor(Date.now() / 1000));
+  const cutoffUts = windowMonths === 'all' ? 0 : addUtcMonths(anchorUts, -windowMonths);
+
+  let query;
+  if (type === 'artists') {
+    query = `
+      SELECT artist, '' AS track, '' AS album, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+      FROM scrobbles
+      WHERE missing_from_source = 0
+      GROUP BY artist
+      HAVING listens >= ? AND last_played_uts < ?
+      ORDER BY listens DESC, artist ASC
+      LIMIT ?
+    `;
+  } else if (type === 'albums') {
+    query = `
+      SELECT artist, '' AS track, album, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+      FROM scrobbles
+      WHERE missing_from_source = 0 AND trim(album) <> ''
+      GROUP BY artist, album
+      HAVING listens >= ? AND last_played_uts < ?
+      ORDER BY listens DESC, artist ASC, album ASC
+      LIMIT ?
+    `;
+  } else {
+    query = `
+      SELECT artist, track, album, COUNT(*) AS listens, MIN(played_at_uts) AS first_played_uts, MAX(played_at_uts) AS last_played_uts
+      FROM scrobbles
+      WHERE missing_from_source = 0
+      GROUP BY artist, track
+      HAVING listens >= ? AND last_played_uts < ?
+      ORDER BY listens DESC, artist ASC, track ASC
+      LIMIT ?
+    `;
+  }
+
+  const entries = openedDb.prepare(query).all(minListens, cutoffUts || anchorUts + 1, safeLimit).map((row, index) => ({
     rank: index + 1,
+    key: `${type}|||${normalizeText(row.artist)}|||${normalizeText(row.track || row.album || '')}`,
+    type,
     artist: row.artist,
-    track: row.track,
+    track: row.track || '',
     album: row.album || '',
+    title: type === 'artists' ? row.artist : type === 'albums' ? row.album || 'untitled album' : row.track || 'untitled track',
+    subtitle: type === 'artists' ? 'artist' : row.artist,
     listens: Number(row.listens || 0),
     firstPlayedUts: Number(row.first_played_uts || 0),
     lastPlayedUts: Number(row.last_played_uts || 0),
-    daysSinceLastPlayed: Math.max(0, Math.floor((nowUts - Number(row.last_played_uts || nowUts)) / 86400))
+    daysSinceLastPlayed: Math.max(0, Math.floor((anchorUts - Number(row.last_played_uts || anchorUts)) / 86400))
   }));
 
-  return { tracks, minListens };
+  return { entries, tracks: type === 'tracks' ? entries : [], type, window: windowMonths, minListens, anchorUts };
 }
 
 function freshOverview(options = {}) {
@@ -820,6 +859,12 @@ function normalizeTrackKeys(value) {
     .replace(/\s+/g, ' ');
   if (stripped) aliases.add(stripped);
   return [...aliases];
+}
+
+function addUtcMonths(uts, deltaMonths) {
+  const date = new Date(Number(uts || 0) * 1000);
+  date.setUTCMonth(date.getUTCMonth() + deltaMonths);
+  return Math.floor(date.getTime() / 1000);
 }
 
 function hashParts(parts) {

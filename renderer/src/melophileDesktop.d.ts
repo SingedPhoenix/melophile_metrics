@@ -8,6 +8,8 @@ import type {
   FreshHarvestWindow,
   FrissonOverview,
   GhostedTracks,
+  GhostedType,
+  GhostedWindow,
   ListeningRollups,
   LocalServiceConfig,
   RecentListening,
@@ -39,7 +41,12 @@ declare global {
         limit?: number;
       }) => Promise<EntityRankings>;
       recentListening: (limit?: number) => Promise<RecentListening>;
-      ghostedTracks: (options?: { limit?: number; minListens?: number }) => Promise<GhostedTracks>;
+      ghostedTracks: (options?: {
+        limit?: number;
+        minListens?: number;
+        type?: GhostedType;
+        window?: GhostedWindow;
+      }) => Promise<GhostedTracks>;
       freshOverview: (options?: { albumLimit?: number; artistLimit?: number }) => Promise<FreshOverview>;
       harvestRankings: (options?: {
         type?: FreshHarvestRankType;

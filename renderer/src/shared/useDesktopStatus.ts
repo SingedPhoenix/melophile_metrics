@@ -97,11 +97,18 @@ export type RecentListening = {
   scrobbles: RecentScrobble[];
 };
 
-export type GhostedTrack = {
+export type GhostedType = 'tracks' | 'artists' | 'albums';
+export type GhostedWindow = 6 | 12 | 24 | 36 | 48 | 60 | 120 | 'all';
+
+export type GhostedEntry = {
   rank: number;
+  key: string;
+  type: GhostedType;
   artist: string;
   track: string;
   album: string;
+  title: string;
+  subtitle: string;
   listens: number;
   firstPlayedUts: number;
   lastPlayedUts: number;
@@ -109,8 +116,12 @@ export type GhostedTrack = {
 };
 
 export type GhostedTracks = {
-  tracks: GhostedTrack[];
+  entries: GhostedEntry[];
+  tracks: GhostedEntry[];
+  type: GhostedType;
+  window: GhostedWindow;
   minListens: number;
+  anchorUts: number;
 };
 
 export type FreshAlbum = {
@@ -281,12 +292,12 @@ export function useYearlyEntityRankings(year?: number, type: YearlyEntityRanking
   });
 }
 
-export function useGhostedTracks(limit = 50, minListens = 5) {
+export function useGhostedTracks(limit = 50, minListens = 5, type: GhostedType = 'tracks', windowKey: GhostedWindow = 6) {
   return useQuery({
-    queryKey: ['desktop', 'ghosted-tracks', limit, minListens],
+    queryKey: ['desktop', 'ghosted-tracks', limit, minListens, type, windowKey],
     queryFn: async (): Promise<GhostedTracks | null> => {
       if (!window.melophileDesktop?.ghostedTracks) return null;
-      return window.melophileDesktop.ghostedTracks({ limit, minListens });
+      return window.melophileDesktop.ghostedTracks({ limit, minListens, type, window: windowKey });
     },
     staleTime: 60_000
   });

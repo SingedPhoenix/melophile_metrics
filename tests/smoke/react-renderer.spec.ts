@@ -497,19 +497,31 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
           album: 'rat wars'
         }]
       }),
-      ghostedTracks: async options => ({
-        minListens: options?.minListens || 5,
-        tracks: [{
+      ghostedTracks: async options => {
+        const type = options?.type || 'tracks';
+        const base = {
           rank: 1,
+          key: `${type}|||tears for fears|||head over heels`,
+          type,
           artist: 'tears for fears',
-          track: 'head over heels',
-          album: 'songs from the big chair',
+          track: type === 'tracks' ? 'head over heels' : '',
+          album: type === 'albums' ? 'songs from the big chair' : type === 'tracks' ? 'songs from the big chair' : '',
+          title: type === 'artists' ? 'tears for fears' : type === 'albums' ? 'songs from the big chair' : 'head over heels',
+          subtitle: type === 'artists' ? 'artist' : 'tears for fears',
           listens: 15,
           firstPlayedUts: 1609459200,
           lastPlayedUts: 1640995200,
-          daysSinceLastPlayed: 1286
-        }]
-      }),
+          daysSinceLastPlayed: options?.window === 12 ? 1586 : 1286
+        };
+        return {
+          anchorUts: 1783468800,
+          entries: [base],
+          minListens: options?.minListens || 5,
+          tracks: type === 'tracks' ? [base] : [],
+          type,
+          window: options?.window || 6
+        };
+      },
       freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
     };
   });
@@ -519,11 +531,20 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'ghosted' })).toBeVisible();
   await expect(page.locator('.ghosted-list-panel').getByText('head over heels')).toBeVisible();
-  await expect(page.locator('.ghosted-list-panel').getByText('tears for fears · songs from the big chair')).toBeVisible();
+  await expect(page.locator('.ghosted-list-panel').getByText('tears for fears · last heard 1,286 days ago')).toBeVisible();
   await expect(page.locator('.ghosted-list-panel').getByText('1,286 days')).toBeVisible();
   await page.getByRole('button', { name: '10+' }).click();
   await expect(page.getByRole('button', { name: '10+' })).toHaveClass(/active/);
-  await expect(page.getByText('tracks with at least 10 listens')).toBeVisible();
+  await expect(page.getByText('tracks not heard in 6 months · 10+ listens')).toBeVisible();
+  await page.locator('.ghosted-controls').getByRole('button', { name: '1 year' }).click();
+  await expect(page.locator('.ghosted-list-panel').getByText('tears for fears · last heard 1,586 days ago')).toBeVisible();
+  await page.locator('.ghosted-controls').getByRole('button', { name: 'artists' }).click();
+  await expect(page.locator('.ghosted-list-panel').getByText('tears for fears')).toBeVisible();
+  await expect(page.locator('.ghosted-list-panel').getByText('artist · last heard 1,586 days ago')).toBeVisible();
+  await page.locator('.ghosted-list-panel').getByRole('button', { name: 'skip', exact: true }).click();
+  await expect(page.getByText('no quiet favorites found')).toBeVisible();
+  await page.getByRole('button', { name: 'reset skipped' }).click();
+  await expect(page.locator('.ghosted-list-panel').getByText('artist · last heard 1,586 days ago')).toBeVisible();
 });
 
 test('react renderer opens migrated Settings slice', async ({ page }) => {
