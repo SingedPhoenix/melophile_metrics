@@ -667,6 +667,110 @@ h1 {
   font-size: 11px;
 }
 
+.fresh-release-index {
+  display: grid;
+  gap: 14px;
+}
+
+.fresh-release-index .status-chip:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.fresh-release-shelves {
+  display: grid;
+  gap: 14px;
+}
+
+.fresh-release-shelf {
+  padding: 14px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.fresh-release-shelf-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.fresh-release-shelf-head h4,
+.fresh-release-shelf-head p {
+  margin: 0;
+}
+
+.fresh-release-shelf-head h4 {
+  font-size: 20px;
+}
+
+.fresh-release-shelf-head p,
+.fresh-release-shelf-head span {
+  color: rgba(204, 204, 204, 0.46);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.fresh-release-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.fresh-release-card {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgba(205, 164, 198, 0.08), rgba(151, 164, 137, 0.08)),
+    rgba(0, 0, 0, 0.12);
+  color: inherit;
+  text-align: left;
+}
+
+.fresh-release-card:hover,
+.fresh-release-card:focus-visible {
+  border-color: rgba(238, 238, 238, 0.18);
+}
+
+.fresh-release-cover {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(238, 238, 238, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(151, 164, 137, 0.2), rgba(205, 164, 198, 0.18));
+  object-fit: cover;
+}
+
+.fresh-release-card strong,
+.fresh-release-card small,
+.fresh-release-card span {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fresh-release-card strong {
+  font-size: 15px;
+  line-height: 1.08;
+}
+
+.fresh-release-card small,
+.fresh-release-card span {
+  color: rgba(204, 204, 204, 0.46);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+}
+
 .fresh-summary-grid {
   grid-template-columns: minmax(280px, 0.42fr) minmax(0, 1fr);
 }
@@ -2150,6 +2254,7 @@ img.playlist-cover {
   .fresh-panel-grid,
   .fresh-path-grid,
   .fresh-playlist-shelf,
+  .fresh-release-grid,
   .fresh-summary-grid,
   .frisson-summary,
   .ghosted-summary,

@@ -582,6 +582,39 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
       });
       return;
     }
+    if (url.pathname === '/v1/search') {
+      const query = url.searchParams.get('q') || 'artist';
+      const id = query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'artist';
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          artists: {
+            items: [{ id: `artist-${id}`, name: query }]
+          }
+        }
+      });
+      return;
+    }
+    if (url.pathname.startsWith('/v1/artists/') && url.pathname.endsWith('/albums')) {
+      const artistId = url.pathname.split('/')[3];
+      const isRecent = artistId.includes('magdalena');
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          items: [{
+            id: isRecent ? 'moonlit-test-single' : 'blueprint-return',
+            name: isRecent ? 'Moonlit Test Single' : 'Blueprint Return',
+            album_type: 'single',
+            release_date: '2026-07-01',
+            uri: isRecent ? 'spotify:album:moonlit-test-single' : 'spotify:album:blueprint-return',
+            external_urls: { spotify: 'https://open.spotify.com/album/test-release' },
+            images: [{ url: 'https://example.com/release.jpg' }],
+            artists: [{ name: isRecent ? 'magdalena bay' : 'jay-z' }]
+          }]
+        }
+      });
+      return;
+    }
     await route.fulfill({ status: 404, body: '{}' });
   });
   await page.addInitScript(() => {
@@ -633,8 +666,13 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Fresh Seeds Vol\. 1/i })).toBeVisible();
   await page.getByRole('button', { name: /Fresh Seeds Vol\. 1/i }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:playlist:fresh-seeds-one');
+  await page.getByRole('button', { name: 'scan releases' }).click();
+  await expect(page.getByText('2 fresh releases scanned')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Moonlit Test Single/i })).toBeVisible();
+  await page.getByRole('button', { name: /Moonlit Test Single/i }).click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:album:moonlit-test-single');
   await expect(page.getByRole('heading', { name: 'recent discovery queue' })).toBeVisible();
-  await expect(page.locator('.fresh-path-panel').getByText('magdalena bay')).toBeVisible();
+  await expect(page.getByRole('article').filter({ hasText: 'recent discovery queue' }).getByText('magdalena bay')).toBeVisible();
   await page.getByRole('button', { name: 'fresh home' }).click();
   await page.getByRole('button', { name: /harvest/i }).click();
   await expect(page.getByRole('heading', { name: 'harvest playlists' })).toBeVisible();
