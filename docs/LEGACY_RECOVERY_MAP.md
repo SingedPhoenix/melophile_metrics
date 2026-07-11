@@ -52,12 +52,12 @@ Restored in React:
 
 Still To Recover:
 
-- Final smoke rerun for the scheduled Past Tense test selector fix after the Codex usage cap resets.
+- Inventory the remaining Pulse/Gem Mines/Ghosted/Frisson feature gaps after the main data paths are stable.
 
 Recommended migration order:
 
-1. Rerun smoke after the Codex usage cap resets to close the scheduled Past Tense selector-only test fix.
-2. Inventory the remaining Pulse/Gem Mines/Ghosted/Frisson feature gaps after the main data paths are stable.
+1. Inventory the remaining Pulse/Gem Mines/Ghosted/Frisson feature gaps after the main data paths are stable.
+2. Recover the highest-impact missing view behavior from that inventory.
 3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
