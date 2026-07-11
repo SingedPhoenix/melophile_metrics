@@ -3,7 +3,9 @@ import { getValidSpotifyToken, spotifyFetch } from '../../shared/spotifyApi';
 const freshPlaylistCacheKey = 'melophile.fresh.spotifyPlaylists.v1';
 const freshReleaseCacheKey = 'melophile.fresh.releases.v1';
 const freshPlaylistTrackCacheKey = 'melophile.fresh.playlistTracks.v1';
+const freshDecisionIndexKey = 'melophile.fresh.decisionIndex.v1';
 const spotifyArtistMatchKey = 'melophile.spotify.artistMatches.v1';
+const compostPlaylistId = '1LQdBqvVyYOWWXE7wkh7Cf';
 
 export type FreshSpotifyPlaylist = {
   id: string;
@@ -31,6 +33,14 @@ export type FreshSpotifyTrack = {
 export type FreshPlaylistTrackCache = {
   updatedAtMs?: number;
   playlists: Record<string, { updatedAtMs?: number; tracks: FreshSpotifyTrack[] }>;
+};
+
+export type FreshDecisionIndex = {
+  updatedAtMs?: number;
+  trackKeys: string[];
+  albumKeys: string[];
+  playlistIds: string[];
+  includesCompost: boolean;
 };
 
 export type FreshPlaylistSnapshot = {
@@ -72,6 +82,8 @@ export type FreshReleaseSnapshot = {
   releases: FreshRelease[];
   allTimeReleases: FreshRelease[];
   recentReleases: FreshRelease[];
+  decisionIndex: FreshDecisionIndex;
+  hiddenByDecisionCount: number;
 };
 
 type SpotifyReleaseItem = {
@@ -113,12 +125,16 @@ export function readFreshPlaylistSnapshot(): FreshPlaylistSnapshot {
 
 export function readFreshReleaseSnapshot(): FreshReleaseSnapshot {
   const stored = readJson<{ updatedAtMs?: number; releases?: FreshRelease[] }>(freshReleaseCacheKey, {});
-  const releases = Array.isArray(stored.releases) ? visibleFreshReleases(stored.releases) : [];
+  const decisionIndex = readFreshDecisionIndex();
+  const visibleByDate = Array.isArray(stored.releases) ? visibleFreshReleases(stored.releases) : [];
+  const releases = visibleByDate.filter(release => !releaseFoundInDecisionIndex(release, decisionIndex));
   return {
     updatedAtMs: stored.updatedAtMs,
     releases,
     allTimeReleases: releases.filter(release => release.pools.includes('all-time')),
-    recentReleases: releases.filter(release => release.pools.includes('recent'))
+    recentReleases: releases.filter(release => release.pools.includes('recent')),
+    decisionIndex,
+    hiddenByDecisionCount: visibleByDate.length - releases.length
   };
 }
 
@@ -127,6 +143,22 @@ export function readFreshPlaylistTrackCache(): FreshPlaylistTrackCache {
   return {
     updatedAtMs: stored.updatedAtMs,
     playlists: stored.playlists && typeof stored.playlists === 'object' ? stored.playlists : {}
+  };
+}
+
+export function readFreshDecisionIndex(): FreshDecisionIndex {
+  const stored = readJson<FreshDecisionIndex>(freshDecisionIndexKey, {
+    trackKeys: [],
+    albumKeys: [],
+    playlistIds: [],
+    includesCompost: false
+  });
+  return {
+    updatedAtMs: stored.updatedAtMs,
+    trackKeys: Array.isArray(stored.trackKeys) ? stored.trackKeys : [],
+    albumKeys: Array.isArray(stored.albumKeys) ? stored.albumKeys : [],
+    playlistIds: Array.isArray(stored.playlistIds) ? stored.playlistIds : [],
+    includesCompost: Boolean(stored.includesCompost)
   };
 }
 
@@ -149,6 +181,27 @@ export async function refreshFreshPlaylistInventory(clientId?: string) {
   });
   window.dispatchEvent(new Event('melophile:fresh-playlists-updated'));
   return readFreshPlaylistSnapshot();
+}
+
+export async function refreshFreshDecisionIndex(playlists: FreshSpotifyPlaylist[], clientId?: string) {
+  const playlistIds = Array.from(new Set([
+    ...playlists.map(playlist => playlist.id).filter(Boolean),
+    compostPlaylistId
+  ]));
+  if (!playlistIds.length) throw new Error('harvest playlists needed');
+
+  const cache = readFreshPlaylistTrackCache();
+  for (const playlistId of playlistIds) {
+    if (!cache.playlists[playlistId]?.tracks?.length) {
+      await loadFreshPlaylistTracks(playlistId, clientId);
+    }
+  }
+
+  const refreshedCache = readFreshPlaylistTrackCache();
+  const index = buildFreshDecisionIndex(playlistIds, refreshedCache);
+  writeJson(freshDecisionIndexKey, index);
+  window.dispatchEvent(new Event('melophile:fresh-decision-index-updated'));
+  return index;
 }
 
 export async function loadFreshPlaylistTracks(playlistId: string, clientId?: string, force = false) {
@@ -252,6 +305,64 @@ function visibleFreshReleases(releases: FreshRelease[]) {
   return releases
     .filter(release => release.releaseMs >= cutoff)
     .sort((a, b) => b.releaseMs - a.releaseMs || b.artistPlays - a.artistPlays || a.name.localeCompare(b.name));
+}
+
+function buildFreshDecisionIndex(playlistIds: string[], cache: FreshPlaylistTrackCache): FreshDecisionIndex {
+  const trackKeys = new Set<string>();
+  const albumKeys = new Set<string>();
+  playlistIds.forEach(playlistId => {
+    const tracks = cache.playlists[playlistId]?.tracks || [];
+    tracks.forEach(track => {
+      const album = track.album?.name || '';
+      (track.artists || []).forEach(artist => {
+        const artistName = artist.name || '';
+        const trackKey = decisionKey(artistName, track.name || '');
+        const albumKey = decisionKey(artistName, album);
+        if (trackKey) trackKeys.add(trackKey);
+        if (albumKey) albumKeys.add(albumKey);
+      });
+    });
+  });
+  return {
+    updatedAtMs: Date.now(),
+    trackKeys: Array.from(trackKeys),
+    albumKeys: Array.from(albumKeys),
+    playlistIds,
+    includesCompost: playlistIds.includes(compostPlaylistId)
+  };
+}
+
+function releaseFoundInDecisionIndex(release: FreshRelease, index: FreshDecisionIndex) {
+  if (!release.name || (!index.trackKeys.length && !index.albumKeys.length)) return false;
+  const trackKeys = new Set(index.trackKeys);
+  const albumKeys = new Set(index.albumKeys);
+  return releaseArtistNames(release).some(artist => {
+    const key = decisionKey(artist, release.name);
+    return trackKeys.has(key) || albumKeys.has(key);
+  });
+}
+
+function releaseArtistNames(release: FreshRelease) {
+  return (Array.isArray(release.artists) && release.artists.length
+    ? release.artists
+    : String(release.artist || '').split(',')
+  ).map(artist => String(artist || '').trim()).filter(Boolean);
+}
+
+function decisionKey(artist: string, name: string) {
+  const safeArtist = normalizeDecisionText(artist);
+  const safeName = normalizeDecisionText(name);
+  return safeArtist && safeName ? `${safeArtist}|||${safeName}` : '';
+}
+
+function normalizeDecisionText(value: string) {
+  return String(value || '')
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 async function findSpotifyArtist(artistName: string, token: { access_token?: string }) {

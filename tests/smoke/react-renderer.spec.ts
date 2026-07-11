@@ -595,25 +595,26 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
     if (url.pathname.startsWith('/v1/playlists/') && url.pathname.endsWith('/tracks')) {
       const playlistId = url.pathname.split('/')[3];
       const isHarvest = playlistId === 'harvest-one';
+      const isCompost = playlistId === '1LQdBqvVyYOWWXE7wkh7Cf';
       await route.fulfill({
         contentType: 'application/json',
         json: {
           items: [
             {
               track: {
-                id: isHarvest ? 'harvest-track-one' : 'seed-track-one',
-                name: isHarvest ? 'ripe harvest song' : 'new seed song',
-                uri: isHarvest ? 'spotify:track:harvest-track-one' : 'spotify:track:seed-track-one',
+                id: isCompost ? 'compost-track-one' : isHarvest ? 'harvest-track-one' : 'seed-track-one',
+                name: isCompost ? 'Moonlit Test Single' : isHarvest ? 'ripe harvest song' : 'new seed song',
+                uri: isCompost ? 'spotify:track:compost-track-one' : isHarvest ? 'spotify:track:harvest-track-one' : 'spotify:track:seed-track-one',
                 duration_ms: 188000,
-                artists: [{ id: 'artist-new-harvest', name: isHarvest ? 'new harvest artist' : 'magdalena bay' }],
-                album: { name: isHarvest ? 'first crop' : 'seedling' }
+                artists: [{ id: 'artist-new-harvest', name: isCompost ? 'magdalena bay' : isHarvest ? 'new harvest artist' : 'magdalena bay' }],
+                album: { name: isCompost ? 'Moonlit Test Single' : isHarvest ? 'first crop' : 'seedling' }
               }
             },
             {
               track: {
-                id: isHarvest ? 'harvest-track-two' : 'seed-track-two',
-                name: isHarvest ? 'quiet harvest song' : 'second seed song',
-                uri: isHarvest ? 'spotify:track:harvest-track-two' : 'spotify:track:seed-track-two',
+                id: isCompost ? 'compost-track-two' : isHarvest ? 'harvest-track-two' : 'seed-track-two',
+                name: isCompost ? 'compost filler' : isHarvest ? 'quiet harvest song' : 'second seed song',
+                uri: isCompost ? 'spotify:track:compost-track-two' : isHarvest ? 'spotify:track:harvest-track-two' : 'spotify:track:seed-track-two',
                 duration_ms: 191000,
                 artists: [{ id: 'artist-jay-z', name: isHarvest ? 'jay-z' : 'magdalena bay' }],
                 album: { name: isHarvest ? 'return basket' : 'seedling' }
@@ -731,6 +732,9 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Moonlit Test Single/i })).toBeVisible();
   await page.getByRole('button', { name: /Moonlit Test Single/i }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:album:moonlit-test-single');
+  await page.getByRole('button', { name: 'refresh decision index' }).click();
+  await expect(page.getByText('1 hidden by decision index')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Moonlit Test Single/i })).toHaveCount(0);
   await expect(page.getByRole('heading', { name: 'recent discovery queue' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'recent discovery queue' }).getByText('magdalena bay')).toBeVisible();
   await page.getByRole('button', { name: 'fresh home' }).click();

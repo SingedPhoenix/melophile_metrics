@@ -15,6 +15,7 @@ import {
   readFreshPlaylistSnapshot,
   loadFreshPlaylistTracks,
   readFreshReleaseSnapshot,
+  refreshFreshDecisionIndex,
   refreshFreshPlaylistInventory,
   refreshFreshReleaseDiscovery,
   type FreshRelease,
@@ -53,6 +54,8 @@ function FreshScreen() {
   const [releaseScanState, setReleaseScanState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [releaseScanProgress, setReleaseScanProgress] = useState<FreshReleaseProgress | null>(null);
   const [releaseScanMessage, setReleaseScanMessage] = useState('');
+  const [decisionIndexState, setDecisionIndexState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
+  const [decisionIndexMessage, setDecisionIndexMessage] = useState('');
   const fresh = useFreshOverview(16, 12);
   const harvestRankings = useFreshHarvestRankings(harvestType, harvestWindow, 50);
   const yearly = useYearlyListeningRollups();
@@ -116,6 +119,21 @@ function FreshScreen() {
       setReleaseScanMessage(error instanceof Error ? error.message : 'fresh release scan failed');
     }
   };
+  const refreshDecisionIndex = async () => {
+    setDecisionIndexState('running');
+    setDecisionIndexMessage('refreshing decision index');
+    try {
+      const index = await refreshFreshDecisionIndex(playlistSnapshot.harvestPlaylists, localConfig.data?.spotify?.clientId);
+      const nextSnapshot = readFreshReleaseSnapshot();
+      setReleaseSnapshot(nextSnapshot);
+      setReleaseScanMessage('');
+      setDecisionIndexState('complete');
+      setDecisionIndexMessage(`${nextSnapshot.hiddenByDecisionCount.toLocaleString()} hidden by decision index · ${index.trackKeys.length.toLocaleString()} tracks indexed`);
+    } catch (error) {
+      setDecisionIndexState('error');
+      setDecisionIndexMessage(error instanceof Error ? error.message : 'decision index refresh failed');
+    }
+  };
 
   useEffect(() => {
     const refreshSnapshot = () => {
@@ -125,10 +143,12 @@ function FreshScreen() {
     window.addEventListener('storage', refreshSnapshot);
     window.addEventListener('melophile:fresh-playlists-updated', refreshSnapshot);
     window.addEventListener('melophile:fresh-releases-updated', refreshSnapshot);
+    window.addEventListener('melophile:fresh-decision-index-updated', refreshSnapshot);
     return () => {
       window.removeEventListener('storage', refreshSnapshot);
       window.removeEventListener('melophile:fresh-playlists-updated', refreshSnapshot);
       window.removeEventListener('melophile:fresh-releases-updated', refreshSnapshot);
+      window.removeEventListener('melophile:fresh-decision-index-updated', refreshSnapshot);
     };
   }, []);
 
@@ -186,6 +206,9 @@ function FreshScreen() {
           onBack={() => setActivePath('hub')}
           onHarvestTypeChange={setHarvestType}
           onHarvestWindowChange={setHarvestWindow}
+          decisionIndexMessage={decisionIndexMessage}
+          decisionIndexState={decisionIndexState}
+          onRefreshDecisionIndex={refreshDecisionIndex}
           onRefreshPlaylists={refreshPlaylists}
           onScanReleases={scanReleases}
         />
@@ -324,6 +347,8 @@ function FreshScreen() {
 
 function FreshPathPanel({
   activePath,
+  decisionIndexMessage,
+  decisionIndexState,
   freshIsFetching,
   harvestIsFetching,
   harvestRankings,
@@ -344,10 +369,13 @@ function FreshPathPanel({
   onBack,
   onHarvestTypeChange,
   onHarvestWindowChange,
+  onRefreshDecisionIndex,
   onRefreshPlaylists,
   onScanReleases
 }: {
   activePath: Exclude<FreshPath, 'hub'>;
+  decisionIndexMessage: string;
+  decisionIndexState: 'idle' | 'running' | 'complete' | 'error';
   freshIsFetching: boolean;
   harvestIsFetching: boolean;
   harvestRankings: FreshHarvestRankingRow[];
@@ -368,6 +396,7 @@ function FreshPathPanel({
   onBack: () => void;
   onHarvestTypeChange: (type: FreshHarvestRankType) => void;
   onHarvestWindowChange: (windowKey: FreshHarvestWindow) => void;
+  onRefreshDecisionIndex: () => void;
   onRefreshPlaylists: () => void;
   onScanReleases: () => void;
 }) {
@@ -504,6 +533,9 @@ function FreshPathPanel({
           releaseScanProgress={releaseScanProgress}
           releaseScanState={releaseScanState}
           snapshot={releaseSnapshot}
+          decisionIndexMessage={decisionIndexMessage}
+          decisionIndexState={decisionIndexState}
+          onRefreshDecisionIndex={onRefreshDecisionIndex}
           onScanReleases={onScanReleases}
         />
       )}
@@ -720,17 +752,23 @@ function FreshPlaylistDetail({
 
 function FreshReleaseIndex({
   candidates,
+  decisionIndexMessage,
+  decisionIndexState,
   releaseScanMessage,
   releaseScanProgress,
   releaseScanState,
   snapshot,
+  onRefreshDecisionIndex,
   onScanReleases
 }: {
   candidates: FreshReleaseCandidate[];
+  decisionIndexMessage: string;
+  decisionIndexState: 'idle' | 'running' | 'complete' | 'error';
   releaseScanMessage: string;
   releaseScanProgress: FreshReleaseProgress | null;
   releaseScanState: 'idle' | 'running' | 'complete' | 'error';
   snapshot: FreshReleaseSnapshot;
+  onRefreshDecisionIndex: () => void;
   onScanReleases: () => void;
 }) {
   return (
@@ -738,16 +776,26 @@ function FreshReleaseIndex({
       <div className="panel-head">
         <div>
           <h3>new release index</h3>
-          <p>{releaseStatus(snapshot, candidates, releaseScanMessage)}</p>
+          <p>{releaseStatus(snapshot, candidates, releaseScanMessage, decisionIndexMessage)}</p>
         </div>
-        <button
-          className="status-chip is-button"
-          disabled={releaseScanState === 'running'}
-          type="button"
-          onClick={onScanReleases}
-        >
-          {releaseScanState === 'running' ? 'scanning releases' : 'scan releases'}
-        </button>
+        <div className="fresh-path-actions">
+          <button
+            className="status-chip is-button"
+            disabled={decisionIndexState === 'running'}
+            type="button"
+            onClick={onRefreshDecisionIndex}
+          >
+            {decisionIndexState === 'running' ? 'refreshing index' : 'refresh decision index'}
+          </button>
+          <button
+            className="status-chip is-button"
+            disabled={releaseScanState === 'running'}
+            type="button"
+            onClick={onScanReleases}
+          >
+            {releaseScanState === 'running' ? 'scanning releases' : 'scan releases'}
+          </button>
+        </div>
       </div>
       {releaseScanProgress && (
         <span className="settings-progress" aria-label="Fresh release scan progress">
@@ -862,10 +910,14 @@ function playlistStatus(snapshot: FreshPlaylistSnapshot, message: string) {
   return `${snapshot.seedPlaylists.length} seed · ${snapshot.harvestPlaylists.length} harvest${refreshed}`;
 }
 
-function releaseStatus(snapshot: FreshReleaseSnapshot, candidates: FreshReleaseCandidate[], message: string) {
+function releaseStatus(snapshot: FreshReleaseSnapshot, candidates: FreshReleaseCandidate[], message: string, decisionMessage: string) {
   if (message) return message;
-  if (snapshot.releases.length) return `${snapshot.releases.length.toLocaleString()} cached releases · ${candidates.length.toLocaleString()} artists eligible`;
-  return `${candidates.length.toLocaleString()} artists eligible · last 6 months`;
+  if (decisionMessage) return decisionMessage;
+  const decisionText = snapshot.decisionIndex.trackKeys.length
+    ? ` · ${snapshot.hiddenByDecisionCount.toLocaleString()} hidden by decision index`
+    : ' · decision index pending';
+  if (snapshot.releases.length) return `${snapshot.releases.length.toLocaleString()} cached releases · ${candidates.length.toLocaleString()} artists eligible${decisionText}`;
+  return `${candidates.length.toLocaleString()} artists eligible · last 6 months${decisionText}`;
 }
 
 function formatDateFromMs(value: number) {
