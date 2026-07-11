@@ -551,10 +551,53 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
 });
 
 test('react renderer opens migrated Fresh slice', async ({ page }) => {
+  await page.route('https://api.spotify.com/**', async route => {
+    const url = new URL(route.request().url());
+    if (url.pathname === '/v1/me/playlists') {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          items: [
+            {
+              id: 'fresh-seeds-one',
+              name: 'Fresh Seeds Vol. 1',
+              uri: 'spotify:playlist:fresh-seeds-one',
+              external_urls: { spotify: 'https://open.spotify.com/playlist/fresh-seeds-one' },
+              images: [{ url: 'https://example.com/seed.jpg' }],
+              owner: { display_name: 'melophile' },
+              tracks: { total: 32 }
+            },
+            {
+              id: 'harvest-one',
+              name: 'Fresh Harvest Vol. 1',
+              uri: 'spotify:playlist:harvest-one',
+              external_urls: { spotify: 'https://open.spotify.com/playlist/harvest-one' },
+              images: [{ url: 'https://example.com/harvest.jpg' }],
+              owner: { display_name: 'melophile' },
+              tracks: { total: 44 }
+            }
+          ],
+          next: null
+        }
+      });
+      return;
+    }
+    await route.fulfill({ status: 404, body: '{}' });
+  });
   await page.addInitScript(() => {
+    localStorage.setItem('melophile.spotify.clientId', 'present');
+    localStorage.setItem('melophile.spotify.token', JSON.stringify({
+      access_token: 'test-access-token',
+      refresh_token: 'test-refresh-token',
+      expires_at: Date.now() + 3600000
+    }));
     window.melophileDesktop = {
       platform: 'test',
       isElectron: true,
+      openSpotify: async url => {
+        window.__lastSpotifyUrl = url;
+        return { opened: true, url };
+      },
       readLocalConfig: async () => null,
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
       importLastfmScrobbles: async () => ({}),
@@ -585,11 +628,17 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByRole('button', { name: /harvest/i })).toBeVisible();
   await page.getByRole('button', { name: /seed/i }).click();
   await expect(page.getByRole('heading', { name: 'seed playlists' })).toBeVisible();
+  await page.getByRole('button', { name: 'load spotify playlists' }).click();
+  await expect(page.getByText('2 spotify playlists loaded')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Fresh Seeds Vol\. 1/i })).toBeVisible();
+  await page.getByRole('button', { name: /Fresh Seeds Vol\. 1/i }).click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:playlist:fresh-seeds-one');
   await expect(page.getByRole('heading', { name: 'recent discovery queue' })).toBeVisible();
   await expect(page.locator('.fresh-path-panel').getByText('magdalena bay')).toBeVisible();
   await page.getByRole('button', { name: 'fresh home' }).click();
   await page.getByRole('button', { name: /harvest/i }).click();
   await expect(page.getByRole('heading', { name: 'harvest playlists' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Fresh Harvest Vol\. 1/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'expansion watchlist' })).toBeVisible();
   await expect(page.locator('.fresh-path-panel').getByText('jay-z')).toBeVisible();
   await page.getByRole('button', { name: 'fresh home' }).click();

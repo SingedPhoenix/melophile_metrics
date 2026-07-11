@@ -1,13 +1,24 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import StatusPanel from '../../shared/StatusPanel';
-import { useFreshOverview, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
+import { openSpotifyUrl } from '../../shared/spotifyLinks';
+import { useFreshOverview, useLocalServiceConfig, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
+import {
+  readFreshPlaylistSnapshot,
+  refreshFreshPlaylistInventory,
+  type FreshPlaylistSnapshot,
+  type FreshSpotifyPlaylist
+} from './freshData';
 
 type FreshPath = 'hub' | 'seed' | 'harvest';
 
 function FreshScreen() {
   const [activePath, setActivePath] = useState<FreshPath>('hub');
+  const [playlistSnapshot, setPlaylistSnapshot] = useState<FreshPlaylistSnapshot>(() => readFreshPlaylistSnapshot());
+  const [playlistRefreshState, setPlaylistRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
+  const [playlistRefreshMessage, setPlaylistRefreshMessage] = useState('');
   const fresh = useFreshOverview(16, 12);
   const yearly = useYearlyListeningRollups();
+  const localConfig = useLocalServiceConfig();
   const overview = fresh.data;
   const currentYear = new Date().getFullYear();
   const yearRows = useMemo(() => {
@@ -22,6 +33,29 @@ function FreshScreen() {
   const quietArtists = overview?.quietArtists || [];
   const recentArtists = overview?.recentArtists || [];
   const topAlbums = overview?.topAlbums || [];
+  const refreshPlaylists = async () => {
+    setPlaylistRefreshState('running');
+    setPlaylistRefreshMessage('loading spotify playlists');
+    try {
+      const nextSnapshot = await refreshFreshPlaylistInventory(localConfig.data?.spotify?.clientId);
+      setPlaylistSnapshot(nextSnapshot);
+      setPlaylistRefreshState('complete');
+      setPlaylistRefreshMessage(`${nextSnapshot.playlists.length.toLocaleString()} spotify playlists loaded`);
+    } catch (error) {
+      setPlaylistRefreshState('error');
+      setPlaylistRefreshMessage(error instanceof Error ? error.message : 'spotify playlist loading failed');
+    }
+  };
+
+  useEffect(() => {
+    const refreshSnapshot = () => setPlaylistSnapshot(readFreshPlaylistSnapshot());
+    window.addEventListener('storage', refreshSnapshot);
+    window.addEventListener('melophile:fresh-playlists-updated', refreshSnapshot);
+    return () => {
+      window.removeEventListener('storage', refreshSnapshot);
+      window.removeEventListener('melophile:fresh-playlists-updated', refreshSnapshot);
+    };
+  }, []);
 
   return (
     <section className="fresh-screen" aria-labelledby="fresh-title">
@@ -60,8 +94,12 @@ function FreshScreen() {
           freshIsFetching={fresh.isFetching}
           quietArtists={quietArtists}
           recentArtists={recentArtists}
+          playlistRefreshMessage={playlistRefreshMessage}
+          playlistRefreshState={playlistRefreshState}
+          playlistSnapshot={playlistSnapshot}
           topAlbums={topAlbums}
           onBack={() => setActivePath('hub')}
+          onRefreshPlaylists={refreshPlaylists}
         />
       )}
 
@@ -201,17 +239,26 @@ function FreshPathPanel({
   freshIsFetching,
   quietArtists,
   recentArtists,
+  playlistRefreshMessage,
+  playlistRefreshState,
+  playlistSnapshot,
   topAlbums,
-  onBack
+  onBack,
+  onRefreshPlaylists
 }: {
   activePath: Exclude<FreshPath, 'hub'>;
   freshIsFetching: boolean;
   quietArtists: { rank: number; artist: string; listens: number; daysSinceLastPlayed: number }[];
   recentArtists: { rank: number; artist: string; listens: number; firstPlayedUts: number }[];
+  playlistRefreshMessage: string;
+  playlistRefreshState: 'idle' | 'running' | 'complete' | 'error';
+  playlistSnapshot: FreshPlaylistSnapshot;
   topAlbums: { rank: number; artist: string; album: string; listens: number }[];
   onBack: () => void;
+  onRefreshPlaylists: () => void;
 }) {
   const isSeed = activePath === 'seed';
+  const pathPlaylists = isSeed ? playlistSnapshot.seedPlaylists : playlistSnapshot.harvestPlaylists;
   const pathItems = isSeed
     ? recentArtists.slice(0, 8).map(artist => ({
         key: artist.artist,
@@ -233,10 +280,35 @@ function FreshPathPanel({
       <div className="panel-head">
         <div>
           <h2>{isSeed ? 'seed playlists' : 'harvest playlists'}</h2>
-          <p>{isSeed ? 'new-to-you discovery candidates' : 'longer-tail return candidates'}</p>
+          <p>{playlistStatus(playlistSnapshot, playlistRefreshMessage)}</p>
         </div>
-        <button className="status-chip is-button" type="button" onClick={onBack}>fresh home</button>
+        <div className="fresh-path-actions">
+          <button
+            className="status-chip is-button"
+            disabled={playlistRefreshState === 'running'}
+            type="button"
+            onClick={onRefreshPlaylists}
+          >
+            {playlistRefreshState === 'running' ? 'loading spotify playlists' : 'load spotify playlists'}
+          </button>
+          <button className="status-chip is-button" type="button" onClick={onBack}>fresh home</button>
+        </div>
       </div>
+      {pathPlaylists.length ? (
+        <div className="fresh-playlist-shelf" aria-label={isSeed ? 'seed spotify playlists' : 'harvest spotify playlists'}>
+          {pathPlaylists.map(playlist => (
+            <FreshPlaylistCard key={playlist.id} playlist={playlist} />
+          ))}
+        </div>
+      ) : (
+        <StatusPanel
+          detail={playlistRefreshState === 'error'
+            ? playlistRefreshMessage
+            : 'Load Spotify playlists to populate this family from your account inventory.'}
+          title={isSeed ? 'no seed playlists loaded yet' : 'no harvest playlists loaded yet'}
+          variant={playlistRefreshState === 'running' ? 'loading' : 'empty'}
+        />
+      )}
       <div className="fresh-path-grid">
         <article className="stats-panel fresh-path-list-panel">
           <div className="panel-head">
@@ -300,9 +372,36 @@ function FreshPathPanel({
   );
 }
 
+function FreshPlaylistCard({ playlist }: { playlist: FreshSpotifyPlaylist }) {
+  const imageUrl = playlist.images?.find(image => image.url)?.url || '';
+  const spotifyUrl = playlist.uri || playlist.external_urls?.spotify || '';
+  const count = Number(playlist.tracks?.total) || 0;
+  const owner = playlist.owner?.display_name || playlist.owner?.id || 'spotify';
+  return (
+    <button className="fresh-playlist-card" type="button" onClick={() => openSpotifyUrl(spotifyUrl)}>
+      {imageUrl ? <img className="fresh-playlist-cover" src={imageUrl} alt="" /> : <span className="fresh-playlist-cover" aria-hidden="true" />}
+      <span>
+        <strong>{playlist.name}</strong>
+        <small>{owner} · {count.toLocaleString()} tracks</small>
+      </span>
+    </button>
+  );
+}
+
 function formatDate(uts: number) {
   if (!uts) return 'pending';
   return new Date(uts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function playlistStatus(snapshot: FreshPlaylistSnapshot, message: string) {
+  if (message) return message;
+  if (!snapshot.playlists.length) return 'load Spotify playlists to find seed and harvest families';
+  const refreshed = snapshot.updatedAtMs ? ` · refreshed ${formatDateFromMs(snapshot.updatedAtMs)}` : '';
+  return `${snapshot.seedPlaylists.length} seed · ${snapshot.harvestPlaylists.length} harvest${refreshed}`;
+}
+
+function formatDateFromMs(value: number) {
+  return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default FreshScreen;

@@ -589,9 +589,82 @@ h1 {
   gap: 16px;
 }
 
+.fresh-path-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.fresh-path-actions .status-chip:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
 .fresh-path-list-panel h3 {
   margin: 0;
   font-size: 22px;
+}
+
+.fresh-playlist-shelf {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fresh-playlist-card {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 14px;
+  background:
+    linear-gradient(145deg, rgba(151, 164, 137, 0.12), rgba(205, 164, 198, 0.08)),
+    rgba(0, 0, 0, 0.12);
+  color: inherit;
+  text-align: left;
+}
+
+.fresh-playlist-card:hover,
+.fresh-playlist-card:focus-visible {
+  border-color: rgba(238, 238, 238, 0.18);
+}
+
+.fresh-playlist-cover {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(238, 238, 238, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(151, 164, 137, 0.2), rgba(205, 164, 198, 0.18));
+  object-fit: cover;
+}
+
+.fresh-playlist-card span,
+.fresh-playlist-card strong,
+.fresh-playlist-card small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fresh-playlist-card strong {
+  font-size: 16px;
+  line-height: 1.08;
+}
+
+.fresh-playlist-card small {
+  margin-top: 6px;
+  color: rgba(204, 204, 204, 0.46);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
 }
 
 .fresh-summary-grid {
@@ -2076,6 +2149,7 @@ img.playlist-cover {
   .fresh-gate-grid,
   .fresh-panel-grid,
   .fresh-path-grid,
+  .fresh-playlist-shelf,
   .fresh-summary-grid,
   .frisson-summary,
   .ghosted-summary,
