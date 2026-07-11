@@ -495,6 +495,39 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
       });
       return;
     }
+    if (url.pathname === '/v1/search') {
+      const query = url.searchParams.get('q') || 'artist';
+      const id = query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'artist';
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          artists: {
+            items: [{ id: `artist-${id}`, name: query }]
+          }
+        }
+      });
+      return;
+    }
+    if (url.pathname.startsWith('/v1/artists/') && url.pathname.endsWith('/albums')) {
+      const artistId = url.pathname.split('/')[3];
+      const isRecent = artistId.includes('recent');
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          items: [{
+            id: isRecent ? 'settings-recent-release' : 'settings-seed-release',
+            name: isRecent ? 'Settings Recent Single' : 'Settings Seed Single',
+            album_type: 'single',
+            release_date: '2026-07-01',
+            uri: isRecent ? 'spotify:album:settings-recent-release' : 'spotify:album:settings-seed-release',
+            external_urls: { spotify: isRecent ? 'https://open.spotify.com/album/settings-recent-release' : 'https://open.spotify.com/album/settings-seed-release' },
+            images: [{ url: 'https://example.com/settings-release.jpg' }],
+            artists: [{ name: isRecent ? 'settings recent artist' : 'settings seed artist' }]
+          }]
+        }
+      });
+      return;
+    }
     await route.fulfill({ status: 404, body: '{}' });
   });
   await page.addInitScript(() => {
@@ -535,7 +568,11 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
       listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
       recentListening: async () => ({ scrobbles: [] }),
       ghostedTracks: async () => ({ minListens: 5, tracks: [] }),
-      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] })
+      freshOverview: async () => ({
+        topAlbums: [],
+        quietArtists: [{ rank: 1, artist: 'settings seed artist', listens: 120, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
+        recentArtists: [{ rank: 1, artist: 'settings recent artist', listens: 42, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
+      })
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -548,6 +585,10 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await page.getByRole('button', { name: 'data' }).click();
   await expect(page.getByRole('heading', { name: 'local sqlite database' })).toBeVisible();
   await expect(page.locator('.settings-data-grid').getByText('173,971')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'spotify maintenance' })).toBeVisible();
+  await expect(page.getByText(/scheduled scans wait/)).toBeVisible();
+  await page.getByRole('button', { name: 'run seed scan now' }).click();
+  await expect(page.getByText('2 seed releases stored')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'past tense cache' })).toBeVisible();
   await page.getByRole('button', { name: 'refresh past tense cache' }).click();
   await expect(page.getByText('57 playlists · 57 tracks cached')).toBeVisible({ timeout: 12000 });

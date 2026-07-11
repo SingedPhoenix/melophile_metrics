@@ -1297,6 +1297,10 @@ h1 {
   gap: 10px;
 }
 
+.settings-maintenance-metrics.wide {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .settings-maintenance-actions {
   display: flex;
   flex-wrap: wrap;

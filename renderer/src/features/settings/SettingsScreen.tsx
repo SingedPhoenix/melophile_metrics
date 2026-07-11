@@ -5,7 +5,18 @@ import {
   refreshPastTenseCache,
   type PastTenseRefreshProgress
 } from '../past-tense/pastTenseData';
-import { useDesktopStatus, useLocalServiceConfig } from '../../shared/useDesktopStatus';
+import {
+  formatFreshScanDate,
+  readFreshReleaseSnapshot,
+  readFreshScanSchedule,
+  refreshFreshReleaseDiscovery,
+  updateFreshScanScheduleAfterRun,
+  type FreshReleaseCandidate,
+  type FreshReleaseProgress,
+  type FreshReleaseSnapshot,
+  type FreshScanSchedule
+} from '../fresh/freshData';
+import { useDesktopStatus, useFreshOverview, useLocalServiceConfig } from '../../shared/useDesktopStatus';
 
 type SettingsTab = 'accounts' | 'data' | 'appearance';
 
@@ -32,10 +43,29 @@ function SettingsScreen() {
   const [pastTenseRefreshState, setPastTenseRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [pastTenseProgress, setPastTenseProgress] = useState<PastTenseRefreshProgress | null>(null);
   const [pastTenseMessage, setPastTenseMessage] = useState('');
+  const [freshReleaseSnapshot, setFreshReleaseSnapshot] = useState<FreshReleaseSnapshot>(() => readFreshReleaseSnapshot());
+  const [freshScanSchedule, setFreshScanSchedule] = useState<FreshScanSchedule>(() => readFreshScanSchedule());
+  const [freshScanState, setFreshScanState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
+  const [freshScanProgress, setFreshScanProgress] = useState<FreshReleaseProgress | null>(null);
+  const [freshScanMessage, setFreshScanMessage] = useState('');
   const desktopStatus = useDesktopStatus();
   const localConfig = useLocalServiceConfig();
+  const freshOverview = useFreshOverview(16, 12);
   const status = desktopStatus.data;
   const config = localConfig.data;
+  const freshCandidates = useMemo<FreshReleaseCandidate[]>(() => {
+    const quietArtists = freshOverview.data?.quietArtists || [];
+    const recentArtists = freshOverview.data?.recentArtists || [];
+    const allTime = quietArtists.slice(0, 8).map(artist => ({ name: artist.artist, plays: artist.listens, pool: 'all-time' as const }));
+    const recent = recentArtists.slice(0, 8).map(artist => ({ name: artist.artist, plays: artist.listens, pool: 'recent' as const }));
+    const byName = new Map<string, FreshReleaseCandidate>();
+    [...allTime, ...recent].forEach(candidate => {
+      const key = candidate.name.toLowerCase();
+      const existing = byName.get(key);
+      if (!existing || candidate.plays > existing.plays) byName.set(key, candidate);
+    });
+    return Array.from(byName.values());
+  }, [freshOverview.data?.quietArtists, freshOverview.data?.recentArtists]);
   const services = useMemo(() => ([
     {
       name: 'last.fm',
@@ -77,6 +107,29 @@ function SettingsScreen() {
     } catch (error) {
       setPastTenseRefreshState('error');
       setPastTenseMessage(error instanceof Error ? error.message : 'past tense cache refresh failed');
+    }
+  };
+  const scanFreshReleases = async () => {
+    setFreshScanState('running');
+    setFreshScanMessage('starting seed release scan');
+    setFreshScanProgress(null);
+    try {
+      const result = await refreshFreshReleaseDiscovery({
+        candidates: freshCandidates,
+        clientId: config?.spotify?.clientId,
+        onProgress: progress => {
+          setFreshScanProgress(progress);
+          setFreshScanMessage(`scanning ${progress.label} · ${progress.current}/${progress.total}`);
+        }
+      });
+      const schedule = updateFreshScanScheduleAfterRun(result.releases.length);
+      setFreshReleaseSnapshot(readFreshReleaseSnapshot());
+      setFreshScanSchedule(schedule);
+      setFreshScanState('complete');
+      setFreshScanMessage(`${result.releases.length.toLocaleString()} seed releases stored`);
+    } catch (error) {
+      setFreshScanState('error');
+      setFreshScanMessage(error instanceof Error ? error.message : 'seed release scan failed');
     }
   };
 
@@ -146,6 +199,38 @@ function SettingsScreen() {
               <dd>{status?.path || 'pending'}</dd>
             </div>
           </dl>
+          <section className="settings-maintenance-panel" aria-labelledby="spotify-maintenance-title">
+            <div>
+              <h3 id="spotify-maintenance-title">spotify maintenance</h3>
+              <p>
+                Seed release scans and background playlist maintenance scheduled while the app is open.
+              </p>
+            </div>
+            <div className="settings-maintenance-metrics wide">
+              <DataMetric label="all-time artists audited" value={formatNumber(freshOverview.data?.quietArtists?.length)} />
+              <DataMetric label="new artists audited" value={formatNumber(freshOverview.data?.recentArtists?.length)} />
+              <DataMetric label="seed releases stored" value={formatNumber(freshReleaseSnapshot.releases.length)} />
+              <DataMetric label="next seed scan" value={freshScanSchedule.enabled ? formatFreshScanDate(freshScanSchedule.nextScanMs) : 'paused'} />
+            </div>
+            {freshScanProgress && (
+              <span className="settings-progress" aria-label="Seed release scan progress">
+                <span style={{ width: `${Math.max(2, Math.round((freshScanProgress.current / freshScanProgress.total) * 100))}%` }} />
+              </span>
+            )}
+            <div className="settings-maintenance-actions">
+              <button
+                className="status-chip is-button"
+                disabled={freshScanState === 'running'}
+                type="button"
+                onClick={scanFreshReleases}
+              >
+                {freshScanState === 'running' ? 'scanning seed releases' : 'run seed scan now'}
+              </button>
+              <span className={`settings-maintenance-status ${freshScanState}`}>
+                {freshScanMessage || scanScheduleStatus(freshScanSchedule)}
+              </span>
+            </div>
+          </section>
           <section className="settings-maintenance-panel" aria-labelledby="past-tense-cache-title">
             <div>
               <h3 id="past-tense-cache-title">past tense cache</h3>
@@ -228,6 +313,12 @@ function formatDate(value: string | undefined) {
 function formatDateFromMs(value: number | undefined) {
   if (!value) return 'pending';
   return formatDate(new Date(value).toISOString());
+}
+
+function scanScheduleStatus(schedule: FreshScanSchedule) {
+  if (!schedule.enabled) return 'scheduled scans paused';
+  const next = schedule.nextScanMs ? `next scan ${formatFreshScanDate(schedule.nextScanMs)}` : 'next scan not scheduled';
+  return `${schedule.lastStatus || 'scheduled scans active'} · ${next}`;
 }
 
 export default SettingsScreen;
