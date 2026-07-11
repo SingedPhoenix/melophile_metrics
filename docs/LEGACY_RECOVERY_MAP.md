@@ -50,14 +50,46 @@ Restored in React:
 - Smoke coverage for React Settings/Data Last.fm cache loading and local SQLite import.
 - Smoke coverage for React Settings/Data Last.fm network sync, cache update, and SQLite import.
 
-Still To Recover:
+## Pulse / Gem Mines / Ghosted / Frisson Gap Inventory
 
-- Inventory the remaining Pulse/Gem Mines/Ghosted/Frisson feature gaps after the main data paths are stable.
+Legacy source anchors:
+
+- Pulse hub markup: `screenPulse`
+- Momentous markup/state/rendering: `screenMomentous`, `initMomentous`, `renderMomentousList`
+- Gem Mines markup/state/rendering: `screenMetallurgy`, `metallurgyScopePills`, `metallurgyGemPills`, `buildMetallurgyEntries`, `renderMetallurgyLab`
+- Ghosted hub and long-time queue: `screenGhosted`, `screenLongTimeNoHear`, `ghostedWindowPills`, `ghostedTypePills`, `renderGhostedList`
+- Apotheosis artist watchlist: `screenApotheosis`, `renderApotheosis`
+
+React coverage now:
+
+- Pulse renders recent SQLite scrobbles, all-time top tracks/artists, monthly activity, and Spotify opening for rows.
+- Gem Mines renders all-time top tracks/artists/albums, a current leader panel, shared ranked bars, and Spotify opening.
+- Ghosted renders a SQLite-backed quiet-track queue with minimum-listen thresholds and Spotify opening.
+- Frisson renders repeated, enduring, and recent attachment rankings from SQLite-backed overview data.
+
+High-impact gaps still to recover:
+
+- Pulse is missing the legacy Pulse sub-navigation relationship between `last...` and `momentous`.
+- Momentous is not yet rebuilt in React: fixed-year rankings, year pills, track/artist/album toggle, top-500 cap, paging, and Spotify opening from year-specific rankings.
+- Gem Mines is missing legacy metallurgy controls: all-time/year scope pills, gem-band filters, multiple gem selections, gem range labels, and rank-banded mine lists.
+- Ghosted is missing the legacy hub split between `long time...no hear...` and `apotheosis`.
+- Long Time...No Hear is missing window pills, track/artist/album mode, reshuffle, skip queue, top-100 queue labeling, and expansion watchlist.
+- Apotheosis is not yet rebuilt in React: top-artist release watchlist, shuffle, skip/reset, and newest-track quiet-period detection.
+- Frisson currently has useful SQLite-derived rankings, but needs a closer legacy/design pass after the Pulse/Gem/Ghosted recoveries because the legacy app primarily defined Frisson as an emotional-attachment destination from the home bento rather than a deeply developed subflow.
+
+Recommended next slices:
+
+1. Restore Momentous as a Pulse subview with fixed-year track/artist/album rankings.
+2. Restore Gem Mines gem-band filters for all-time rankings, then add yearly scope once the backend exposes year-specific entity rollups.
+3. Restore Ghosted window/type/skip controls for tracks first, then extend to artists/albums.
+4. Restore Apotheosis as a favorite-artist watchlist after Ghosted queue behavior is stable.
+5. Revisit Frisson design parity once the ranking/list surfaces are fully reusable.
 
 Recommended migration order:
 
-1. Inventory the remaining Pulse/Gem Mines/Ghosted/Frisson feature gaps after the main data paths are stable.
-2. Recover the highest-impact missing view behavior from that inventory.
+1. Restore Momentous as the next highest-impact missing Pulse behavior.
+2. Restore Gem Mines gem-band filtering.
+3. Restore Ghosted window/type/skip controls.
 3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
