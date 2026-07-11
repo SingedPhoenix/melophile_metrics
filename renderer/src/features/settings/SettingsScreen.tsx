@@ -37,6 +37,8 @@ import {
   lastfmProfileDelta,
   readLastfmCachedRows,
   readLastfmCacheSnapshot,
+  syncLastfmHistory,
+  type LastfmSyncMode,
   type LastfmCacheSnapshot
 } from './settingsLastfm';
 import { useDesktopStatus, useFreshOverview, useLocalServiceConfig } from '../../shared/useDesktopStatus';
@@ -240,6 +242,38 @@ function SettingsScreen() {
       setLastfmIntegrityMessage(error instanceof Error ? error.message : 'Last.fm cache could not be saved to SQLite.');
     }
   };
+  const syncLastfm = async (mode: LastfmSyncMode) => {
+    setLastfmActionState('running');
+    setLastfmIntegrityMessage(mode === 'full' ? 'rebuilding Last.fm cache' : 'syncing new Last.fm scrobbles');
+    try {
+      const result = await syncLastfmHistory({
+        username: config?.lastfm?.username,
+        apiKey: config?.lastfm?.apiKey,
+        mode,
+        onProgress: progress => {
+          setLastfmIntegrityMessage(`syncing Last.fm page ${progress.page.toLocaleString()} of ${progress.totalPages.toLocaleString()}`);
+        }
+      });
+      const rows = await readLastfmCachedRows();
+      const importResult = rows.length ? await window.melophileDesktop?.importLastfmScrobbles(rows) : null;
+      const nextStatus = await window.melophileDesktop?.databaseStatus?.();
+      desktopStatus.refetch();
+      setLastfmProfileCount(result.profileCount);
+      setLastfmCacheSnapshot({
+        cacheCount: result.cacheCount,
+        latestUts: result.latestUts,
+        lastSyncAt: new Date().toISOString(),
+        lastRebuildAt: result.rebuilt ? new Date().toISOString() : lastfmCacheSnapshot.lastRebuildAt
+      });
+      const drift = lastfmProfileDelta(result.cacheCount, result.profileCount);
+      const driftNote = drift ? ` · profile delta ${formatDelta(drift)}` : '';
+      setLastfmActionState('complete');
+      setLastfmIntegrityMessage(`${result.cacheCount.toLocaleString()} cached scrobbles synced from Last.fm${driftNote} · ${importSummary(importResult, nextStatus?.scrobbles)}`);
+    } catch (error) {
+      setLastfmActionState('error');
+      setLastfmIntegrityMessage(error instanceof Error ? error.message : 'Last.fm sync failed before the cache could be verified.');
+    }
+  };
   const scanFreshReleases = async () => {
     setFreshScanState('running');
     setFreshScanMessage('starting seed release scan');
@@ -439,6 +473,22 @@ function SettingsScreen() {
                 onClick={saveLastfmCacheToDatabase}
               >
                 save cache to sqlite
+              </button>
+              <button
+                className="status-chip is-button"
+                disabled={lastfmActionState === 'running'}
+                type="button"
+                onClick={() => syncLastfm('recent')}
+              >
+                sync new scrobbles
+              </button>
+              <button
+                className="status-chip is-button"
+                disabled={lastfmActionState === 'running'}
+                type="button"
+                onClick={() => syncLastfm('full')}
+              >
+                rebuild last.fm cache
               </button>
             </div>
             <p className={`settings-maintenance-status ${lastfmActionState}`}>{lastfmIntegrityMessage}</p>

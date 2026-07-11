@@ -473,6 +473,35 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
 });
 
 test('react renderer opens migrated Settings slice', async ({ page }) => {
+  await page.route('https://ws.audioscrobbler.com/2.0/**', async route => {
+    const url = new URL(route.request().url());
+    const method = url.searchParams.get('method');
+    if (method === 'user.getinfo') {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: { user: { playcount: '3' } }
+      });
+      return;
+    }
+    if (method === 'user.getrecenttracks') {
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          recenttracks: {
+            '@attr': { totalPages: '1', page: '1', total: '1' },
+            track: [{
+              name: 'synced new song',
+              artist: { '#text': 'settings sync artist' },
+              album: { '#text': 'settings sync album' },
+              date: { uts: '1783760200' }
+            }]
+          }
+        }
+      });
+      return;
+    }
+    await route.fulfill({ status: 404, body: '{}' });
+  });
   await page.route('https://api.spotify.com/**', async route => {
     const url = new URL(route.request().url());
     const playlistMatch = url.pathname.match(/\/v1\/playlists\/([^/]+)$/);
@@ -631,6 +660,21 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await expect(page.getByText('2 cached scrobbles loaded.')).toBeVisible();
   await page.getByRole('button', { name: 'save cache to sqlite' }).click();
   await expect(page.getByText('Last.fm cache saved to SQLite · 2 inserted · 0 updated · 0 unchanged')).toBeVisible();
+  await page.getByRole('button', { name: 'sync new scrobbles' }).click();
+  await expect(page.getByText(/3 cached scrobbles synced from Last\.fm/)).toBeVisible();
+  await expect.poll(() => page.evaluate(async () => {
+    return new Promise<number>((resolve, reject) => {
+      const request = indexedDB.open('melophile-lastfm-cache', 1);
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction('scrobbles', 'readonly');
+        const countRequest = tx.objectStore('scrobbles').count();
+        countRequest.onsuccess = () => resolve(countRequest.result);
+        countRequest.onerror = () => reject(countRequest.error);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  })).toBe(3);
   await expect(page.getByRole('heading', { name: 'spotify maintenance' })).toBeVisible();
   await expect(page.getByText(/scheduled scans wait/)).toBeVisible();
   await page.getByRole('button', { name: 'run seed scan now' }).click();

@@ -39,10 +39,12 @@ Restored in React:
 - Per-playlist track gem badges from SQLite all-time rank bands.
 - Manual Past Tense cache refresh controls in the React Settings/Data area.
 - Last.fm data integrity panel in React Settings/Data with local IndexedDB cache inspection, profile-vs-cache delta checks, latest cached scrobble metadata, and cache-to-SQLite import action.
+- Direct Last.fm recent sync and full cache rebuild actions in React Settings/Data, with refreshed cache rows copied into SQLite.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
 - Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, track opening, top genre, artist image, and gem badge.
 - Smoke coverage for React Settings/Data Past Tense cache refresh.
 - Smoke coverage for React Settings/Data Last.fm cache loading and local SQLite import.
+- Smoke coverage for React Settings/Data Last.fm network sync, cache update, and SQLite import.
 
 Still To Recover:
 
@@ -52,7 +54,7 @@ Still To Recover:
 Recommended migration order:
 
 1. Reconnect artist genre/image hydration after the detail view is stable.
-2. Recover direct Last.fm network sync/rebuild actions in React/Electron once the bridge supports that workflow.
+2. Recover scheduled Past Tense cache refresh controls in React Settings/Data.
 3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
@@ -62,4 +64,4 @@ Recommended migration order:
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: not-heard queues, thresholds, skip controls, Spotify playback.
 - Frisson: emotional attachment rankings and shared ranked-bar styling.
-- Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, Spotify maintenance controls, Spotify link corrections, and genre profiles. Last.fm cache inspection and local SQLite import are restored; still recover direct Last.fm network sync/rebuild actions.
+- Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, Spotify maintenance controls, Spotify link corrections, genre profiles, Last.fm cache inspection, Last.fm network sync/rebuild, and local SQLite import.
