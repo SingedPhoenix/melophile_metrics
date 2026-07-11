@@ -122,6 +122,28 @@ export type FreshOverview = {
   recentArtists: FreshRecentArtist[];
 };
 
+export type FreshHarvestRankType = 'tracks' | 'artists' | 'albums';
+
+export type FreshHarvestWindow = '1' | '3' | '6' | '12' | 'cy';
+
+export type FreshHarvestRankingRow = {
+  rank: number;
+  name: string;
+  artist: string;
+  album: string;
+  listens: number;
+  firstPlayedUts: number;
+};
+
+export type FreshHarvestRankings = {
+  type: FreshHarvestRankType;
+  window: FreshHarvestWindow;
+  label: string;
+  cutoffUts: number;
+  anchorUts: number;
+  rows: FreshHarvestRankingRow[];
+};
+
 export type FrissonTrack = {
   rank: number;
   artist: string;
@@ -232,6 +254,17 @@ export function useFreshOverview(albumLimit = 16, artistLimit = 12) {
     queryFn: async (): Promise<FreshOverview | null> => {
       if (!window.melophileDesktop?.freshOverview) return null;
       return window.melophileDesktop.freshOverview({ albumLimit, artistLimit });
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useFreshHarvestRankings(type: FreshHarvestRankType = 'tracks', windowKey: FreshHarvestWindow = '1', limit = 50) {
+  return useQuery({
+    queryKey: ['desktop', 'fresh-harvest-rankings', type, windowKey, limit],
+    queryFn: async (): Promise<FreshHarvestRankings | null> => {
+      if (!window.melophileDesktop?.harvestRankings) return null;
+      return window.melophileDesktop.harvestRankings({ type, window: windowKey, limit });
     },
     staleTime: 60_000
   });

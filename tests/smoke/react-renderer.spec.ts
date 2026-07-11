@@ -36,6 +36,16 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
         topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024, lastPlayedUts: 1783468800 }],
         quietArtists: [{ rank: 1, artist: 'jay-z', listens: 422, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
         recentArtists: [{ rank: 1, artist: 'magdalena bay', listens: 96, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
+      }),
+      harvestRankings: async ({ type = 'tracks', window: windowKey = '1' } = {}) => ({
+        type,
+        window: windowKey,
+        label: 'last 1 month',
+        cutoffUts: 1780876800,
+        anchorUts: 1783468800,
+        rows: type === 'artists'
+          ? [{ rank: 1, name: 'new harvest artist', artist: '', album: '', listens: 19, firstPlayedUts: 1780876800 }]
+          : [{ rank: 1, name: 'velvet daylight', artist: 'new harvest artist', album: 'first crop', listens: 19, firstPlayedUts: 1780876800 }]
       })
     };
   });
@@ -649,6 +659,16 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
         topAlbums: [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 1024, lastPlayedUts: 1783468800 }],
         quietArtists: [{ rank: 1, artist: 'jay-z', listens: 422, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
         recentArtists: [{ rank: 1, artist: 'magdalena bay', listens: 96, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
+      }),
+      harvestRankings: async ({ type = 'tracks', window: windowKey = '1' } = {}) => ({
+        type,
+        window: windowKey,
+        label: 'last 1 month',
+        cutoffUts: 1780876800,
+        anchorUts: 1783468800,
+        rows: type === 'artists'
+          ? [{ rank: 1, name: 'new harvest artist', artist: '', album: '', listens: 19, firstPlayedUts: 1780876800 }]
+          : [{ rank: 1, name: 'velvet daylight', artist: 'new harvest artist', album: 'first crop', listens: 19, firstPlayedUts: 1780876800 }]
       })
     };
   });
@@ -677,6 +697,12 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await page.getByRole('button', { name: /harvest/i }).click();
   await expect(page.getByRole('heading', { name: 'harvest playlists' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Fresh Harvest Vol\. 1/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'harvest rankings' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /velvet daylight/i })).toBeVisible();
+  await page.getByRole('button', { name: /velvet daylight/i }).click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:search:velvet%20daylight%20new%20harvest%20artist');
+  await page.getByRole('button', { name: 'artists' }).click();
+  await expect(page.getByRole('button', { name: /new harvest artist/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'expansion watchlist' })).toBeVisible();
   await expect(page.locator('.fresh-path-panel').getByText('jay-z')).toBeVisible();
   await page.getByRole('button', { name: 'fresh home' }).click();

@@ -9,6 +9,7 @@ const {
   freshOverview,
   frissonOverview,
   ghostedTracks,
+  harvestRankings,
   importLastfmScrobbles,
   listeningRollups,
   openMelophileDatabase,
@@ -134,6 +135,8 @@ function registerDesktopHandlers() {
   ipcMain.handle('melophile:ghosted-tracks', async (_event, payload = {}) => ghostedTracks(payload));
 
   ipcMain.handle('melophile:fresh-overview', async (_event, payload = {}) => freshOverview(payload));
+
+  ipcMain.handle('melophile:harvest-rankings', async (_event, payload = {}) => harvestRankings(payload));
 
   ipcMain.handle('melophile:frisson-overview', async (_event, payload = {}) => frissonOverview(payload));
 

@@ -2,6 +2,9 @@ import type { PastTenseTrackRef, TrackPlayCountResult } from './features/past-te
 import type {
   DesktopDatabaseStatus,
   FreshOverview,
+  FreshHarvestRankings,
+  FreshHarvestRankType,
+  FreshHarvestWindow,
   FrissonOverview,
   GhostedTracks,
   ListeningRollups,
@@ -26,6 +29,11 @@ declare global {
       recentListening: (limit?: number) => Promise<RecentListening>;
       ghostedTracks: (options?: { limit?: number; minListens?: number }) => Promise<GhostedTracks>;
       freshOverview: (options?: { albumLimit?: number; artistLimit?: number }) => Promise<FreshOverview>;
+      harvestRankings: (options?: {
+        type?: FreshHarvestRankType;
+        window?: FreshHarvestWindow;
+        limit?: number;
+      }) => Promise<FreshHarvestRankings>;
       frissonOverview: (options?: { limit?: number }) => Promise<FrissonOverview>;
       openSpotify: (url: string) => Promise<{ opened: boolean; url: string }>;
     };

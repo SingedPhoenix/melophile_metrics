@@ -1,7 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
+import MetricToggle from '../../shared/MetricToggle';
 import StatusPanel from '../../shared/StatusPanel';
-import { openSpotifyUrl } from '../../shared/spotifyLinks';
-import { useFreshOverview, useLocalServiceConfig, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
+import { openSpotifySearch, openSpotifyUrl } from '../../shared/spotifyLinks';
+import {
+  useFreshHarvestRankings,
+  useFreshOverview,
+  useLocalServiceConfig,
+  useYearlyListeningRollups,
+  type FreshHarvestRankType,
+  type FreshHarvestRankingRow,
+  type FreshHarvestWindow
+} from '../../shared/useDesktopStatus';
 import {
   readFreshPlaylistSnapshot,
   readFreshReleaseSnapshot,
@@ -17,8 +26,24 @@ import {
 
 type FreshPath = 'hub' | 'seed' | 'harvest';
 
+const harvestWindowOptions: { value: FreshHarvestWindow; label: string }[] = [
+  { value: '1', label: '1 month' },
+  { value: '3', label: '3 months' },
+  { value: '6', label: '6 months' },
+  { value: '12', label: '12 months' },
+  { value: 'cy', label: 'current year' }
+];
+
+const harvestTypeOptions: { value: FreshHarvestRankType; label: string }[] = [
+  { value: 'tracks', label: 'tracks' },
+  { value: 'artists', label: 'artists' },
+  { value: 'albums', label: 'albums' }
+];
+
 function FreshScreen() {
   const [activePath, setActivePath] = useState<FreshPath>('hub');
+  const [harvestWindow, setHarvestWindow] = useState<FreshHarvestWindow>('1');
+  const [harvestType, setHarvestType] = useState<FreshHarvestRankType>('tracks');
   const [playlistSnapshot, setPlaylistSnapshot] = useState<FreshPlaylistSnapshot>(() => readFreshPlaylistSnapshot());
   const [playlistRefreshState, setPlaylistRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [playlistRefreshMessage, setPlaylistRefreshMessage] = useState('');
@@ -27,6 +52,7 @@ function FreshScreen() {
   const [releaseScanProgress, setReleaseScanProgress] = useState<FreshReleaseProgress | null>(null);
   const [releaseScanMessage, setReleaseScanMessage] = useState('');
   const fresh = useFreshOverview(16, 12);
+  const harvestRankings = useFreshHarvestRankings(harvestType, harvestWindow, 50);
   const yearly = useYearlyListeningRollups();
   const localConfig = useLocalServiceConfig();
   const overview = fresh.data;
@@ -139,6 +165,11 @@ function FreshScreen() {
         <FreshPathPanel
           activePath={activePath}
           freshIsFetching={fresh.isFetching}
+          harvestIsFetching={harvestRankings.isFetching}
+          harvestRankings={harvestRankings.data?.rows || []}
+          harvestRankingsLabel={harvestRankings.data?.label || ''}
+          harvestType={harvestType}
+          harvestWindow={harvestWindow}
           quietArtists={quietArtists}
           recentArtists={recentArtists}
           playlistRefreshMessage={playlistRefreshMessage}
@@ -151,6 +182,8 @@ function FreshScreen() {
           releaseSnapshot={releaseSnapshot}
           topAlbums={topAlbums}
           onBack={() => setActivePath('hub')}
+          onHarvestTypeChange={setHarvestType}
+          onHarvestWindowChange={setHarvestWindow}
           onRefreshPlaylists={refreshPlaylists}
           onScanReleases={scanReleases}
         />
@@ -290,6 +323,11 @@ function FreshScreen() {
 function FreshPathPanel({
   activePath,
   freshIsFetching,
+  harvestIsFetching,
+  harvestRankings,
+  harvestRankingsLabel,
+  harvestType,
+  harvestWindow,
   quietArtists,
   recentArtists,
   playlistRefreshMessage,
@@ -302,11 +340,18 @@ function FreshPathPanel({
   releaseSnapshot,
   topAlbums,
   onBack,
+  onHarvestTypeChange,
+  onHarvestWindowChange,
   onRefreshPlaylists,
   onScanReleases
 }: {
   activePath: Exclude<FreshPath, 'hub'>;
   freshIsFetching: boolean;
+  harvestIsFetching: boolean;
+  harvestRankings: FreshHarvestRankingRow[];
+  harvestRankingsLabel: string;
+  harvestType: FreshHarvestRankType;
+  harvestWindow: FreshHarvestWindow;
   quietArtists: { rank: number; artist: string; listens: number; daysSinceLastPlayed: number }[];
   recentArtists: { rank: number; artist: string; listens: number; firstPlayedUts: number }[];
   playlistRefreshMessage: string;
@@ -319,6 +364,8 @@ function FreshPathPanel({
   releaseSnapshot: FreshReleaseSnapshot;
   topAlbums: { rank: number; artist: string; album: string; listens: number }[];
   onBack: () => void;
+  onHarvestTypeChange: (type: FreshHarvestRankType) => void;
+  onHarvestWindowChange: (windowKey: FreshHarvestWindow) => void;
   onRefreshPlaylists: () => void;
   onScanReleases: () => void;
 }) {
@@ -384,6 +431,17 @@ function FreshPathPanel({
           onScanReleases={onScanReleases}
         />
       )}
+      {!isSeed && (
+        <HarvestRankingPanel
+          isFetching={harvestIsFetching}
+          label={harvestRankingsLabel}
+          rows={harvestRankings}
+          type={harvestType}
+          windowKey={harvestWindow}
+          onTypeChange={onHarvestTypeChange}
+          onWindowChange={onHarvestWindowChange}
+        />
+      )}
       <div className="fresh-path-grid">
         <article className="stats-panel fresh-path-list-panel">
           <div className="panel-head">
@@ -443,6 +501,73 @@ function FreshPathPanel({
           )}
         </article>
       </div>
+    </section>
+  );
+}
+
+function HarvestRankingPanel({
+  isFetching,
+  label,
+  rows,
+  type,
+  windowKey,
+  onTypeChange,
+  onWindowChange
+}: {
+  isFetching: boolean;
+  label: string;
+  rows: FreshHarvestRankingRow[];
+  type: FreshHarvestRankType;
+  windowKey: FreshHarvestWindow;
+  onTypeChange: (type: FreshHarvestRankType) => void;
+  onWindowChange: (windowKey: FreshHarvestWindow) => void;
+}) {
+  const maxListens = Math.max(...rows.map(row => row.listens), 1);
+  const playRow = (row: FreshHarvestRankingRow) => {
+    if (type === 'artists') return openSpotifySearch('artist', row.name);
+    return openSpotifySearch(type === 'albums' ? 'album' : 'track', row.name, row.artist);
+  };
+
+  return (
+    <section className="fresh-harvest-rankings">
+      <div className="panel-head">
+        <div>
+          <h3>harvest rankings</h3>
+          <p>{label ? `${label} · newly logged ${type}` : `newly logged ${type}`}</p>
+        </div>
+        <div className="fresh-harvest-controls">
+          <MetricToggle label="Harvest ranking window" value={windowKey} options={harvestWindowOptions} onChange={onWindowChange} />
+          <MetricToggle label="Harvest ranking type" value={type} options={harvestTypeOptions} onChange={onTypeChange} />
+        </div>
+      </div>
+      {rows.length ? (
+        <ol className="fresh-harvest-list">
+          {rows.map(row => {
+            const width = Math.max(8, Math.round((row.listens / maxListens) * 100));
+            return (
+              <li key={`${type}-${row.rank}-${row.artist}-${row.name}`}>
+                <button type="button" onClick={() => playRow(row)}>
+                  <span className="rank">#{row.rank}</span>
+                  <span className="fresh-harvest-name">
+                    <strong>{row.name}</strong>
+                    <small>{type === 'artists' ? `first logged ${formatDate(row.firstPlayedUts)}` : `${row.artist} · first logged ${formatDate(row.firstPlayedUts)}`}</small>
+                  </span>
+                  <span className="fresh-harvest-bar" aria-hidden="true">
+                    <span style={{ width: `${width}%` }} />
+                    <em>{row.listens.toLocaleString()}</em>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <StatusPanel
+          detail="Harvest rankings appear when the selected window contains music first logged in that same window."
+          title={isFetching ? 'loading harvest rankings' : 'no harvest rankings yet'}
+          variant={isFetching ? 'loading' : 'empty'}
+        />
+      )}
     </section>
   );
 }

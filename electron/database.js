@@ -298,6 +298,116 @@ function freshOverview(options = {}) {
   return { topAlbums, quietArtists, recentArtists };
 }
 
+function harvestRankings(options = {}) {
+  const openedDb = requireDb();
+  const type = ['tracks', 'artists', 'albums'].includes(options.type) ? options.type : 'tracks';
+  const windowKey = ['1', '3', '6', '12', 'cy'].includes(String(options.window)) ? String(options.window) : '1';
+  const limit = Math.max(1, Math.min(Number.parseInt(options.limit, 10) || 50, 100));
+  const anchorRow = openedDb.prepare(`
+    SELECT MAX(played_at_uts) AS anchor_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+  `).get();
+  const anchorUts = Number(anchorRow?.anchor_uts || Math.floor(Date.now() / 1000));
+  const cutoffUts = harvestCutoffUts(anchorUts, windowKey);
+  const params = [cutoffUts, anchorUts, cutoffUts, anchorUts, limit];
+  const rows = rankRows(openedDb.prepare(harvestRankingSql(type)).all(...params).map(row => ({
+    name: row.name || '',
+    artist: row.artist || '',
+    album: row.album || '',
+    listens: Number(row.listens || 0),
+    firstPlayedUts: Number(row.first_played_uts || 0)
+  })));
+
+  return {
+    type,
+    window: windowKey,
+    label: harvestWindowLabel(windowKey),
+    cutoffUts,
+    anchorUts,
+    rows
+  };
+}
+
+function harvestCutoffUts(anchorUts, windowKey) {
+  const anchor = new Date(anchorUts * 1000);
+  if (windowKey === 'cy') {
+    return Math.floor(Date.UTC(anchor.getUTCFullYear(), 0, 1) / 1000);
+  }
+  const months = Number.parseInt(windowKey, 10) || 1;
+  const cutoff = new Date(anchor.getTime());
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - months);
+  return Math.floor(cutoff.getTime() / 1000);
+}
+
+function harvestWindowLabel(windowKey) {
+  if (windowKey === 'cy') return 'current year';
+  const months = Number.parseInt(windowKey, 10) || 1;
+  return `last ${months} ${months === 1 ? 'month' : 'months'}`;
+}
+
+function harvestRankingSql(type) {
+  if (type === 'artists') {
+    return `
+      WITH first_seen AS (
+        SELECT lower(artist) AS artist_key, artist AS name, MIN(played_at_uts) AS first_played_uts
+        FROM scrobbles
+        WHERE missing_from_source = 0 AND trim(artist) <> ''
+        GROUP BY lower(artist)
+      )
+      SELECT s.artist AS name, '' AS artist, '' AS album, fs.first_played_uts, COUNT(*) AS listens
+      FROM scrobbles s
+      JOIN first_seen fs ON lower(s.artist) = fs.artist_key
+      WHERE s.missing_from_source = 0
+        AND s.played_at_uts BETWEEN ? AND ?
+        AND fs.first_played_uts BETWEEN ? AND ?
+      GROUP BY lower(s.artist)
+      ORDER BY listens DESC, fs.first_played_uts DESC, name ASC
+      LIMIT ?
+    `;
+  }
+
+  if (type === 'albums') {
+    return `
+      WITH first_seen AS (
+        SELECT lower(artist) AS artist_key, lower(album) AS album_key, MIN(played_at_uts) AS first_played_uts
+        FROM scrobbles
+        WHERE missing_from_source = 0 AND trim(album) <> ''
+        GROUP BY lower(artist), lower(album)
+      )
+      SELECT s.album AS name, s.artist AS artist, s.album AS album, fs.first_played_uts, COUNT(*) AS listens
+      FROM scrobbles s
+      JOIN first_seen fs ON lower(s.artist) = fs.artist_key AND lower(s.album) = fs.album_key
+      WHERE s.missing_from_source = 0
+        AND trim(s.album) <> ''
+        AND s.played_at_uts BETWEEN ? AND ?
+        AND fs.first_played_uts BETWEEN ? AND ?
+      GROUP BY lower(s.artist), lower(s.album)
+      ORDER BY listens DESC, fs.first_played_uts DESC, name ASC
+      LIMIT ?
+    `;
+  }
+
+  return `
+    WITH first_seen AS (
+      SELECT lower(artist) AS artist_key, lower(track) AS track_key, MIN(played_at_uts) AS first_played_uts
+      FROM scrobbles
+      WHERE missing_from_source = 0 AND trim(track) <> ''
+      GROUP BY lower(artist), lower(track)
+    )
+    SELECT s.track AS name, s.artist AS artist, s.album AS album, fs.first_played_uts, COUNT(*) AS listens
+    FROM scrobbles s
+    JOIN first_seen fs ON lower(s.artist) = fs.artist_key AND lower(s.track) = fs.track_key
+    WHERE s.missing_from_source = 0
+      AND trim(s.track) <> ''
+      AND s.played_at_uts BETWEEN ? AND ?
+      AND fs.first_played_uts BETWEEN ? AND ?
+    GROUP BY lower(s.artist), lower(s.track)
+    ORDER BY listens DESC, fs.first_played_uts DESC, name ASC
+    LIMIT ?
+  `;
+}
+
 function frissonOverview(options = {}) {
   const openedDb = requireDb();
   const limit = Math.max(1, Math.min(Number.parseInt(options.limit, 10) || 12, 50));
@@ -620,6 +730,7 @@ module.exports = {
   freshOverview,
   frissonOverview,
   ghostedTracks,
+  harvestRankings,
   importLastfmScrobbles,
   listeningRollups,
   openMelophileDatabase,
