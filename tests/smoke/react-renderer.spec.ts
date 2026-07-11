@@ -87,7 +87,34 @@ test('react renderer supports section hash routes', async ({ page }) => {
 });
 
 test('react renderer opens migrated Past Tense slice', async ({ page }) => {
+  await page.route('https://api.spotify.com/v1/artists**', async route => {
+    await route.fulfill({
+      contentType: 'application/json',
+      json: {
+        artists: [
+          {
+            id: 'artist-one',
+            name: 'cached artist',
+            genres: ['synthpop', 'new wave'],
+            images: [{ url: 'https://example.com/cached-artist.jpg' }]
+          },
+          {
+            id: 'artist-two',
+            name: 'other cached artist',
+            genres: ['new wave'],
+            images: []
+          }
+        ]
+      }
+    });
+  });
   await page.addInitScript(() => {
+    localStorage.setItem('melophile.spotify.clientId', 'present');
+    localStorage.setItem('melophile.spotify.token', JSON.stringify({
+      access_token: 'test-access-token',
+      refresh_token: 'test-refresh-token',
+      expires_at: Date.now() + 3600000
+    }));
     localStorage.setItem('melophile.pastTense.playlists.v2', JSON.stringify({
       '6h8yLdFD25fBxgXuiIxqzm': {
         name: 'Vol. 1970 cached test',
@@ -123,24 +150,11 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
         }
       }
     }));
-    localStorage.setItem('melophile.pastTense.artistGenres.v1', JSON.stringify({
-      'artist-one': {
-        name: 'cached artist',
-        genres: ['synthpop', 'new wave'],
-        image: 'https://example.com/cached-artist.jpg',
-        updatedAtMs: Date.now()
-      },
-      'artist-two': {
-        name: 'other cached artist',
-        genres: ['new wave'],
-        image: '',
-        updatedAtMs: Date.now()
-      }
-    }));
+    localStorage.setItem('melophile.pastTense.artistGenres.v1', JSON.stringify({}));
     window.melophileDesktop = {
       platform: 'test',
       isElectron: true,
-      readLocalConfig: async () => null,
+      readLocalConfig: async () => ({ spotify: { clientId: 'present', refreshToken: 'present' } }),
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
       importLastfmScrobbles: async rows => ({
         rowsInserted: rows.length,

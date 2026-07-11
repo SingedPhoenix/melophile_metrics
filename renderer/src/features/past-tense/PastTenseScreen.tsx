@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
 import { openSpotifySearch, openSpotifyUrl } from '../../shared/spotifyLinks';
-import { useDesktopStatus, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
+import { useDesktopStatus, useLocalServiceConfig, useYearlyListeningRollups } from '../../shared/useDesktopStatus';
 import {
   labelForMetric,
   PastTenseArtistMetadata,
@@ -12,6 +12,7 @@ import {
   PastTenseMetric,
   PastTensePlaylist,
   PastTenseTrackGem,
+  hydratePastTenseArtistMetadata,
   readPastTenseArtistMetadata,
   readPastTensePlaylistTracks,
   valueForMetric
@@ -33,8 +34,10 @@ type AnnualMetricRow = {
 function PastTenseScreen() {
   const [metric, setMetric] = useState<PastTenseMetric>('songs');
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
+  const [artistMetadataVersion, setArtistMetadataVersion] = useState(0);
   const { invalidate, isLoadingScrobbles, matchStats, playlists, snapshot, trackGems, trackPlayCounts } = usePastTenseData();
   const desktopStatus = useDesktopStatus();
+  const localConfig = useLocalServiceConfig();
   const yearlyRollups = useYearlyListeningRollups();
   const scrobbleCount = desktopStatus.data?.scrobbles;
   const label = labelForMetric(metric);
@@ -78,8 +81,25 @@ function PastTenseScreen() {
   );
   const artistMetadata = useMemo(
     () => selectedPlaylistId ? readPastTenseArtistMetadata() : {},
-    [selectedPlaylistId, snapshot.stats.updatedAtMs]
+    [artistMetadataVersion, selectedPlaylistId, snapshot.stats.updatedAtMs]
   );
+  useEffect(() => {
+    if (!selectedPlaylistId || !selectedTracks.length) return;
+    let cancelled = false;
+    hydratePastTenseArtistMetadata({
+      tracks: selectedTracks,
+      clientId: localConfig.data?.spotify?.clientId
+    })
+      .then(result => {
+        if (!cancelled && result.updated) setArtistMetadataVersion(version => version + 1);
+      })
+      .catch(() => {
+        // Metadata hydration is opportunistic; cached playlist detail still works without Spotify artist data.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [localConfig.data?.spotify?.clientId, selectedPlaylistId, selectedTracks]);
 
   if (selectedPlaylist) {
     return (

@@ -99,6 +99,7 @@ export type PastTenseMatchStats = {
 const playlistCacheKey = 'melophile.pastTense.playlists.v2';
 const trackCacheKey = 'melophile.pastTense.tracks.v1';
 const artistGenreCacheKey = 'melophile.pastTense.artistGenres.v1';
+const artistGenreCacheTtlMs = 30 * 86_400_000;
 const trackCacheVersion = 2;
 
 export type PastTenseRefreshProgress = {
@@ -298,6 +299,48 @@ export function readPastTensePlaylistTracks(playlistId: string): PastTenseCached
 
 export function readPastTenseArtistMetadata(): Record<string, PastTenseArtistMetadata> {
   return readJson<Record<string, PastTenseArtistMetadata>>(artistGenreCacheKey, {});
+}
+
+export async function hydratePastTenseArtistMetadata({
+  tracks,
+  clientId,
+  force = false
+}: {
+  tracks: PastTenseCachedTrack[];
+  clientId?: string;
+  force?: boolean;
+}) {
+  const token = await getValidSpotifyToken(clientId);
+  if (!token) return { checked: 0, updated: 0 };
+
+  const cache = readPastTenseArtistMetadata();
+  const artistIds = Array.from(new Set(tracks.flatMap(track =>
+    (track.artists || []).map(artist => String(artist.id || '').trim()).filter(Boolean)
+  )));
+  const missing = artistIds.filter(id => {
+    const cached = cache[id];
+    return force || !cached || !Object.prototype.hasOwnProperty.call(cached, 'image') || Date.now() - (cached.updatedAtMs || 0) > artistGenreCacheTtlMs;
+  });
+  if (!missing.length) return { checked: artistIds.length, updated: 0 };
+
+  let updated = 0;
+  for (let index = 0; index < missing.length; index += 50) {
+    const batch = missing.slice(index, index + 50);
+    const data = await spotifyFetch(`/v1/artists?ids=${encodeURIComponent(batch.join(','))}`, token);
+    (data.artists || []).forEach((artist: { id?: string; name?: string; genres?: string[]; images?: Array<{ url?: string }> }) => {
+      if (!artist?.id) return;
+      cache[artist.id] = {
+        name: artist.name || '',
+        genres: Array.isArray(artist.genres) ? artist.genres : [],
+        image: artist.images?.find(image => image.url)?.url || '',
+        updatedAtMs: Date.now()
+      };
+      updated += 1;
+    });
+    writeJson(artistGenreCacheKey, cache);
+  }
+  window.dispatchEvent(new Event('melophile:past-tense-artist-metadata-updated'));
+  return { checked: artistIds.length, updated };
 }
 
 export async function refreshPastTenseCache({

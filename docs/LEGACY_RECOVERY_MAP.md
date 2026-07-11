@@ -36,25 +36,26 @@ Restored in React:
 - Per-playlist track list with rank, title, artist, album, duration, scrobble count, and Spotify opening.
 - Per-playlist top genre summary from cached Spotify artist genre data.
 - Per-playlist top artist images from cached Spotify artist data.
+- Spotify artist genre/image hydration for Past Tense detail views.
 - Per-playlist track gem badges from SQLite all-time rank bands.
 - Manual Past Tense cache refresh controls in the React Settings/Data area.
 - Last.fm data integrity panel in React Settings/Data with local IndexedDB cache inspection, profile-vs-cache delta checks, latest cached scrobble metadata, and cache-to-SQLite import action.
 - Direct Last.fm recent sync and full cache rebuild actions in React Settings/Data, with refreshed cache rows copied into SQLite.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
 - Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, track opening, top genre, artist image, and gem badge.
+- Smoke coverage for Spotify artist genre/image hydration in Past Tense detail views.
 - Smoke coverage for React Settings/Data Past Tense cache refresh.
 - Smoke coverage for React Settings/Data Last.fm cache loading and local SQLite import.
 - Smoke coverage for React Settings/Data Last.fm network sync, cache update, and SQLite import.
 
 Still To Recover:
 
-- Spotify artist genre/image hydration for Past Tense detail views.
 - Scheduled Past Tense cache refresh controls in the React Settings/Data area.
 
 Recommended migration order:
 
-1. Reconnect artist genre/image hydration after the detail view is stable.
-2. Recover scheduled Past Tense cache refresh controls in React Settings/Data.
+1. Recover scheduled Past Tense cache refresh controls in React Settings/Data.
+2. Inventory the remaining Pulse/Gem Mines/Ghosted/Frisson feature gaps after the main data paths are stable.
 3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
