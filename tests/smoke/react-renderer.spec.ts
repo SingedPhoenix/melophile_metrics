@@ -408,6 +408,15 @@ test('react renderer opens migrated Gem Mines slice', async ({ page }) => {
         years: [{ year: 2020, listens: 25468 }, { year: 2022, listens: 20894 }],
         topYears: [{ year: 2020, listens: 25468, rank: 1 }]
       }),
+      yearlyEntityRankings: async ({ year = 2022, type = 'tracks' } = {}) => ({
+        year,
+        type,
+        rows: type === 'artists'
+          ? [{ rank: 1, artist: 'poppy', listens: 77 }]
+          : type === 'albums'
+            ? [{ rank: 1, artist: 'the cure', album: 'wish', listens: 88 }]
+            : [{ rank: 1, artist: 'health', track: year === 2020 ? 'feel nothing' : 'ashamed', listens: year === 2020 ? 99 : 66 }]
+      }),
       listeningRollups: async () => ({
         topArtists: [{ rank: 1, artist: 'the midnight', listens: 2048 }],
         topTracks: [{ rank: 1, artist: 'health', track: 'you died', listens: 512 }],
@@ -458,6 +467,10 @@ test('react renderer opens migrated Gem Mines slice', async ({ page }) => {
   await expect(page.locator('.gem-list-panel').getByText('512')).toBeVisible();
   await page.locator('.gem-list-panel .spotify-open-row').first().click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toContain('spotify:search:you%20died%20health');
+  await page.locator('.gem-scope-row').getByRole('button', { name: '2022' }).click();
+  await expect(page.locator('.gem-list-panel').getByText('2022 tracks · black opal (#1-#30)')).toBeVisible();
+  await expect(page.locator('.gem-list-panel').getByText('ashamed')).toBeVisible();
+  await page.locator('.gem-scope-row').getByRole('button', { name: 'all-time' }).click();
 
   await page.locator('.gem-list-panel').getByRole('button', { name: 'diamond' }).click();
   await expect(page.locator('.gem-list-panel').getByText('los angeles')).toBeVisible();

@@ -2011,10 +2011,18 @@ img.playlist-cover {
   box-shadow: 0 0 10px color-mix(in srgb, var(--gem-color, currentColor) 36%, transparent);
 }
 
+.gem-scope-row,
 .gem-band-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.gem-scope-row {
+  margin: 14px 0 8px;
+}
+
+.gem-band-row {
   margin: 16px 0 10px;
 }
 

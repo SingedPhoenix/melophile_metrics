@@ -4,9 +4,16 @@ import MetricToggle from '../../shared/MetricToggle';
 import RankedBarList from '../../shared/RankedBarList';
 import { openSpotifySearch, SpotifyEntityType } from '../../shared/spotifyLinks';
 import StatusPanel from '../../shared/StatusPanel';
-import { useEntityRankings, YearlyEntityRankingRow, YearlyEntityRankingType } from '../../shared/useDesktopStatus';
+import {
+  useEntityRankings,
+  useYearlyEntityRankings,
+  useYearlyListeningRollups,
+  YearlyEntityRankingRow,
+  YearlyEntityRankingType
+} from '../../shared/useDesktopStatus';
 
 type GemMode = YearlyEntityRankingType;
+type GemScope = 'all-time' | number;
 
 type GemBand = {
   name: string;
@@ -75,22 +82,31 @@ type GemRow = {
 
 function GemMinesScreen() {
   const [mode, setMode] = useState<GemMode>('tracks');
+  const [scope, setScope] = useState<GemScope>('all-time');
   const [activeGemNames, setActiveGemNames] = useState<string[]>(['blackOpal']);
   const gemBands = allTimeGemBands[mode];
   const maxRank = Math.max(...gemBands.map(band => band.to), 50);
   const rankings = useEntityRankings(mode, maxRank);
+  const yearly = useYearlyEntityRankings(typeof scope === 'number' ? scope : undefined, mode, maxRank);
+  const yearlyRollups = useYearlyListeningRollups();
+  const scopeRows = scope === 'all-time' ? rankings.data?.rows || [] : yearly.data?.rows || [];
+  const years = useMemo(
+    () => (yearlyRollups.data?.years || []).map(row => row.year).sort((a, b) => b - a),
+    [yearlyRollups.data?.years]
+  );
   const rows = useMemo<GemRow[]>(() => {
     const activeBands = gemBands.filter(band => activeGemNames.includes(band.name));
-    const dataRows = rankings.data?.rows || [];
-    return dataRows
+    return scopeRows
       .map(row => toGemRow(row, mode, activeBands))
       .filter((row): row is GemRow => Boolean(row))
       .sort((a, b) => a.rank - b.rank || a.title.localeCompare(b.title));
-  }, [activeGemNames, gemBands, mode, rankings.data?.rows]);
-  const allRows = rankings.data?.rows || [];
+  }, [activeGemNames, gemBands, mode, scopeRows]);
+  const allRows = scopeRows;
   const maxListens = Math.max(...rows.map(row => row.listens), 1);
   const leadGem = allRows[0] ? toGemRow(allRows[0], mode, gemBands) : null;
   const activeBands = gemBands.filter(band => activeGemNames.includes(band.name));
+  const activeScopeLabel = scopeLabel(scope);
+  const isFetching = scope === 'all-time' ? rankings.isFetching : yearly.isFetching;
 
   return (
     <section className="gem-mines-screen" aria-labelledby="gem-mines-title">
@@ -98,13 +114,13 @@ function GemMinesScreen() {
         <p className="eyebrow">ranked listening treasure</p>
         <h1 id="gem-mines-title">gem mines</h1>
         <p className="screen-data-note">
-          {rankings.isFetching ? 'loading sqlite ranking rollups' : `all-time rank-banded ${mode}`}
+          {isFetching ? 'loading sqlite ranking rollups' : `${activeScopeLabel} rank-banded ${mode}`}
         </p>
       </div>
 
       <section className="gem-hero stats-panel" aria-label="Current gem leader">
         <div>
-          <p className="eyebrow">current top {mode.slice(0, -1)}</p>
+          <p className="eyebrow">{activeScopeLabel} top {mode.slice(0, -1)}</p>
           <h2>{leadGem?.title || 'pending'}</h2>
           <p>{leadGem?.subtitle || 'sqlite rollup pending'}</p>
         </div>
@@ -118,9 +134,29 @@ function GemMinesScreen() {
         <div className="panel-head">
           <div>
             <h2 id="gem-ranking-title">ranked gems</h2>
-            <p>{gemRangeLabel(activeBands, mode)}</p>
+            <p>{gemRangeLabel(activeBands, mode, activeScopeLabel)}</p>
           </div>
           <MetricToggle label="gem mine mode" value={mode} options={gemModes} onChange={setMode} />
+        </div>
+
+        <div className="gem-scope-row" role="group" aria-label="Gem Mines scope">
+          <button
+            className={scope === 'all-time' ? 'pill active' : 'pill'}
+            type="button"
+            onClick={() => setScope('all-time')}
+          >
+            all-time
+          </button>
+          {years.map(year => (
+            <button
+              className={scope === year ? 'pill active' : 'pill'}
+              key={year}
+              type="button"
+              onClick={() => setScope(year)}
+            >
+              {year === new Date().getFullYear() ? 'current year' : year}
+            </button>
+          ))}
         </div>
 
         <div className="gem-band-row" role="group" aria-label="Gem bands">
@@ -164,8 +200,8 @@ function GemMinesScreen() {
         ) : (
           <StatusPanel
             detail={activeGemNames.length ? 'Try another gem band, or import more listening history so deeper ranks can be mined.' : 'Select one or more gem bands to populate this mine.'}
-            title={rankings.isFetching ? `loading ${mode} mines` : activeGemNames.length ? 'no entries found in this mine' : 'select a gem mine'}
-            variant={rankings.isFetching ? 'loading' : 'empty'}
+            title={isFetching ? `loading ${mode} mines` : activeGemNames.length ? 'no entries found in this mine' : 'select a gem mine'}
+            variant={isFetching ? 'loading' : 'empty'}
           />
         )}
       </section>
@@ -216,8 +252,13 @@ function toGemRow(row: YearlyEntityRankingRow, mode: GemMode, activeBands: GemBa
   };
 }
 
-function gemRangeLabel(activeBands: GemBand[], mode: GemMode) {
-  if (!activeBands.length) return `all-time ${mode} · select one or more gem mines`;
+function gemRangeLabel(activeBands: GemBand[], mode: GemMode, activeScopeLabel: string) {
+  if (!activeBands.length) return `${activeScopeLabel} ${mode} · select one or more gem mines`;
   const bandLabels = activeBands.map(band => `${band.label} (#${band.from.toLocaleString()}-#${band.to.toLocaleString()})`);
-  return `all-time ${mode} · ${bandLabels.join(' · ')}`;
+  return `${activeScopeLabel} ${mode} · ${bandLabels.join(' · ')}`;
+}
+
+function scopeLabel(scope: GemScope) {
+  if (scope === 'all-time') return 'all-time';
+  return scope === new Date().getFullYear() ? 'current year' : String(scope);
 }
