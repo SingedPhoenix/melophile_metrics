@@ -2,6 +2,7 @@ import { getValidSpotifyToken, spotifyFetch } from '../../shared/spotifyApi';
 
 const freshPlaylistCacheKey = 'melophile.fresh.spotifyPlaylists.v1';
 const freshReleaseCacheKey = 'melophile.fresh.releases.v1';
+const freshPlaylistTrackCacheKey = 'melophile.fresh.playlistTracks.v1';
 const spotifyArtistMatchKey = 'melophile.spotify.artistMatches.v1';
 
 export type FreshSpotifyPlaylist = {
@@ -12,6 +13,24 @@ export type FreshSpotifyPlaylist = {
   images?: { url?: string }[];
   tracks?: { total?: number };
   owner?: { display_name?: string; id?: string };
+};
+
+export type FreshSpotifyTrack = {
+  id?: string;
+  name?: string;
+  uri?: string;
+  external_urls?: { spotify?: string };
+  duration_ms?: number;
+  artists?: { id?: string; name?: string }[];
+  album?: {
+    name?: string;
+    images?: { url?: string }[];
+  };
+};
+
+export type FreshPlaylistTrackCache = {
+  updatedAtMs?: number;
+  playlists: Record<string, { updatedAtMs?: number; tracks: FreshSpotifyTrack[] }>;
 };
 
 export type FreshPlaylistSnapshot = {
@@ -103,6 +122,14 @@ export function readFreshReleaseSnapshot(): FreshReleaseSnapshot {
   };
 }
 
+export function readFreshPlaylistTrackCache(): FreshPlaylistTrackCache {
+  const stored = readJson<FreshPlaylistTrackCache>(freshPlaylistTrackCacheKey, { playlists: {} });
+  return {
+    updatedAtMs: stored.updatedAtMs,
+    playlists: stored.playlists && typeof stored.playlists === 'object' ? stored.playlists : {}
+  };
+}
+
 export async function refreshFreshPlaylistInventory(clientId?: string) {
   const token = await getValidSpotifyToken(clientId);
   if (!token) throw new Error('spotify connection needed');
@@ -122,6 +149,35 @@ export async function refreshFreshPlaylistInventory(clientId?: string) {
   });
   window.dispatchEvent(new Event('melophile:fresh-playlists-updated'));
   return readFreshPlaylistSnapshot();
+}
+
+export async function loadFreshPlaylistTracks(playlistId: string, clientId?: string, force = false) {
+  const cache = readFreshPlaylistTrackCache();
+  const cached = cache.playlists[playlistId];
+  if (!force && Array.isArray(cached?.tracks) && cached.tracks.length) return cached.tracks;
+
+  const token = await getValidSpotifyToken(clientId);
+  if (!token) throw new Error('spotify connection needed');
+
+  const fields = 'items(track(id,name,uri,external_urls,duration_ms,artists(id,name),album(name,images))),next,total';
+  let next: string | null = `https://api.spotify.com/v1/playlists/${encodeURIComponent(playlistId)}/tracks?limit=100&fields=${encodeURIComponent(fields)}`;
+  const tracks: FreshSpotifyTrack[] = [];
+  while (next) {
+    const page = await spotifyFetch(next, token);
+    (page.items || []).forEach((item: { track?: FreshSpotifyTrack }) => {
+      if (item?.track?.name) tracks.push(item.track);
+    });
+    next = page.next || null;
+  }
+
+  cache.playlists[playlistId] = {
+    updatedAtMs: Date.now(),
+    tracks
+  };
+  cache.updatedAtMs = Date.now();
+  writeJson(freshPlaylistTrackCacheKey, cache);
+  window.dispatchEvent(new Event('melophile:fresh-playlist-tracks-updated'));
+  return tracks;
 }
 
 export async function refreshFreshReleaseDiscovery({

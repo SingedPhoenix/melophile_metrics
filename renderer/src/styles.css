@@ -629,8 +629,15 @@ h1 {
 }
 
 .fresh-playlist-card:hover,
-.fresh-playlist-card:focus-visible {
+.fresh-playlist-card:focus-visible,
+.fresh-playlist-card.active {
   border-color: rgba(238, 238, 238, 0.18);
+}
+
+.fresh-playlist-card.active {
+  background:
+    linear-gradient(145deg, rgba(205, 164, 198, 0.13), rgba(151, 164, 137, 0.1)),
+    rgba(0, 0, 0, 0.18);
 }
 
 .fresh-playlist-cover {
@@ -665,6 +672,91 @@ h1 {
   color: rgba(204, 204, 204, 0.46);
   font-family: "SF Mono", ui-monospace, monospace;
   font-size: 11px;
+}
+
+.fresh-playlist-detail {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(205, 164, 198, 0.1), transparent 34%),
+    rgba(0, 0, 0, 0.14);
+}
+
+.fresh-playlist-detail h3 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 22px;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fresh-track-audit-list {
+  display: grid;
+  gap: 0;
+  max-height: 560px;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fresh-track-audit-list li {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 58px;
+  border-bottom: 1px solid rgba(204, 204, 204, 0.06);
+}
+
+.fresh-track-audit-list li:last-child {
+  border-bottom: none;
+}
+
+.fresh-track-audit-list li.is-overripe {
+  margin: 0 -10px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(205, 164, 198, 0.14), rgba(151, 164, 137, 0.08));
+}
+
+.fresh-track-audit-list strong,
+.fresh-track-audit-list small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fresh-track-audit-list strong {
+  font-size: 17px;
+  line-height: 1.08;
+}
+
+.fresh-track-audit-list small,
+.fresh-track-audit-list em {
+  color: rgba(204, 204, 204, 0.44);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.fresh-track-audit-list small {
+  margin-top: 5px;
+}
+
+.fresh-track-audit-list em {
+  font-style: normal;
+  font-weight: 800;
+  color: rgba(238, 238, 238, 0.7);
+}
+
+.fresh-track-audit-list li.is-overripe em {
+  color: rgba(238, 238, 238, 0.92);
 }
 
 .fresh-release-index {

@@ -13,6 +13,7 @@ import {
 } from '../../shared/useDesktopStatus';
 import {
   readFreshPlaylistSnapshot,
+  loadFreshPlaylistTracks,
   readFreshReleaseSnapshot,
   refreshFreshPlaylistInventory,
   refreshFreshReleaseDiscovery,
@@ -21,7 +22,8 @@ import {
   type FreshReleaseProgress,
   type FreshReleaseSnapshot,
   type FreshPlaylistSnapshot,
-  type FreshSpotifyPlaylist
+  type FreshSpotifyPlaylist,
+  type FreshSpotifyTrack
 } from './freshData';
 
 type FreshPath = 'hub' | 'seed' | 'harvest';
@@ -370,7 +372,13 @@ function FreshPathPanel({
   onScanReleases: () => void;
 }) {
   const isSeed = activePath === 'seed';
+  const [selectedPlaylistId, setSelectedPlaylistId] = useState('');
+  const [playlistTracks, setPlaylistTracks] = useState<FreshSpotifyTrack[]>([]);
+  const [trackCounts, setTrackCounts] = useState<Record<string, number>>({});
+  const [trackLoadState, setTrackLoadState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
+  const [trackLoadMessage, setTrackLoadMessage] = useState('');
   const pathPlaylists = isSeed ? playlistSnapshot.seedPlaylists : playlistSnapshot.harvestPlaylists;
+  const selectedPlaylist = pathPlaylists.find(playlist => playlist.id === selectedPlaylistId) || null;
   const pathItems = isSeed
     ? recentArtists.slice(0, 8).map(artist => ({
         key: artist.artist,
@@ -386,6 +394,53 @@ function FreshPathPanel({
         meta: `${artist.daysSinceLastPlayed.toLocaleString()} days quiet`,
         value: artist.listens
       }));
+  const overripeCount = !isSeed
+    ? playlistTracks.filter((track, index) => (trackCounts[trackRefKey(selectedPlaylistId, index)] || 0) >= 12).length
+    : 0;
+
+  useEffect(() => {
+    setSelectedPlaylistId('');
+    setPlaylistTracks([]);
+    setTrackCounts({});
+    setTrackLoadState('idle');
+    setTrackLoadMessage('');
+  }, [activePath]);
+
+  const selectPlaylist = async (playlist: FreshSpotifyPlaylist) => {
+    if (selectedPlaylistId === playlist.id) {
+      setSelectedPlaylistId('');
+      setPlaylistTracks([]);
+      setTrackCounts({});
+      setTrackLoadState('idle');
+      setTrackLoadMessage('');
+      return;
+    }
+
+    setSelectedPlaylistId(playlist.id);
+    setPlaylistTracks([]);
+    setTrackCounts({});
+    setTrackLoadState('running');
+    setTrackLoadMessage('loading playlist tracks');
+    try {
+      const tracks = await loadFreshPlaylistTracks(playlist.id, undefined);
+      setPlaylistTracks(tracks);
+      setTrackLoadState('complete');
+      setTrackLoadMessage(`${tracks.length.toLocaleString()} tracks loaded`);
+      if (!isSeed && window.melophileDesktop?.trackPlayCounts) {
+        const refs = tracks.map((track, index) => ({
+          key: trackRefKey(playlist.id, index),
+          playlistId: playlist.id,
+          trackName: track.name || '',
+          artists: (track.artists || []).map(artist => artist.name || '').filter(Boolean)
+        }));
+        const counts = await window.melophileDesktop.trackPlayCounts(refs);
+        setTrackCounts(counts.trackCounts || {});
+      }
+    } catch (error) {
+      setTrackLoadState('error');
+      setTrackLoadMessage(error instanceof Error ? error.message : 'playlist tracks could not load');
+    }
+  };
 
   return (
     <section className="fresh-path-panel">
@@ -409,7 +464,12 @@ function FreshPathPanel({
       {pathPlaylists.length ? (
         <div className="fresh-playlist-shelf" aria-label={isSeed ? 'seed spotify playlists' : 'harvest spotify playlists'}>
           {pathPlaylists.map(playlist => (
-            <FreshPlaylistCard key={playlist.id} playlist={playlist} />
+            <FreshPlaylistCard
+              active={selectedPlaylistId === playlist.id}
+              key={playlist.id}
+              playlist={playlist}
+              onSelect={selectPlaylist}
+            />
           ))}
         </div>
       ) : (
@@ -421,6 +481,22 @@ function FreshPathPanel({
           variant={playlistRefreshState === 'running' ? 'loading' : 'empty'}
         />
       )}
+      <FreshPlaylistDetail
+        isHarvest={!isSeed}
+        loadMessage={trackLoadMessage}
+        loadState={trackLoadState}
+        overripeCount={overripeCount}
+        playlist={selectedPlaylist}
+        trackCounts={trackCounts}
+        tracks={playlistTracks}
+        onClose={() => {
+          setSelectedPlaylistId('');
+          setPlaylistTracks([]);
+          setTrackCounts({});
+          setTrackLoadState('idle');
+          setTrackLoadMessage('');
+        }}
+      />
       {isSeed && (
         <FreshReleaseIndex
           candidates={releaseCandidates}
@@ -572,6 +648,76 @@ function HarvestRankingPanel({
   );
 }
 
+function FreshPlaylistDetail({
+  isHarvest,
+  loadMessage,
+  loadState,
+  overripeCount,
+  playlist,
+  trackCounts,
+  tracks,
+  onClose
+}: {
+  isHarvest: boolean;
+  loadMessage: string;
+  loadState: 'idle' | 'running' | 'complete' | 'error';
+  overripeCount: number;
+  playlist: FreshSpotifyPlaylist | null;
+  trackCounts: Record<string, number>;
+  tracks: FreshSpotifyTrack[];
+  onClose: () => void;
+}) {
+  if (!playlist) return null;
+  const spotifyUrl = playlist.uri || playlist.external_urls?.spotify || '';
+  const declaredCount = Number(playlist.tracks?.total) || 0;
+  const status = loadState === 'running'
+    ? loadMessage
+    : loadState === 'error'
+      ? loadMessage
+      : `${tracks.length.toLocaleString()} tracks loaded${declaredCount ? ` · ${declaredCount.toLocaleString()} listed by spotify` : ''}${isHarvest ? harvestAuditNote(overripeCount, tracks.length) : ''}`;
+
+  return (
+    <section className="fresh-playlist-detail">
+      <div className="panel-head">
+        <div>
+          <h3>{playlist.name}</h3>
+          <p>{status}</p>
+        </div>
+        <div className="fresh-path-actions">
+          <button className="status-chip is-button" type="button" onClick={onClose}>close</button>
+          <button className="status-chip is-button" type="button" onClick={() => openSpotifyUrl(spotifyUrl)}>open in spotify</button>
+        </div>
+      </div>
+      {loadState === 'running' || loadState === 'error' ? (
+        <StatusPanel
+          detail={loadMessage || 'Loading Spotify playlist tracks.'}
+          title={loadState === 'running' ? 'loading playlist tracks' : 'playlist tracks unavailable'}
+          variant={loadState === 'running' ? 'loading' : 'empty'}
+        />
+      ) : (
+        <ol className="fresh-track-audit-list">
+          {tracks.map((track, index) => {
+            const count = Number(trackCounts[trackRefKey(playlist.id, index)] || 0);
+            const overripe = isHarvest && count >= 12;
+            const artists = (track.artists || []).map(artist => artist.name).filter(Boolean).join(', ');
+            const album = track.album?.name || '';
+            return (
+              <li className={overripe ? 'is-overripe' : ''} key={`${playlist.id}-${track.id || index}`}>
+                <span className="rank">#{index + 1}</span>
+                <span>
+                  <strong>{track.name}</strong>
+                  <small>{[artists, album].filter(Boolean).join(' · ') || 'spotify metadata pending'}</small>
+                </span>
+                <em>{isHarvest ? `${count.toLocaleString()} scrobbles` : formatDuration(track.duration_ms)}</em>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </section>
+  );
+}
+
 function FreshReleaseIndex({
   candidates,
   releaseScanMessage,
@@ -663,13 +809,20 @@ function FreshReleaseCard({ release }: { release: FreshRelease }) {
   );
 }
 
-function FreshPlaylistCard({ playlist }: { playlist: FreshSpotifyPlaylist }) {
+function FreshPlaylistCard({
+  active,
+  playlist,
+  onSelect
+}: {
+  active: boolean;
+  playlist: FreshSpotifyPlaylist;
+  onSelect: (playlist: FreshSpotifyPlaylist) => void;
+}) {
   const imageUrl = playlist.images?.find(image => image.url)?.url || '';
-  const spotifyUrl = playlist.uri || playlist.external_urls?.spotify || '';
   const count = Number(playlist.tracks?.total) || 0;
   const owner = playlist.owner?.display_name || playlist.owner?.id || 'spotify';
   return (
-    <button className="fresh-playlist-card" type="button" onClick={() => openSpotifyUrl(spotifyUrl)}>
+    <button className={`fresh-playlist-card ${active ? 'active' : ''}`} type="button" onClick={() => onSelect(playlist)}>
       {imageUrl ? <img className="fresh-playlist-cover" src={imageUrl} alt="" /> : <span className="fresh-playlist-cover" aria-hidden="true" />}
       <span>
         <strong>{playlist.name}</strong>
@@ -677,6 +830,24 @@ function FreshPlaylistCard({ playlist }: { playlist: FreshSpotifyPlaylist }) {
       </span>
     </button>
   );
+}
+
+function trackRefKey(playlistId: string, index: number) {
+  return `${playlistId}|||${index}`;
+}
+
+function harvestAuditNote(overripeCount: number, trackCount: number) {
+  if (!trackCount) return '';
+  if (!overripeCount) return ' · no 12+ scrobble alerts';
+  return ` · ${overripeCount.toLocaleString()} ready to prune at 12+ scrobbles`;
+}
+
+function formatDuration(durationMs: number | undefined) {
+  const totalSeconds = Math.round((Number(durationMs) || 0) / 1000);
+  if (!totalSeconds) return '';
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
 function formatDate(uts: number) {

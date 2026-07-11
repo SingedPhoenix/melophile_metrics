@@ -592,6 +592,40 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
       });
       return;
     }
+    if (url.pathname.startsWith('/v1/playlists/') && url.pathname.endsWith('/tracks')) {
+      const playlistId = url.pathname.split('/')[3];
+      const isHarvest = playlistId === 'harvest-one';
+      await route.fulfill({
+        contentType: 'application/json',
+        json: {
+          items: [
+            {
+              track: {
+                id: isHarvest ? 'harvest-track-one' : 'seed-track-one',
+                name: isHarvest ? 'ripe harvest song' : 'new seed song',
+                uri: isHarvest ? 'spotify:track:harvest-track-one' : 'spotify:track:seed-track-one',
+                duration_ms: 188000,
+                artists: [{ id: 'artist-new-harvest', name: isHarvest ? 'new harvest artist' : 'magdalena bay' }],
+                album: { name: isHarvest ? 'first crop' : 'seedling' }
+              }
+            },
+            {
+              track: {
+                id: isHarvest ? 'harvest-track-two' : 'seed-track-two',
+                name: isHarvest ? 'quiet harvest song' : 'second seed song',
+                uri: isHarvest ? 'spotify:track:harvest-track-two' : 'spotify:track:seed-track-two',
+                duration_ms: 191000,
+                artists: [{ id: 'artist-jay-z', name: isHarvest ? 'jay-z' : 'magdalena bay' }],
+                album: { name: isHarvest ? 'return basket' : 'seedling' }
+              }
+            }
+          ],
+          next: null,
+          total: 2
+        }
+      });
+      return;
+    }
     if (url.pathname === '/v1/search') {
       const query = url.searchParams.get('q') || 'artist';
       const id = query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'artist';
@@ -644,7 +678,10 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
       readLocalConfig: async () => null,
       databaseStatus: async () => ({ scrobbles: 173971, revisions: 16619, schemaVersion: 1 }),
       importLastfmScrobbles: async () => ({}),
-      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      trackPlayCounts: async tracks => ({
+        trackCounts: Object.fromEntries(tracks.map(track => [track.key, track.trackName === 'ripe harvest song' ? 14 : 3])),
+        playlistCounts: {}
+      }),
       yearlyListeningRollups: async () => ({
         years: [
           { year: 2020, listens: 25468 },
@@ -685,6 +722,9 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByText('2 spotify playlists loaded')).toBeVisible();
   await expect(page.getByRole('button', { name: /Fresh Seeds Vol\. 1/i })).toBeVisible();
   await page.getByRole('button', { name: /Fresh Seeds Vol\. 1/i }).click();
+  await expect(page.getByRole('heading', { name: 'Fresh Seeds Vol. 1' })).toBeVisible();
+  await expect(page.getByText('new seed song')).toBeVisible();
+  await page.getByRole('button', { name: 'open in spotify' }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:playlist:fresh-seeds-one');
   await page.getByRole('button', { name: 'scan releases' }).click();
   await expect(page.getByText('2 fresh releases scanned')).toBeVisible();
@@ -697,6 +737,11 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await page.getByRole('button', { name: /harvest/i }).click();
   await expect(page.getByRole('heading', { name: 'harvest playlists' })).toBeVisible();
   await expect(page.getByRole('button', { name: /Fresh Harvest Vol\. 1/i })).toBeVisible();
+  await page.getByRole('button', { name: /Fresh Harvest Vol\. 1/i }).click();
+  await expect(page.getByRole('heading', { name: 'Fresh Harvest Vol. 1' })).toBeVisible();
+  await expect(page.getByText('ripe harvest song')).toBeVisible();
+  await expect(page.getByText('1 ready to prune at 12+ scrobbles')).toBeVisible();
+  await expect(page.getByText('14 scrobbles')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'harvest rankings' })).toBeVisible();
   await expect(page.getByRole('button', { name: /velvet daylight/i })).toBeVisible();
   await page.getByRole('button', { name: /velvet daylight/i }).click();
@@ -704,7 +749,7 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await page.getByRole('button', { name: 'artists' }).click();
   await expect(page.getByRole('button', { name: /new harvest artist/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'expansion watchlist' })).toBeVisible();
-  await expect(page.locator('.fresh-path-panel').getByText('jay-z')).toBeVisible();
+  await expect(page.getByRole('article').filter({ hasText: 'expansion watchlist' }).getByText('jay-z')).toBeVisible();
   await page.getByRole('button', { name: 'fresh home' }).click();
   await expect(page.getByRole('heading', { name: 'quiet favorite artists' })).toBeVisible();
   await expect(page.getByText('jay-z')).toBeVisible();
