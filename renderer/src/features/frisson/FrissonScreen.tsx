@@ -62,6 +62,33 @@ function FrissonScreen() {
         </article>
       </section>
 
+      <section className="frisson-signal-grid" aria-label="Frisson signal paths">
+        <SignalCard
+          active={mode === 'repeats'}
+          label="repeat pull"
+          metric={`${repeated[0]?.listens.toLocaleString() || '-'} listens`}
+          onSelect={() => setMode('repeats')}
+          subtitle={trackSubtitle(repeated[0])}
+          title={repeated[0]?.track || 'pending'}
+        />
+        <SignalCard
+          active={mode === 'enduring'}
+          label="long arc"
+          metric={formatDays(enduring[0]?.spanDays || 0)}
+          onSelect={() => setMode('enduring')}
+          subtitle={trackSubtitle(enduring[0])}
+          title={enduring[0]?.track || 'pending'}
+        />
+        <SignalCard
+          active={mode === 'recent'}
+          label="recent spark"
+          metric={`${recent[0]?.listens.toLocaleString() || '-'} recent`}
+          onSelect={() => setMode('recent')}
+          subtitle={trackSubtitle(recent[0])}
+          title={recent[0]?.track || 'pending'}
+        />
+      </section>
+
       <article className="stats-panel frisson-list-panel">
         <div className="panel-head">
           <div>
@@ -106,6 +133,31 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SignalCard({
+  active,
+  label,
+  metric,
+  onSelect,
+  subtitle,
+  title
+}: {
+  active: boolean;
+  label: string;
+  metric: string;
+  onSelect: () => void;
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <button className={active ? 'frisson-signal-card active' : 'frisson-signal-card'} type="button" onClick={onSelect}>
+      <span>{label}</span>
+      <strong>{title}</strong>
+      <small>{subtitle}</small>
+      <em>{metric}</em>
+    </button>
+  );
+}
+
 function modeTitle(mode: FrissonMode) {
   if (mode === 'enduring') return 'enduring attachments';
   if (mode === 'recent') return 'recent anchors';
@@ -116,6 +168,11 @@ function modeDetail(mode: FrissonMode) {
   if (mode === 'enduring') return 'songs that stayed with you across the longest listening span';
   if (mode === 'recent') return 'tracks with repeat gravity in the last 30 days';
   return 'songs with the highest lifetime pull';
+}
+
+function trackSubtitle(track?: { artist: string; album?: string }) {
+  if (!track) return 'sqlite rollup pending';
+  return `${track.artist}${track.album ? ` · ${track.album}` : ''}`;
 }
 
 function formatDays(days: number) {

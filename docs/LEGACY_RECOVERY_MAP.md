@@ -67,7 +67,7 @@ React coverage now:
 - Gem Mines renders all-time and yearly track/artist/album rankings, a current leader panel, shared ranked bars, Spotify opening, and legacy rank-banded gem mine filters with colored gem chips.
 - Ghosted renders a SQLite-backed quiet queue with window pills, track/artist/album mode, minimum-listen thresholds, reshuffle, local skip/reset controls, expansion watchlist, and Spotify opening.
 - Apotheosis renders a SQLite-backed artist watchlist for top artists whose newest first-seen track is outside the quiet-period window, with shuffle, skip/reset, and Spotify artist search opening.
-- Frisson renders repeated, enduring, and recent attachment rankings from SQLite-backed overview data.
+- Frisson renders repeated, enduring, and recent attachment rankings from SQLite-backed overview data with signal-path cards for repeat pull, long arc, and recent spark.
 
 High-impact gaps still to recover:
 
@@ -77,16 +77,15 @@ High-impact gaps still to recover:
 - Ghosted still needs the legacy hub split between `long time...no hear...` and `apotheosis`.
 - Long Time...No Hear now has reshuffle and expansion watchlist plus window pills, track/artist/album mode, skip queue, and top-100 queue labeling restored.
 - Apotheosis now has the core top-artist release watchlist, shuffle, skip/reset, and newest-track quiet-period detection restored in React.
-- Frisson currently has useful SQLite-derived rankings, but needs a closer legacy/design pass after the Pulse/Gem/Ghosted recoveries because the legacy app primarily defined Frisson as an emotional-attachment destination from the home bento rather than a deeply developed subflow.
+- Frisson now has a closer emotional-attachment destination pass with signal cards layered over the SQLite-derived ranking modes.
 
 Recommended next slices:
 
-1. Revisit Frisson design parity once the ranking/list surfaces are fully reusable.
+1. Inventory and recover Fresh seed/harvest workflows next.
 
 Recommended migration order:
 
-1. Revisit Frisson design parity.
-2. Inventory and recover Fresh seed/harvest workflows next.
+1. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
 

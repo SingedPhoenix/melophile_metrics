@@ -1144,11 +1144,14 @@ test('react renderer opens migrated Frisson slice', async ({ page }) => {
   await page.getByRole('button', { name: /frisson/i }).click();
 
   await expect(page.getByRole('heading', { name: 'frisson' })).toBeVisible();
+  await expect(page.getByRole('button', { name: /repeat pull/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /long arc/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /recent spark/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'repeat-heavy tracks' })).toBeVisible();
   await expect(page.locator('.frisson-list-panel').getByText('you died')).toBeVisible();
-  await page.getByRole('button', { name: 'enduring' }).click();
+  await page.getByRole('button', { name: /long arc/i }).click();
   await expect(page.getByRole('heading', { name: 'enduring attachments' })).toBeVisible();
   await expect(page.locator('.frisson-list-panel').getByText('los angeles')).toBeVisible();
-  await page.getByRole('button', { name: 'recent' }).click();
+  await page.getByRole('button', { name: /recent spark/i }).click();
   await expect(page.getByRole('heading', { name: 'recent anchors' })).toBeVisible();
 });
