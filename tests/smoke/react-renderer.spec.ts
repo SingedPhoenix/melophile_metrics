@@ -396,6 +396,8 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
   await expect(page.locator('.pulse-momentous-panel').getByText('2022 · top tracks')).toBeVisible();
   await expect(page.locator('.pulse-momentous-panel').getByText('128')).toBeVisible();
   await expect(page.locator('.pulse-momentous-panel').getByText('showing #1-#50 of 65')).toBeVisible();
+  await expect(page.locator('.pulse-momentous-panel .ranked-bar-fill').first()).toHaveCSS('min-width', '0px');
+  await expect(page.locator('.pulse-momentous-panel .ranked-bar-fill').first().locator('span')).toHaveCSS('right', '12px');
   await page.locator('.pulse-momentous-panel').getByRole('button', { name: 'next 50' }).click();
   await expect(page.locator('.pulse-momentous-panel').getByText('showing #51-#65 of 65')).toBeVisible();
   await expect(page.locator('.pulse-momentous-panel').getByText('momentous track 51')).toBeVisible();
