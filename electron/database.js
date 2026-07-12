@@ -276,6 +276,229 @@ function recentEntityRankings(options = {}) {
   };
 }
 
+function recentListeningAnalytics(options = {}) {
+  const openedDb = requireDb();
+  const windowKey = ['1', '3', '6', '12', '30', '60', '120', 'cy'].includes(String(options.window)) ? String(options.window) : '1';
+  const anchorRow = openedDb.prepare(`
+    SELECT MAX(played_at_uts) AS anchor_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+  `).get();
+  const anchorUts = Number(anchorRow?.anchor_uts || Math.floor(Date.now() / 1000));
+  const anchor = new Date(anchorUts * 1000);
+  const currentStart = new Date(recentRankingCutoffUts(anchorUts, windowKey) * 1000);
+  const priorPeriods = buildPriorAnalyticsPeriods(currentStart, anchor, windowKey);
+  const earliestUts = Math.floor((priorPeriods[priorPeriods.length - 1]?.start || currentStart).getTime() / 1000);
+  const rows = openedDb.prepare(`
+    SELECT artist, track, album, played_at_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0 AND played_at_uts >= ? AND played_at_uts <= ?
+    ORDER BY played_at_uts ASC
+  `).all(earliestUts, anchorUts).map(row => ({
+    artist: row.artist || '',
+    track: row.track || '',
+    album: row.album || '',
+    playedAtUts: Number(row.played_at_uts || 0)
+  }));
+
+  const current = summarizeAnalyticsPeriod(rows, currentStart, anchor);
+  const previous = priorPeriods.map(period => summarizeAnalyticsPeriod(rows, period.start, period.end));
+  const pace = buildRecentPace(rows, currentStart, anchor, windowKey);
+
+  return {
+    window: windowKey,
+    label: recentRankingWindowLabel(windowKey),
+    anchorUts,
+    cutoffUts: Math.floor(currentStart.getTime() / 1000),
+    current,
+    baseline: {
+      perDay: averageAnalyticsValue(previous, 'perDay'),
+      perActiveDay: averageAnalyticsValue(previous, 'perActiveDay'),
+      perWeek: averageAnalyticsValue(previous, 'perWeek'),
+      activeDaysPerWeek: averageAnalyticsValue(previous, 'activeDaysPerWeek')
+    },
+    hourAverages: averageCountArrays(previous, 'hourCounts', 24),
+    dowAverages: averageCountArrays(previous, 'dowCounts', 7),
+    pace
+  };
+}
+
+function buildPriorAnalyticsPeriods(currentStart, anchor, windowKey) {
+  const periods = [];
+  if (windowKey === 'cy') {
+    const anchorMonth = anchor.getUTCMonth();
+    const anchorDate = anchor.getUTCDate();
+    const anchorHours = anchor.getUTCHours();
+    const anchorMinutes = anchor.getUTCMinutes();
+    const anchorSeconds = anchor.getUTCSeconds();
+    for (let i = 1; i <= 5; i++) {
+      const year = anchor.getUTCFullYear() - i;
+      periods.push({
+        start: new Date(Date.UTC(year, 0, 1)),
+        end: new Date(Date.UTC(year, anchorMonth, anchorDate, anchorHours, anchorMinutes, anchorSeconds))
+      });
+    }
+    return periods;
+  }
+
+  const months = Number.parseInt(windowKey, 10) || 1;
+  let periodEnd = new Date(currentStart);
+  for (let i = 0; i < 5; i++) {
+    const periodStart = addUtcMonthsDate(periodEnd, -months);
+    periods.push({ start: periodStart, end: periodEnd });
+    periodEnd = periodStart;
+  }
+  return periods;
+}
+
+function summarizeAnalyticsPeriod(rows, start, end) {
+  const activeDays = new Set();
+  const tracks = new Set();
+  const artists = new Set();
+  const albums = new Set();
+  const hourCounts = Array(24).fill(0);
+  const dowCounts = Array(7).fill(0);
+  let scrobbles = 0;
+  const startMs = start.getTime();
+  const endMs = end.getTime();
+
+  rows.forEach(row => {
+    const played = new Date(row.playedAtUts * 1000);
+    const playedMs = played.getTime();
+    if (playedMs < startMs || playedMs > endMs) return;
+    scrobbles++;
+    activeDays.add(played.toISOString().slice(0, 10));
+    hourCounts[played.getHours()]++;
+    dowCounts[played.getDay()]++;
+    if (row.track) tracks.add(`${normalizeText(row.artist)}|${normalizeText(row.track)}`);
+    if (row.artist) artists.add(normalizeText(row.artist));
+    if (row.album) albums.add(`${normalizeText(row.artist)}|${normalizeText(row.album)}`);
+  });
+
+  const elapsedDays = Math.max(1, Math.ceil((endMs - startMs) / 86400000));
+  const elapsedWeeks = elapsedDays / 7;
+  return {
+    scrobbles,
+    activeDays: activeDays.size,
+    tracks: tracks.size,
+    artists: artists.size,
+    albums: albums.size,
+    elapsedDays,
+    hourCounts,
+    dowCounts,
+    values: {
+      perDay: scrobbles / elapsedDays,
+      perActiveDay: activeDays.size ? scrobbles / activeDays.size : 0,
+      perWeek: scrobbles / elapsedWeeks,
+      activeDaysPerWeek: activeDays.size / elapsedWeeks
+    }
+  };
+}
+
+function averageAnalyticsValue(periods, key) {
+  const usable = periods.filter(period => period.scrobbles > 0 && Number.isFinite(period.values[key]));
+  if (!usable.length) return 0;
+  return usable.reduce((sum, period) => sum + period.values[key], 0) / usable.length;
+}
+
+function averageCountArrays(periods, key, count) {
+  const usable = periods.filter(period => period.scrobbles > 0);
+  if (!usable.length) return Array(count).fill(0);
+  return Array.from({ length: count }, (_, index) =>
+    usable.reduce((sum, period) => sum + Number(period[key][index] || 0), 0) / usable.length
+  );
+}
+
+function buildRecentPace(rows, start, anchor, windowKey) {
+  const config = paceConfigForWindowKey(windowKey);
+  const buckets = [];
+  if (config.unit === 'day') {
+    for (let i = 0; i < config.count; i++) {
+      buckets.push({ start: addUtcDays(start, i), end: addUtcDays(start, i + 1), count: 0 });
+    }
+  } else if (config.unit === 'week') {
+    for (let i = 0; i < config.count; i++) {
+      buckets.push({ start: addUtcDays(start, i * 7), end: addUtcDays(start, (i + 1) * 7), count: 0 });
+    }
+  } else if (config.unit === 'month') {
+    for (let i = 0; i < config.count; i++) {
+      buckets.push({ start: addUtcMonthsDate(start, i), end: addUtcMonthsDate(start, i + 1), count: 0 });
+    }
+  } else {
+    const span = anchor.getTime() - start.getTime();
+    for (let i = 0; i < config.count; i++) {
+      buckets.push({
+        start: new Date(start.getTime() + span * (i / config.count)),
+        end: new Date(start.getTime() + span * ((i + 1) / config.count)),
+        count: 0
+      });
+    }
+  }
+
+  rows.forEach(row => {
+    const playedMs = row.playedAtUts * 1000;
+    if (playedMs < start.getTime() || playedMs > anchor.getTime()) return;
+    const bucket = buckets.find((candidate, index) =>
+      playedMs >= candidate.start.getTime() &&
+      (playedMs < candidate.end.getTime() || index === buckets.length - 1)
+    );
+    if (bucket) bucket.count++;
+  });
+
+  const labeledBuckets = buckets.map((bucket, index) => ({
+    label: paceBucketLabel(bucket.start, index, config),
+    rangeLabel: paceBucketRange(bucket.start, bucket.end),
+    count: bucket.count
+  }));
+  const average = labeledBuckets.length
+    ? labeledBuckets.reduce((sum, bucket) => sum + bucket.count, 0) / labeledBuckets.length
+    : 0;
+  const peak = labeledBuckets.reduce((best, bucket) => bucket.count > best.count ? bucket : best, labeledBuckets[0] || null);
+  return {
+    label: config.label,
+    averageLabel: config.average,
+    average,
+    aboveAverageCount: labeledBuckets.filter(bucket => bucket.count > average).length,
+    peak,
+    buckets: labeledBuckets
+  };
+}
+
+function paceConfigForWindowKey(windowKey) {
+  if (windowKey === '1') return { count: 30, unit: 'day', label: 'daily columns', average: 'average per day' };
+  if (windowKey === '3') return { count: 12, unit: 'week', label: 'weekly columns', average: 'average per week' };
+  if (windowKey === '6') return { count: 24, unit: 'week', label: 'weekly columns', average: 'average per week' };
+  if (windowKey === '12' || windowKey === 'cy') return { count: 12, unit: 'month', label: 'monthly columns', average: 'average per month' };
+  if (windowKey === '30') return { count: 30, unit: 'month', label: 'monthly columns', average: 'average per month' };
+  if (windowKey === '60') return { count: 15, unit: 'season-block', label: 'seasonal-block columns', average: 'average per seasonal block' };
+  return { count: 12, unit: 'year-block', label: 'long-range year columns', average: 'average per long-range year' };
+}
+
+function paceBucketLabel(start, index, config) {
+  if (config.unit === 'day') return start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase();
+  if (config.unit === 'week') return `week ${index + 1}`;
+  if (config.unit === 'month') return start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toLowerCase();
+  if (config.unit === 'season-block') return `q${Math.floor(start.getMonth() / 3) + 1} ${start.getFullYear()}`;
+  return String(start.getFullYear());
+}
+
+function paceBucketRange(start, end) {
+  const inclusiveEnd = new Date(end.getTime() - 1);
+  return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase()} - ${inclusiveEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase()}`;
+}
+
+function addUtcDays(date, days) {
+  const shifted = new Date(date);
+  shifted.setUTCDate(shifted.getUTCDate() + days);
+  return shifted;
+}
+
+function addUtcMonthsDate(date, months) {
+  const shifted = new Date(date);
+  shifted.setUTCMonth(shifted.getUTCMonth() + months);
+  return shifted;
+}
+
 function recentRankingRows(openedDb, type, cutoffUts, anchorUts, limit) {
   if (type === 'artists') {
     return rankRows(openedDb.prepare(`
@@ -1099,6 +1322,7 @@ module.exports = {
   openMelophileDatabase,
   recentListening,
   recentEntityRankings,
+  recentListeningAnalytics,
   trackPlayCounts,
   yearlyEntityRankings,
   yearlyListeningRollups

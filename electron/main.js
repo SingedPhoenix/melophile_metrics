@@ -18,6 +18,7 @@ const {
   openMelophileDatabase,
   recentEntityRankings,
   recentListening,
+  recentListeningAnalytics,
   trackPlayCounts,
   yearlyEntityRankings,
   yearlyListeningRollups
@@ -142,6 +143,8 @@ function registerDesktopHandlers() {
   });
 
   ipcMain.handle('melophile:recent-entity-rankings', async (_event, payload = {}) => recentEntityRankings(payload));
+
+  ipcMain.handle('melophile:recent-listening-analytics', async (_event, payload = {}) => recentListeningAnalytics(payload));
 
   ipcMain.handle('melophile:ghosted-tracks', async (_event, payload = {}) => ghostedTracks(payload));
 

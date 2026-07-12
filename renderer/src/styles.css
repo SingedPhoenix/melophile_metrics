@@ -2297,6 +2297,150 @@ img.playlist-cover {
   opacity: 0.4;
 }
 
+.last-analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 14px 0 16px;
+}
+
+.last-analytics-grid .stats-panel {
+  padding: 16px;
+}
+
+.last-analytics-grid h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.last-rate-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.last-rate-card {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(204, 204, 204, 0.07);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.last-rate-card strong,
+.last-pace-panel-react strong {
+  display: block;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.last-rate-card span,
+.last-rate-card small,
+.last-insight,
+.last-week-column small {
+  color: rgba(204, 204, 204, 0.5);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+}
+
+.last-rate-card span {
+  display: block;
+  margin-top: 8px;
+}
+
+.last-rate-card small {
+  display: block;
+  margin-top: 8px;
+}
+
+.last-rate-card small.up {
+  color: rgba(205, 164, 198, 0.86);
+}
+
+.last-rate-card small.down {
+  color: rgba(151, 164, 137, 0.82);
+}
+
+.last-hour-strip,
+.last-pace-bars {
+  display: grid;
+  align-items: end;
+  height: 112px;
+  gap: 4px;
+  padding: 10px 0 0;
+}
+
+.last-hour-strip {
+  grid-template-columns: repeat(24, minmax(0, 1fr));
+}
+
+.last-pace-bars {
+  grid-template-columns: repeat(auto-fit, minmax(5px, 1fr));
+}
+
+.last-hour-strip span,
+.last-pace-bars span {
+  min-height: 5px;
+  border-radius: 999px 999px 0 0;
+  background: rgba(151, 164, 137, 0.46);
+}
+
+.last-hour-strip span.above,
+.last-pace-bars span.above,
+.last-week-column .bar.above {
+  background: linear-gradient(180deg, rgba(205, 164, 198, 0.95), rgba(151, 164, 137, 0.78));
+}
+
+.last-week-bars {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 10px;
+  height: 150px;
+}
+
+.last-week-column {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 18px;
+  min-width: 0;
+}
+
+.last-week-track {
+  position: relative;
+  align-self: stretch;
+  border-radius: 999px 999px 0 0;
+  background: rgba(204, 204, 204, 0.035);
+}
+
+.last-week-column .bar {
+  position: absolute;
+  bottom: 0;
+  left: 28%;
+  width: 44%;
+  min-height: 5px;
+  border-radius: inherit;
+  background: rgba(151, 164, 137, 0.52);
+}
+
+.last-week-column .baseline {
+  position: absolute;
+  left: 14%;
+  width: 72%;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(238, 238, 238, 0.72);
+}
+
+.last-week-column small {
+  align-self: end;
+  margin-top: 6px;
+  text-align: center;
+}
+
+.last-insight {
+  margin: 12px 0 0;
+  line-height: 1.55;
+}
+
 .dashboard-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -2795,6 +2939,7 @@ img.playlist-cover {
   .frisson-signal-grid,
   .frisson-summary,
   .ghosted-summary,
+  .last-analytics-grid,
   .match-watchlist-grid,
   .past-tense-artist-grid,
   .past-tense-detail-hero,
@@ -2811,6 +2956,10 @@ img.playlist-cover {
 
   .settings-sync-list {
     grid-template-columns: 1fr;
+  }
+
+  .last-rate-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .panel-head,

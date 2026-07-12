@@ -18,6 +18,7 @@ import type {
   RecentListening,
   RecentEntityRankings,
   RecentEntityRankingWindow,
+  RecentListeningAnalytics,
   YearlyEntityRankings,
   YearlyEntityRankingType,
   YearlyListeningRollups
@@ -51,6 +52,9 @@ declare global {
         window?: RecentEntityRankingWindow;
         limit?: number;
       }) => Promise<RecentEntityRankings>;
+      recentListeningAnalytics: (options?: {
+        window?: RecentEntityRankingWindow;
+      }) => Promise<RecentListeningAnalytics>;
       ghostedTracks: (options?: {
         limit?: number;
         minListens?: number;

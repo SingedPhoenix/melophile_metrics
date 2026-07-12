@@ -6,9 +6,11 @@ import StatusPanel from '../../shared/StatusPanel';
 import {
   RecentScrobble,
   RecentEntityRankingWindow,
+  RecentListeningAnalytics,
   useListeningRollups,
   useRecentEntityRankings,
   useRecentListening,
+  useRecentListeningAnalytics,
   useYearlyEntityRankings,
   useYearlyListeningRollups,
   YearlyEntityRankingType
@@ -48,6 +50,7 @@ function PulseScreen() {
   const yearly = useYearlyListeningRollups();
   const recent = useRecentListening(12);
   const last = useRecentEntityRankings(lastType, lastWindow, lastRankingLimit(lastType, lastWindow));
+  const lastAnalytics = useRecentListeningAnalytics(lastWindow);
   const momentous = useYearlyEntityRankings(momentousYear, momentousType, 500);
   const topTracks = rollups.data?.topTracks.slice(0, 8) || [];
   const topArtists = rollups.data?.topArtists.slice(0, 8) || [];
@@ -268,6 +271,8 @@ function PulseScreen() {
 
           {visibleLastRows.length ? (
             <>
+              <LastAnalyticsPanel analytics={lastAnalytics.data} isFetching={lastAnalytics.isFetching} />
+
               <div className="momentous-page-row" aria-live="polite">
                 <span>
                   showing #{lastStartRank.toLocaleString()}-#{lastEndRank.toLocaleString()} of {lastRows.length.toLocaleString()}
@@ -421,6 +426,159 @@ function lastRankingLimit(type: YearlyEntityRankingType, windowKey: RecentEntity
     albums: { '1': 100, '3': 150, '6': 250, '12': 500, '30': 750, '60': 1000, '120': 1250 }
   };
   return limits[type][windowKey] || 100;
+}
+
+function LastAnalyticsPanel({ analytics, isFetching }: { analytics: RecentListeningAnalytics | null | undefined; isFetching: boolean }) {
+  if (!analytics) {
+    return (
+      <StatusPanel
+        detail="Last analytical panels appear after the local database can summarize the selected listening window."
+        title={isFetching ? 'loading listening analytics' : 'no listening analytics yet'}
+        variant={isFetching ? 'loading' : 'empty'}
+      />
+    );
+  }
+
+  const current = analytics.current;
+  const busiestHour = current.hourCounts.reduce((best, count, hour) => count > current.hourCounts[best] ? hour : best, 0);
+  const busiestDay = current.dowCounts.reduce((best, count, day) => count > current.dowCounts[best] ? day : best, 0);
+  const maxHour = Math.max(...current.hourCounts, ...analytics.hourAverages, 1);
+  const maxDow = Math.max(...current.dowCounts, ...analytics.dowAverages, 1);
+  const maxPace = Math.max(...analytics.pace.buckets.map(bucket => bucket.count), analytics.pace.average, 1);
+
+  return (
+    <section className="last-analytics-grid" aria-label="Last listening analytics">
+      <article className="stats-panel last-rate-panel">
+        <div className="panel-head">
+          <div>
+            <h3>listening rates</h3>
+            <p>{analytics.label} · compared with recent prior windows</p>
+          </div>
+        </div>
+        <div className="last-rate-grid">
+          <RateMetric label="listens per day" value={current.values.perDay} baseline={analytics.baseline.perDay} />
+          <RateMetric label="listens per active day" value={current.values.perActiveDay} baseline={analytics.baseline.perActiveDay} />
+          <RateMetric label="listens per week" value={current.values.perWeek} baseline={analytics.baseline.perWeek} />
+          <RateMetric label="active days per week" value={current.values.activeDaysPerWeek} baseline={analytics.baseline.activeDaysPerWeek} />
+        </div>
+      </article>
+
+      <article className="stats-panel last-clock-panel-react">
+        <div className="panel-head">
+          <div>
+            <h3>listening clock</h3>
+            <p>busiest hour · {formatHourLabel(busiestHour)}</p>
+          </div>
+        </div>
+        <div className="last-hour-strip">
+          {current.hourCounts.map((count, hour) => {
+            const height = Math.max(6, Math.round((count / maxHour) * 100));
+            const above = count > (analytics.hourAverages[hour] || 0) && count > 0;
+            return (
+              <span
+                className={above ? 'above' : ''}
+                key={hour}
+                style={{ height: `${height}%` }}
+                title={`${formatHourLabel(hour)} · ${count.toLocaleString()} listens`}
+              />
+            );
+          })}
+        </div>
+        <p className="last-insight">{hourInsight(current.hourCounts[busiestHour] || 0, busiestHour, analytics.hourAverages[busiestHour] || 0)}</p>
+      </article>
+
+      <article className="stats-panel last-week-panel-react">
+        <div className="panel-head">
+          <div>
+            <h3>week shape</h3>
+            <p>busiest day · {weekdayLabel(busiestDay)}</p>
+          </div>
+        </div>
+        <div className="last-week-bars">
+          {current.dowCounts.map((count, day) => {
+            const height = Math.max(6, Math.round((count / maxDow) * 100));
+            const baseline = Math.max(4, Math.round(((analytics.dowAverages[day] || 0) / maxDow) * 100));
+            return (
+              <div className="last-week-column" key={day}>
+                <div className="last-week-track">
+                  <span className="baseline" style={{ bottom: `${baseline}%` }} />
+                  <span className={count > (analytics.dowAverages[day] || 0) ? 'bar above' : 'bar'} style={{ height: `${height}%` }} />
+                </div>
+                <small>{weekdayShortLabel(day)}</small>
+              </div>
+            );
+          })}
+        </div>
+      </article>
+
+      <article className="stats-panel last-pace-panel-react">
+        <div className="panel-head">
+          <div>
+            <h3>window pace</h3>
+            <p>{analytics.pace.label}</p>
+          </div>
+        </div>
+        <div className="last-pace-bars">
+          {analytics.pace.buckets.map((bucket, index) => {
+            const height = Math.max(5, Math.round((bucket.count / maxPace) * 100));
+            return (
+              <span
+                className={bucket.count > analytics.pace.average ? 'above' : ''}
+                key={`${bucket.label}-${index}`}
+                style={{ height: `${height}%` }}
+                title={`${bucket.label} · ${bucket.count.toLocaleString()} listens`}
+              />
+            );
+          })}
+        </div>
+        <p className="last-insight">
+          {analytics.pace.peak
+            ? `${analytics.pace.peak.label} leads this window with ${analytics.pace.peak.count.toLocaleString()} listens. ${analytics.pace.aboveAverageCount.toLocaleString()} columns sit above average.`
+            : 'pace data is waiting for listening rows'}
+        </p>
+      </article>
+    </section>
+  );
+}
+
+function RateMetric({ label, value, baseline }: { label: string; value: number; baseline: number }) {
+  const delta = baseline ? ((value - baseline) / baseline) * 100 : 0;
+  const direction = Math.abs(delta) < 0.05 ? 'even' : delta > 0 ? 'up' : 'down';
+  return (
+    <div className="last-rate-card">
+      <strong>{formatRate(value)}</strong>
+      <span>{label}</span>
+      <small className={direction}>{baseline ? `${delta > 0 ? '+' : ''}${formatRate(delta)}% vs baseline` : 'baseline pending'}</small>
+    </div>
+  );
+}
+
+function formatRate(value: number) {
+  if (!Number.isFinite(value)) return '0';
+  if (Math.abs(value) >= 100) return Math.round(value).toLocaleString();
+  if (Math.abs(value) >= 10) return value.toFixed(1);
+  return value.toFixed(2);
+}
+
+function formatHourLabel(hour: number) {
+  if (hour === 0) return '12:00am';
+  if (hour === 12) return '12:00pm';
+  return hour < 12 ? `${hour}:00am` : `${hour - 12}:00pm`;
+}
+
+function weekdayLabel(day: number) {
+  return ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][day] || 'unknown';
+}
+
+function weekdayShortLabel(day: number) {
+  return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day] || '';
+}
+
+function hourInsight(count: number, hour: number, baseline: number) {
+  if (!count) return 'no hour is carrying this listening window yet.';
+  const delta = count - baseline;
+  if (delta > 0) return `${formatHourLabel(hour)} is rising above the recent baseline by ${formatRate(delta)} listens.`;
+  return `${formatHourLabel(hour)} is the busiest hour, but it is close to the recent baseline.`;
 }
 
 function momentousTitle(

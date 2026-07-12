@@ -305,6 +305,38 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
               listens: 91 - index
             }))
       }),
+      recentListeningAnalytics: async ({ window: windowKey = '1' } = {}) => ({
+        window: windowKey,
+        label: windowKey === 'cy' ? 'current year' : `${windowKey} month${windowKey === '1' ? '' : 's'}`,
+        anchorUts: 1783468800,
+        cutoffUts: 1780876800,
+        current: {
+          scrobbles: 720,
+          activeDays: 24,
+          tracks: 210,
+          artists: 88,
+          albums: 64,
+          elapsedDays: 30,
+          hourCounts: Array.from({ length: 24 }, (_, hour) => hour === 21 ? 70 : hour + 2),
+          dowCounts: [70, 80, 90, 110, 120, 160, 90],
+          values: { perDay: 24, perActiveDay: 30, perWeek: 168, activeDaysPerWeek: 5.6 }
+        },
+        baseline: { perDay: 20, perActiveDay: 25, perWeek: 140, activeDaysPerWeek: 5 },
+        hourAverages: Array.from({ length: 24 }, (_, hour) => hour === 21 ? 55 : hour + 1),
+        dowAverages: [65, 75, 95, 100, 100, 120, 85],
+        pace: {
+          label: 'daily columns',
+          averageLabel: 'average per day',
+          average: 24,
+          aboveAverageCount: 10,
+          peak: { label: 'jul 7', rangeLabel: 'jul 7', count: 52 },
+          buckets: Array.from({ length: 30 }, (_, index) => ({
+            label: `day ${index + 1}`,
+            rangeLabel: `day ${index + 1}`,
+            count: index === 20 ? 52 : 12 + (index % 18)
+          }))
+        }
+      }),
       listeningRollups: async () => ({
         topArtists: [{ rank: 1, artist: 'the midnight', listens: 2048 }],
         topTracks: [{ rank: 1, artist: 'health', track: 'you died', listens: 512 }],
@@ -353,6 +385,11 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
   await expect(page.locator('.pulse-momentous-panel').getByText('showing #51-#55 of 55')).toBeVisible();
   await page.locator('.pulse-momentous-panel').getByRole('button', { name: 'artists' }).click();
   await expect(page.locator('.pulse-momentous-panel').getByText('33')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'listening rates' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'listening clock' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'week shape' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'window pace' })).toBeVisible();
+  await expect(page.getByText(/jul 7 leads this window/i)).toBeVisible();
 
   await pulsePaths.getByRole('button', { name: /momentous/i }).click();
   await expect(page.getByRole('heading', { name: 'momentous' })).toBeVisible();

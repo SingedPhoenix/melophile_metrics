@@ -94,6 +94,53 @@ export type RecentEntityRankings = EntityRankings & {
   anchorUts: number;
 };
 
+export type RecentListeningPeriodSummary = {
+  scrobbles: number;
+  activeDays: number;
+  tracks: number;
+  artists: number;
+  albums: number;
+  elapsedDays: number;
+  hourCounts: number[];
+  dowCounts: number[];
+  values: {
+    perDay: number;
+    perActiveDay: number;
+    perWeek: number;
+    activeDaysPerWeek: number;
+  };
+};
+
+export type RecentPaceBucket = {
+  label: string;
+  rangeLabel: string;
+  count: number;
+};
+
+export type RecentListeningAnalytics = {
+  window: RecentEntityRankingWindow;
+  label: string;
+  anchorUts: number;
+  cutoffUts: number;
+  current: RecentListeningPeriodSummary;
+  baseline: {
+    perDay: number;
+    perActiveDay: number;
+    perWeek: number;
+    activeDaysPerWeek: number;
+  };
+  hourAverages: number[];
+  dowAverages: number[];
+  pace: {
+    label: string;
+    averageLabel: string;
+    average: number;
+    aboveAverageCount: number;
+    peak: RecentPaceBucket | null;
+    buckets: RecentPaceBucket[];
+  };
+};
+
 export type RecentScrobble = {
   playedAtUts: number;
   playedAtIso: string;
@@ -329,6 +376,17 @@ export function useRecentEntityRankings(
     queryFn: async (): Promise<RecentEntityRankings | null> => {
       if (!window.melophileDesktop?.recentEntityRankings) return null;
       return window.melophileDesktop.recentEntityRankings({ type, window: windowKey, limit });
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useRecentListeningAnalytics(windowKey: RecentEntityRankingWindow = '1') {
+  return useQuery({
+    queryKey: ['desktop', 'recent-listening-analytics', windowKey],
+    queryFn: async (): Promise<RecentListeningAnalytics | null> => {
+      if (!window.melophileDesktop?.recentListeningAnalytics) return null;
+      return window.melophileDesktop.recentListeningAnalytics({ window: windowKey });
     },
     staleTime: 60_000
   });
