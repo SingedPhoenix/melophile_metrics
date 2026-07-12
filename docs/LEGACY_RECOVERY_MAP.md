@@ -63,7 +63,7 @@ Legacy source anchors:
 React coverage now:
 
 - Pulse renders recent SQLite scrobbles, all-time top tracks/artists, monthly activity, and Spotify opening for rows.
-- Momentous renders fixed-year SQLite rankings inside Pulse with year pills, track/artist/album mode, shared ranked bars, and Spotify opening.
+- Momentous renders fixed-year SQLite rankings inside Pulse with year pills, track/artist/album mode, shared ranked bars, top-500 pagination, and Spotify opening.
 - Gem Mines renders all-time and yearly track/artist/album rankings, a current leader panel, shared ranked bars, Spotify opening, and legacy rank-banded gem mine filters with colored gem chips.
 - Ghosted renders a SQLite-backed quiet queue with window pills, track/artist/album mode, minimum-listen thresholds, local skip/reset controls, and Spotify opening.
 - Apotheosis renders a SQLite-backed artist watchlist for top artists whose newest first-seen track is outside the quiet-period window, with shuffle, skip/reset, and Spotify artist search opening.
@@ -72,7 +72,7 @@ React coverage now:
 High-impact gaps still to recover:
 
 - Pulse is missing the legacy Pulse sub-navigation relationship between `last...` and `momentous`.
-- Momentous still needs full legacy paging/top-500 browsing beyond the first 50 restored rows.
+- Momentous now has full top-500 browsing in 50-row pages.
 - Gem Mines has yearly scope pills plus all-time gem-band filters, multiple gem selections, gem range labels, and rank-banded mine lists restored.
 - Ghosted still needs the legacy hub split between `long time...no hear...` and `apotheosis`.
 - Long Time...No Hear still needs reshuffle and expansion watchlist; window pills, track/artist/album mode, skip queue, and top-100 queue labeling are restored.
@@ -81,16 +81,14 @@ High-impact gaps still to recover:
 
 Recommended next slices:
 
-1. Add full Momentous paging/top-500 browsing if the first 50 rows feel too constrained.
-2. Restore Ghosted reshuffle and expansion watchlist.
-3. Revisit Frisson design parity once the ranking/list surfaces are fully reusable.
+1. Restore Ghosted reshuffle and expansion watchlist.
+2. Revisit Frisson design parity once the ranking/list surfaces are fully reusable.
 
 Recommended migration order:
 
-1. Add full Momentous paging/top-500 browsing if needed.
-2. Restore Ghosted reshuffle and expansion watchlist.
-3. Revisit Frisson design parity.
-4. Inventory and recover Fresh seed/harvest workflows next.
+1. Restore Ghosted reshuffle and expansion watchlist.
+2. Revisit Frisson design parity.
+3. Inventory and recover Fresh seed/harvest workflows next.
 
 ## Broader Legacy Areas To Inventory Next
 

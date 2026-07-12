@@ -276,7 +276,12 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
           ? [{ rank: 1, artist: 'the midnight', listens: 480 }]
           : type === 'albums'
             ? [{ rank: 1, artist: 'the midnight', album: 'endless summer', listens: 260 }]
-            : [{ rank: 1, artist: 'health', track: year === 2020 ? 'feel nothing' : 'you died', listens: 128 }]
+            : Array.from({ length: 65 }, (_, index) => ({
+                rank: index + 1,
+                artist: index === 0 ? 'health' : 'the midnight',
+                track: year === 2020 && index === 0 ? 'feel nothing' : index === 0 ? 'you died' : `momentous track ${index + 1}`,
+                listens: 128 - index
+              }))
       }),
       listeningRollups: async () => ({
         topArtists: [{ rank: 1, artist: 'the midnight', listens: 2048 }],
@@ -313,10 +318,16 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'top artists' })).toBeVisible();
   await expect(page.locator('.pulse-recent-panel').getByText('you died')).toBeVisible();
   await expect(page.locator('.pulse-recent-panel').getByText('health · rat wars')).toBeVisible();
-  await expect(page.getByText('the midnight')).toBeVisible();
+  await expect(page.locator('.pulse-side-stack').getByText('the midnight')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'momentous' })).toBeVisible();
   await expect(page.locator('.pulse-momentous-panel').getByText('2022 · top tracks')).toBeVisible();
   await expect(page.locator('.pulse-momentous-panel').getByText('128')).toBeVisible();
+  await expect(page.locator('.pulse-momentous-panel').getByText('showing #1-#50 of 65')).toBeVisible();
+  await page.locator('.pulse-momentous-panel').getByRole('button', { name: 'next 50' }).click();
+  await expect(page.locator('.pulse-momentous-panel').getByText('showing #51-#65 of 65')).toBeVisible();
+  await expect(page.locator('.pulse-momentous-panel').getByText('momentous track 51')).toBeVisible();
+  await page.locator('.pulse-momentous-panel').getByRole('button', { name: 'previous 50' }).click();
+  await expect(page.locator('.pulse-momentous-panel').getByText('showing #1-#50 of 65')).toBeVisible();
 
   await page.locator('.pulse-momentous-panel').getByRole('button', { name: '2020' }).click();
   await expect(page.locator('.pulse-momentous-panel').getByText('feel nothing')).toBeVisible();

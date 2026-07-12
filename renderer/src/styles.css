@@ -2168,6 +2168,29 @@ img.playlist-cover {
   min-width: 64px;
 }
 
+.momentous-page-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 14px;
+  color: rgba(204, 204, 204, 0.54);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.momentous-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.momentous-page-actions .pill:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
 .dashboard-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
