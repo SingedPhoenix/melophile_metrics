@@ -867,6 +867,33 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'connected accounts' })).toBeVisible();
   await expect(page.getByText('signed as singedphoenix')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'last.fm api sync' })).toBeVisible();
+  await expect(page.getByPlaceholder('last.fm username')).toHaveValue('singedphoenix');
+  await expect(page.getByPlaceholder('spotify client id')).toHaveValue('present');
+  await expect(page.getByPlaceholder('musicbrainz contact email or url')).toHaveValue('melophile@example.com');
+  await page.getByPlaceholder('last.fm username').fill('settings-local-lastfm');
+  await page.getByPlaceholder('last.fm api key').fill('settings-local-key');
+  await page.getByRole('button', { name: 'save settings' }).click();
+  await expect(page.getByText('last.fm settings saved locally.')).toBeVisible();
+  await page.getByPlaceholder('spotify client id').fill('settings-local-client');
+  await page.getByRole('button', { name: 'save id' }).click();
+  await expect(page.getByText('spotify client id saved locally.')).toBeVisible();
+  await page.getByPlaceholder('listenbrainz username').fill('settings-listenbrainz');
+  await page.getByPlaceholder('listenbrainz token (optional)').fill('settings-token');
+  await page.getByPlaceholder('musicbrainz contact email or url').fill('settings@example.com');
+  await page.getByRole('button', { name: 'save open music settings' }).click();
+  await expect(page.getByText('open music enrichment settings saved locally.')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => ({
+    lastfm: localStorage.getItem('melophile.lastfm.username'),
+    spotify: localStorage.getItem('melophile.spotify.clientId'),
+    listenbrainz: localStorage.getItem('melophile.listenbrainz.username'),
+    musicbrainz: localStorage.getItem('melophile.musicbrainz.contact')
+  }))).toEqual({
+    lastfm: 'settings-local-lastfm',
+    spotify: 'settings-local-client',
+    listenbrainz: 'settings-listenbrainz',
+    musicbrainz: 'settings@example.com'
+  });
   await page.getByRole('button', { name: 'data' }).click();
   await expect(page.getByRole('heading', { name: 'local sqlite database' })).toBeVisible();
   await expect(page.locator('.settings-data-grid').getByText('173,971')).toBeVisible();

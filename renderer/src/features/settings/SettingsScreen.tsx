@@ -47,9 +47,17 @@ import {
   type LastfmSyncMode,
   type LastfmCacheSnapshot
 } from './settingsLastfm';
-import { useDesktopStatus, useFreshOverview, useLocalServiceConfig } from '../../shared/useDesktopStatus';
+import { useDesktopStatus, useFreshOverview, useLocalServiceConfig, type LocalServiceConfig } from '../../shared/useDesktopStatus';
 
 type SettingsTab = 'accounts' | 'data' | 'corrections' | 'automation' | 'appearance';
+type AccountForm = {
+  lastfmUsername: string;
+  lastfmApiKey: string;
+  spotifyClientId: string;
+  listenbrainzUsername: string;
+  listenbrainzToken: string;
+  musicbrainzContact: string;
+};
 
 const tabs: { value: SettingsTab; label: string }[] = [
   { value: 'accounts', label: 'accounts' },
@@ -70,8 +78,19 @@ const themes = [
   { name: 'silver room', family: 'neutral', colors: ['#0d0d0d', '#2d3131', '#8b8f91', '#eeeeee'] }
 ];
 
+const accountStorageKeys = {
+  lastfmUsername: 'melophile.lastfm.username',
+  lastfmApiKey: 'melophile.lastfm.apiKey',
+  spotifyClientId: 'melophile.spotify.clientId',
+  listenbrainzUsername: 'melophile.listenbrainz.username',
+  listenbrainzToken: 'melophile.listenbrainz.token',
+  musicbrainzContact: 'melophile.musicbrainz.contact'
+};
+
 function SettingsScreen() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('accounts');
+  const [accountForm, setAccountForm] = useState<AccountForm>(() => readAccountFormFromStorage());
+  const [accountMessage, setAccountMessage] = useState('settings can be stored in this app or loaded from local private config.');
   const [pastTenseSnapshot, setPastTenseSnapshot] = useState(() => readPastTenseLiveSnapshot());
   const [pastTenseRefreshState, setPastTenseRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [pastTenseProgress, setPastTenseProgress] = useState<PastTenseRefreshProgress | null>(null);
@@ -148,6 +167,7 @@ function SettingsScreen() {
   const genreCounts = useMemo(() => genreProfileCounts(), [genreProfiles]);
   const lastfmDelta = lastfmProfileDelta(lastfmCacheSnapshot.cacheCount, lastfmProfileCount);
   const lastfmState = lastfmIntegrityState(lastfmCacheSnapshot.cacheCount, lastfmProfileCount);
+  const resolvedAccountForm = useMemo(() => mergeAccountForm(accountForm, config), [accountForm, config]);
   const refreshCorrections = () => {
     setSpotifyCorrections(spotifyCorrectionEntries());
     setGenreProfiles(genreProfileEntries());
@@ -170,6 +190,10 @@ function SettingsScreen() {
       setLastfmIntegrityMessage('the local Last.fm cache could not be opened.');
     });
   }, []);
+  useEffect(() => {
+    if (!config) return;
+    setAccountForm(form => mergeAccountForm(form, config));
+  }, [config]);
   useEffect(() => {
     const normalized = normalizePastTenseCacheSchedule();
     setPastTenseSchedule(normalized);
@@ -347,6 +371,74 @@ function SettingsScreen() {
       setFreshScanMessage(error instanceof Error ? error.message : 'seed release scan failed');
     }
   };
+  const updateAccountField = (field: keyof AccountForm, value: string) => {
+    setAccountForm(form => ({ ...form, [field]: value }));
+  };
+  const loadAccountConfig = () => {
+    if (!config) {
+      setAccountMessage('local private config is not available yet.');
+      return;
+    }
+    setAccountForm(mergeAccountForm(emptyAccountForm(), config));
+    setAccountMessage('local private config loaded into account fields.');
+  };
+  const saveLastfmAccount = () => {
+    const username = accountForm.lastfmUsername.trim();
+    const apiKey = accountForm.lastfmApiKey.trim();
+    if (!username || !apiKey) {
+      setAccountMessage('last.fm username and api key are required.');
+      return;
+    }
+    writeAccountValue(accountStorageKeys.lastfmUsername, username);
+    writeAccountValue(accountStorageKeys.lastfmApiKey, apiKey);
+    setAccountMessage('last.fm settings saved locally.');
+  };
+  const saveSpotifyAccount = () => {
+    const clientId = accountForm.spotifyClientId.trim();
+    if (!clientId) {
+      setAccountMessage('spotify client id is required.');
+      return;
+    }
+    writeAccountValue(accountStorageKeys.spotifyClientId, clientId);
+    setAccountMessage('spotify client id saved locally.');
+  };
+  const saveOpenMusicAccount = () => {
+    const listenbrainzUsername = accountForm.listenbrainzUsername.trim();
+    const listenbrainzToken = accountForm.listenbrainzToken.trim();
+    const musicbrainzContact = accountForm.musicbrainzContact.trim();
+    if (listenbrainzUsername) writeAccountValue(accountStorageKeys.listenbrainzUsername, listenbrainzUsername);
+    if (listenbrainzToken) writeAccountValue(accountStorageKeys.listenbrainzToken, listenbrainzToken);
+    if (musicbrainzContact) writeAccountValue(accountStorageKeys.musicbrainzContact, musicbrainzContact);
+    setAccountMessage('open music enrichment settings saved locally.');
+  };
+  const checkLastfmAccount = async () => {
+    setAccountMessage('checking last.fm connection');
+    try {
+      const count = await fetchLastfmProfileCount(resolvedAccountForm.lastfmUsername, resolvedAccountForm.lastfmApiKey);
+      setLastfmProfileCount(count);
+      setAccountMessage(count === null ? 'last.fm profile count could not be checked.' : `last.fm connected · ${count.toLocaleString()} profile scrobbles`);
+    } catch (error) {
+      setAccountMessage(error instanceof Error ? error.message : 'last.fm connection check failed.');
+    }
+  };
+  const testOpenMusicAccount = async () => {
+    saveOpenMusicAccount();
+    const username = resolvedAccountForm.listenbrainzUsername.trim();
+    const contact = resolvedAccountForm.musicbrainzContact.trim();
+    if (!username) {
+      setAccountMessage(`add a ListenBrainz username to test ListenBrainz · MusicBrainz contact ${contact ? 'saved' : 'recommended'}.`);
+      return;
+    }
+    setAccountMessage('testing ListenBrainz public user lookup');
+    try {
+      const response = await fetch(`https://api.listenbrainz.org/1/user/${encodeURIComponent(username)}/listens?count=1`);
+      setAccountMessage(response.ok
+        ? `ListenBrainz connected · MusicBrainz contact ${contact ? 'saved' : 'recommended'}`
+        : `ListenBrainz test failed with status ${response.status} · MusicBrainz contact ${contact ? 'saved' : 'recommended'}`);
+    } catch {
+      setAccountMessage('ListenBrainz test failed. Check network access or username.');
+    }
+  };
   const saveSpotifyLinkCorrection = () => {
     if (!spotifyCorrectionForm.name.trim()) {
       setSpotifyCorrectionMessage('enter the name exactly as it appears in the list.');
@@ -452,7 +544,7 @@ function SettingsScreen() {
           <div className="panel-head">
             <div>
               <h2>connected accounts</h2>
-              <p>safe readiness check from local private config</p>
+              <p>credentials, tokens, and service connection checks</p>
             </div>
           </div>
           <div className="settings-service-grid">
@@ -464,6 +556,83 @@ function SettingsScreen() {
               </section>
             ))}
           </div>
+          <div className="settings-account-grid">
+            <section className="settings-maintenance-panel" aria-labelledby="lastfm-account-title">
+              <div>
+                <h3 id="lastfm-account-title">last.fm api sync</h3>
+                <p>Sync listening history directly from Last.fm and cache it locally for SQLite import.</p>
+              </div>
+              <div className="settings-form-grid two">
+                <input
+                  className="settings-input"
+                  placeholder="last.fm username"
+                  value={accountForm.lastfmUsername}
+                  onChange={event => updateAccountField('lastfmUsername', event.target.value)}
+                />
+                <input
+                  className="settings-input"
+                  type="password"
+                  placeholder="last.fm api key"
+                  value={accountForm.lastfmApiKey}
+                  onChange={event => updateAccountField('lastfmApiKey', event.target.value)}
+                />
+              </div>
+              <div className="settings-maintenance-actions">
+                <button className="status-chip is-button" type="button" onClick={saveLastfmAccount}>save settings</button>
+                <button className="status-chip is-button" type="button" onClick={loadAccountConfig}>load local config</button>
+                <button className="status-chip is-button" type="button" onClick={checkLastfmAccount}>test connection</button>
+              </div>
+            </section>
+            <section className="settings-maintenance-panel" aria-labelledby="spotify-account-title">
+              <div>
+                <h3 id="spotify-account-title">spotify access</h3>
+                <p>Connect playlist access and playback control for Spotify-linked rankings and playlist inventory.</p>
+              </div>
+              <input
+                className="settings-input"
+                placeholder="spotify client id"
+                value={accountForm.spotifyClientId}
+                onChange={event => updateAccountField('spotifyClientId', event.target.value)}
+              />
+              <div className="settings-maintenance-actions">
+                <button className="status-chip is-button" type="button" onClick={saveSpotifyAccount}>save id</button>
+                <button className="status-chip is-button" type="button" onClick={loadAccountConfig}>load local config</button>
+              </div>
+            </section>
+            <section className="settings-maintenance-panel settings-account-wide" aria-labelledby="open-music-account-title">
+              <div>
+                <h3 id="open-music-account-title">open music enrichment</h3>
+                <p>Use ListenBrainz and MusicBrainz as cached metadata layers for canonical artist, album, and recording identity.</p>
+              </div>
+              <div className="settings-form-grid">
+                <input
+                  className="settings-input"
+                  placeholder="listenbrainz username"
+                  value={accountForm.listenbrainzUsername}
+                  onChange={event => updateAccountField('listenbrainzUsername', event.target.value)}
+                />
+                <input
+                  className="settings-input"
+                  type="password"
+                  placeholder="listenbrainz token (optional)"
+                  value={accountForm.listenbrainzToken}
+                  onChange={event => updateAccountField('listenbrainzToken', event.target.value)}
+                />
+                <input
+                  className="settings-input"
+                  placeholder="musicbrainz contact email or url"
+                  value={accountForm.musicbrainzContact}
+                  onChange={event => updateAccountField('musicbrainzContact', event.target.value)}
+                />
+              </div>
+              <div className="settings-maintenance-actions">
+                <button className="status-chip is-button" type="button" onClick={saveOpenMusicAccount}>save open music settings</button>
+                <button className="status-chip is-button" type="button" onClick={loadAccountConfig}>load local config</button>
+                <button className="status-chip is-button" type="button" onClick={testOpenMusicAccount}>test connection</button>
+              </div>
+            </section>
+          </div>
+          <p className="settings-maintenance-status">{accountMessage}</p>
         </article>
       )}
 
@@ -872,6 +1041,49 @@ function SettingsScreen() {
       )}
     </section>
   );
+}
+
+function emptyAccountForm(): AccountForm {
+  return {
+    lastfmUsername: '',
+    lastfmApiKey: '',
+    spotifyClientId: '',
+    listenbrainzUsername: '',
+    listenbrainzToken: '',
+    musicbrainzContact: ''
+  };
+}
+
+function readAccountValue(key: string) {
+  if (typeof window === 'undefined') return '';
+  return (window.localStorage.getItem(key) || '').trim();
+}
+
+function writeAccountValue(key: string, value: string) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, value);
+}
+
+function readAccountFormFromStorage(): AccountForm {
+  return {
+    lastfmUsername: readAccountValue(accountStorageKeys.lastfmUsername),
+    lastfmApiKey: readAccountValue(accountStorageKeys.lastfmApiKey),
+    spotifyClientId: readAccountValue(accountStorageKeys.spotifyClientId),
+    listenbrainzUsername: readAccountValue(accountStorageKeys.listenbrainzUsername),
+    listenbrainzToken: readAccountValue(accountStorageKeys.listenbrainzToken),
+    musicbrainzContact: readAccountValue(accountStorageKeys.musicbrainzContact)
+  };
+}
+
+function mergeAccountForm(form: AccountForm, config: LocalServiceConfig | null | undefined): AccountForm {
+  return {
+    lastfmUsername: form.lastfmUsername || config?.lastfm?.username || '',
+    lastfmApiKey: form.lastfmApiKey || config?.lastfm?.apiKey || '',
+    spotifyClientId: form.spotifyClientId || config?.spotify?.clientId || '',
+    listenbrainzUsername: form.listenbrainzUsername || config?.listenbrainz?.username || '',
+    listenbrainzToken: form.listenbrainzToken || config?.listenbrainz?.token || '',
+    musicbrainzContact: form.musicbrainzContact || config?.musicbrainz?.contact || ''
+  };
 }
 
 function DataMetric({ label, value }: { label: string; value: string }) {

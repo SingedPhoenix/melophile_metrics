@@ -1250,6 +1250,7 @@ h1 {
 
 .settings-service-grid,
 .settings-data-grid,
+.settings-account-grid,
 .settings-corrections-grid,
 .theme-library-grid {
   display: grid;
@@ -1301,10 +1302,23 @@ h1 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.settings-account-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 14px;
+}
+
+.settings-account-wide {
+  grid-column: 1 / -1;
+}
+
 .settings-form-grid {
   display: grid;
   grid-template-columns: 0.65fr 1.35fr 1fr;
   gap: 10px;
+}
+
+.settings-form-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .settings-input {
@@ -2993,6 +3007,8 @@ img.playlist-cover {
   .pulse-layout,
   .pulse-path-grid,
   .settings-data-grid,
+  .settings-account-grid,
+  .settings-form-grid,
   .settings-maintenance-metrics,
   .settings-service-grid,
   .theme-library-grid {
