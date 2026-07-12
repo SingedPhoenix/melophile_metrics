@@ -644,6 +644,10 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
   await page.getByRole('button', { name: /ghosted/i }).click();
 
   await expect(page.getByRole('heading', { name: 'ghosted' })).toBeVisible();
+  const ghostedPaths = page.locator('.ghosted-path-grid');
+  await expect(ghostedPaths.getByRole('button', { name: /long time\.\.\.no hear\.\.\./i })).toBeVisible();
+  await expect(ghostedPaths.getByRole('button', { name: /apotheosis/i })).toBeVisible();
+  await ghostedPaths.getByRole('button', { name: /long time\.\.\.no hear\.\.\./i }).click();
   await expect(page.locator('.ghosted-list-panel').getByText('head over heels')).toBeVisible();
   await expect(page.locator('.ghosted-list-panel').getByText('tears for fears · last heard 1,286 days ago')).toBeVisible();
   await expect(page.locator('.ghosted-list-panel').getByText('1,286 days')).toBeVisible();
@@ -667,6 +671,7 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
   await expect(page.getByText('no quiet favorites found')).toBeVisible();
   await page.locator('.ghosted-list-panel').getByRole('button', { name: 'reset skipped' }).click();
   await expect(page.locator('.ghosted-list-panel').getByText('artist · last heard 1,586 days ago')).toBeVisible();
+  await ghostedPaths.getByRole('button', { name: /apotheosis/i }).click();
   await expect(page.getByRole('heading', { name: 'apotheosis' })).toBeVisible();
   await expect(page.locator('.apotheosis-panel').getByText('top 100 artists · no newly-added track in the last 6 months')).toBeVisible();
   await expect(page.locator('.apotheosis-panel').getByText('tears for fears')).toBeVisible();

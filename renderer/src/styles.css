@@ -2710,6 +2710,50 @@ img.playlist-cover {
   margin-bottom: 16px;
 }
 
+.ghosted-path-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.ghosted-path-card {
+  display: grid;
+  align-content: center;
+  min-height: 132px;
+  padding: 20px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(205, 164, 198, 0.13), transparent 34%),
+    linear-gradient(145deg, rgba(204, 204, 204, 0.045), rgba(151, 164, 137, 0.075));
+  color: inherit;
+  text-align: left;
+}
+
+.ghosted-path-card:hover,
+.ghosted-path-card.active {
+  border-color: rgba(205, 164, 198, 0.28);
+  background:
+    radial-gradient(circle at 18% 22%, rgba(205, 164, 198, 0.22), transparent 34%),
+    linear-gradient(145deg, rgba(205, 164, 198, 0.11), rgba(151, 164, 137, 0.09));
+}
+
+.ghosted-path-card span {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.ghosted-path-card small {
+  max-width: 360px;
+  color: rgba(204, 204, 204, 0.54);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .ghosted-hero h2 {
   overflow: hidden;
   margin: 0;
@@ -2939,6 +2983,7 @@ img.playlist-cover {
   .frisson-signal-grid,
   .frisson-summary,
   .ghosted-summary,
+  .ghosted-path-grid,
   .last-analytics-grid,
   .match-watchlist-grid,
   .past-tense-artist-grid,

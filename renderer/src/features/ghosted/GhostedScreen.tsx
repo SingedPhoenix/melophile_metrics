@@ -12,6 +12,8 @@ import {
   useGhostedTracks
 } from '../../shared/useDesktopStatus';
 
+type GhostedPath = 'hub' | 'long' | 'apotheosis';
+
 const thresholds = [3, 5, 10, 25];
 const ghostedTypes = [
   { value: 'tracks', label: 'tracks' },
@@ -31,6 +33,7 @@ const ghostedWindows = [
 ] satisfies Array<{ value: GhostedWindow; label: string }>;
 
 function GhostedScreen() {
+  const [activePath, setActivePath] = useState<GhostedPath>('hub');
   const [minListens, setMinListens] = useState(5);
   const [type, setType] = useState<GhostedType>('tracks');
   const [windowKey, setWindowKey] = useState<GhostedWindow>(6);
@@ -73,10 +76,35 @@ function GhostedScreen() {
         <p className="eyebrow">rediscovery queue</p>
         <h1 id="ghosted-title">ghosted</h1>
         <p className="screen-data-note">
-          {ghosted.isFetching ? 'searching quiet corners of sqlite history' : `${type} not heard in ${currentWindow} · ${minListens}+ listens`}
+          {activePath === 'apotheosis'
+            ? 'release watchlist for favorite artists'
+            : ghosted.isFetching
+              ? 'searching quiet corners of sqlite history'
+              : `${type} not heard in ${currentWindow} · ${minListens}+ listens`}
         </p>
       </div>
 
+      <section className="ghosted-path-grid" aria-label="Ghosted paths">
+        <button
+          className={activePath === 'long' ? 'ghosted-path-card active' : 'ghosted-path-card'}
+          type="button"
+          onClick={() => setActivePath('long')}
+        >
+          <span>long time...no hear...</span>
+          <small>forgotten pulls from songs, artists, and albums</small>
+        </button>
+        <button
+          className={activePath === 'apotheosis' ? 'ghosted-path-card active' : 'ghosted-path-card'}
+          type="button"
+          onClick={() => setActivePath('apotheosis')}
+        >
+          <span>apotheosis</span>
+          <small>release watchlist for favorite artists</small>
+        </button>
+      </section>
+
+      {activePath === 'long' && (
+        <>
       <section className="ghosted-summary">
         <article className="stats-panel ghosted-hero">
           <p className="eyebrow">quiet queue leader</p>
@@ -227,8 +255,11 @@ function GhostedScreen() {
           />
         )}
       </article>
+        </>
+      )}
 
-      <article className="stats-panel apotheosis-panel" aria-labelledby="apotheosis-title">
+      {activePath === 'apotheosis' && (
+        <article className="stats-panel apotheosis-panel" aria-labelledby="apotheosis-title">
         <div className="panel-head">
           <div>
             <h2 id="apotheosis-title">apotheosis</h2>
@@ -281,6 +312,7 @@ function GhostedScreen() {
           />
         )}
       </article>
+      )}
     </section>
   );
 }

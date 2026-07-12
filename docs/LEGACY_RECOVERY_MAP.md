@@ -66,7 +66,7 @@ React coverage now:
 - Last renders SQLite-backed rolling-window track/artist/album rankings with legacy windows, legacy page limits, 50-row paging, Spotify opening, average-rate cards, listening-clock distribution, weekday shape, and window pace analysis.
 - Momentous renders fixed-year SQLite rankings inside Pulse with year pills, track/artist/album mode, shared ranked bars, top-500 pagination, and Spotify opening.
 - Gem Mines renders all-time and yearly track/artist/album rankings, a current leader panel, shared ranked bars, Spotify opening, and legacy rank-banded gem mine filters with colored gem chips.
-- Ghosted renders a SQLite-backed quiet queue with window pills, track/artist/album mode, minimum-listen thresholds, reshuffle, local skip/reset controls, expansion watchlist, and Spotify opening.
+- Ghosted renders the legacy hub split between `long time...no hear...` and `apotheosis`, plus a SQLite-backed quiet queue with window pills, track/artist/album mode, minimum-listen thresholds, reshuffle, local skip/reset controls, expansion watchlist, and Spotify opening.
 - Apotheosis renders a SQLite-backed artist watchlist for top artists whose newest first-seen track is outside the quiet-period window, with shuffle, skip/reset, and Spotify artist search opening.
 - Frisson renders repeated, enduring, and recent attachment rankings from SQLite-backed overview data with signal-path cards for repeat pull, long arc, and recent spark.
 
@@ -75,24 +75,24 @@ High-impact gaps still to recover:
 - Pulse has the legacy Pulse sub-navigation relationship between `last...` and `momentous` restored.
 - Momentous now has full top-500 browsing in 50-row pages.
 - Gem Mines has yearly scope pills plus all-time gem-band filters, multiple gem selections, gem range labels, and rank-banded mine lists restored.
-- Ghosted still needs the legacy hub split between `long time...no hear...` and `apotheosis`.
+- Ghosted has the legacy hub split between `long time...no hear...` and `apotheosis` restored in React.
 - Long Time...No Hear now has reshuffle and expansion watchlist plus window pills, track/artist/album mode, skip queue, and top-100 queue labeling restored.
 - Apotheosis now has the core top-artist release watchlist, shuffle, skip/reset, and newest-track quiet-period detection restored in React.
 - Frisson now has a closer emotional-attachment destination pass with signal cards layered over the SQLite-derived ranking modes.
 
 Recommended next slices:
 
-1. Restore the legacy Ghosted hub split between `long time...no hear...` and `apotheosis`.
+1. Audit remaining legacy Settings/data maintenance panels against the React Settings surface.
 
 Recommended migration order:
 
-1. Restore the legacy Ghosted hub split between `long time...no hear...` and `apotheosis`.
+1. Audit remaining legacy Settings/data maintenance panels against the React Settings surface.
 
 ## Broader Legacy Areas To Inventory Next
 
 - Fresh: seed/harvest gateway restored in React with SQLite-backed path panels, Spotify playlist-family loading, playlist track audits with harvest pruning alerts, decision-index release filtering, release discovery shelves, scheduled scanning, harvest rankings, and current-vs-prior discovery-year comparison for new tracks/artists/albums.
 - Pulse: legacy path split, rolling-window last-period rankings, fixed-year momentous rankings, recent-listening overview, and core `last...` analytical panels are restored and smoke/mac verified.
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
-- Ghosted: not-heard queues, thresholds, skip controls, Spotify playback.
+- Ghosted: legacy hub split, not-heard queues, thresholds, skip controls, Spotify playback, and apotheosis artist watchlist.
 - Frisson: emotional attachment rankings and shared ranked-bar styling.
 - Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, Spotify maintenance controls, Spotify link corrections, genre profiles, Last.fm cache inspection, Last.fm network sync/rebuild, and local SQLite import.
