@@ -44,6 +44,7 @@ Restored in React:
 - Legacy Settings/Accounts edit forms restored in React for Last.fm, Spotify, ListenBrainz, and MusicBrainz local settings.
 - React Settings/Appearance theme selection now persists locally and applies selected theme tokens to the app shell.
 - React Settings/Appearance theme library expanded with legacy-inspired palettes grouped by color family.
+- React Settings section tabs now wrap cleanly on narrow/mobile viewports.
 - Shared React ranked bars now keep fill widths strictly proportional while pinning value labels to the shaded edge.
 - Past Tense stats density tightened while preserving the ten-card decade row layout on wide screens.
 - Past Tense cache-pending copy now points to the restored React Settings/Data refresh workflow instead of legacy settings.
@@ -58,6 +59,7 @@ Restored in React:
 - Smoke coverage for React Settings/Accounts local credential field hydration and localStorage saves.
 - Smoke coverage for React Settings/Appearance persistent theme selection and applied CSS variables.
 - Smoke coverage for legacy-inspired expanded React theme catalog visibility.
+- Smoke coverage for migrated top-level route horizontal overflow on desktop and mobile viewports.
 - Smoke coverage for proportional ranked-bar fill/value alignment.
 - Smoke coverage for Past Tense ten-card desktop playlist rows.
 - Smoke coverage against stale legacy-settings cache refresh copy in Past Tense.
@@ -88,7 +90,7 @@ Framework stabilization status:
 
 - Core React/Electron migration paths are restored for the major legacy destinations: Fresh, Pulse, Gem Mines, Past Tense, Ghosted, Frisson, Dashboard, and Settings.
 - Shared UI contracts are in place for routing, section navigation, metric toggles, empty/loading states, Spotify opening, ranked bars, local settings, theme selection, and SQLite-backed data reads.
-- Smoke coverage now exercises every migrated top-level destination plus the most regression-prone behaviors: Past Tense drill-in, Spotify opening, Settings accounts/data/automation/appearance, Fresh path panels, Ghosted path split, Gem Mines filters, Pulse paging, Frisson modes, empty states, and visual layout guards.
+- Smoke coverage now exercises every migrated top-level destination plus the most regression-prone behaviors: Past Tense drill-in, Spotify opening, Settings accounts/data/automation/appearance, Fresh path panels, Ghosted path split, Gem Mines filters, Pulse paging, Frisson modes, empty states, and desktop/mobile visual layout guards.
 - Remaining work should shift from framework recovery to targeted design polish, performance hardening, and new feature slices.
 
 Recommended next slices:

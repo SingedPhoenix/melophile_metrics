@@ -423,8 +423,16 @@ h1 {
 
 .settings-tab-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   justify-content: center;
   margin: 0 0 18px;
+}
+
+.settings-tab-row .metric-toggle {
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
 }
 
 .ranked-bar-list {

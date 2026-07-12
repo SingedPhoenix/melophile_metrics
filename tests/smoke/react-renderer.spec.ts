@@ -93,6 +93,81 @@ test('react renderer supports section hash routes', async ({ page }) => {
   await expect(page.locator('.shell-nav-button.active')).toHaveText('settings');
 });
 
+test('react renderer migrated routes avoid horizontal overflow', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => null,
+      databaseStatus: async () => ({ scrobbles: 0, revisions: 0, schemaVersion: 1 }),
+      importLastfmScrobbles: async () => ({}),
+      trackPlayCounts: async () => ({ trackCounts: {}, playlistCounts: {} }),
+      yearlyListeningRollups: async () => ({ years: [], topYears: [] }),
+      yearlyEntityRankings: async ({ year = 2026, type = 'tracks' } = {}) => ({ year, type, rows: [] }),
+      entityRankings: async ({ type = 'tracks' } = {}) => ({ type, rows: [] }),
+      recentEntityRankings: async ({ type = 'tracks', window: windowKey = '1' } = {}) => ({
+        type,
+        window: windowKey,
+        label: 'last 1 month',
+        cutoffUts: 0,
+        anchorUts: 0,
+        rows: []
+      }),
+      recentListeningAnalytics: async ({ window: windowKey = '1' } = {}) => ({
+        window: windowKey,
+        label: 'last 1 month',
+        anchorUts: 0,
+        cutoffUts: 0,
+        current: {
+          scrobbles: 0,
+          activeDays: 0,
+          tracks: 0,
+          artists: 0,
+          albums: 0,
+          elapsedDays: 30,
+          hourCounts: Array.from({ length: 24 }, () => 0),
+          dowCounts: Array.from({ length: 7 }, () => 0),
+          values: { perDay: 0, perActiveDay: 0, perWeek: 0, activeDaysPerWeek: 0 }
+        },
+        baseline: { perDay: 0, perActiveDay: 0, perWeek: 0, activeDaysPerWeek: 0 },
+        hourAverages: Array.from({ length: 24 }, () => 0),
+        dowAverages: Array.from({ length: 7 }, () => 0),
+        pace: { label: 'daily columns', averageLabel: 'average per day', average: 0, aboveAverageCount: 0, peak: null, buckets: [] }
+      }),
+      listeningRollups: async () => ({ topArtists: [], topTracks: [], topAlbums: [], months: [] }),
+      recentListening: async () => ({ scrobbles: [] }),
+      ghostedTracks: async () => ({ minListens: 5, type: 'tracks', window: 6, anchorUts: 0, tracks: [], entries: [] }),
+      apotheosisWatchlist: async () => ({ artists: [], anchorUts: 0, windowMonths: 6 }),
+      freshOverview: async () => ({ topAlbums: [], quietArtists: [], recentArtists: [] }),
+      freshDiscoveryYears: async ({ metric = 'tracks' } = {}) => ({ metric, currentYear: 2026, rows: [] }),
+      harvestRankings: async ({ type = 'tracks', window: windowKey = '1' } = {}) => ({
+        type,
+        window: windowKey,
+        label: 'last 1 month',
+        cutoffUts: 0,
+        anchorUts: 0,
+        rows: []
+      }),
+      frissonOverview: async () => ({ repeatedTracks: [], enduringTracks: [], recentAnchors: [] })
+    };
+  });
+
+  const routes = ['/', '/fresh', '/pulse', '/gem-mines', '/past-tense', '/dashboard', '/ghosted', '/frisson', '/settings'];
+  const viewports = [
+    { width: 1440, height: 1000 },
+    { width: 390, height: 900 }
+  ];
+
+  for (const viewport of viewports) {
+    await page.setViewportSize(viewport);
+    for (const route of routes) {
+      await page.goto(`/dist/renderer/index.html#${route}`);
+      await expect(page.locator('.app-shell')).toBeVisible();
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+    }
+  }
+});
+
 test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await page.route('https://api.spotify.com/v1/artists**', async route => {
     await route.fulfill({
