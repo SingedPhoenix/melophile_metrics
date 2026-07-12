@@ -226,6 +226,10 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'annual preference trend' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'songs' })).toHaveClass(/active/);
   await expect(page.locator('.playlist-grid .playlist-card')).toHaveCount(57);
+  await expect.poll(() => page.locator('.playlist-grid .playlist-card').evaluateAll(cards => {
+    const tops = cards.slice(0, 10).map(card => Math.round(card.getBoundingClientRect().top));
+    return new Set(tops).size;
+  })).toBe(1);
   await expect(page.getByText('2 playlists · 5 cached tracks')).toBeVisible();
   await expect(page.locator('.playlist-grid').getByText('Vol. 1970 cached test')).toBeVisible();
   await expect(page.getByText('1970 · 3 tracks · track cache')).toBeVisible();

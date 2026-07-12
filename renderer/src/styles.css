@@ -335,7 +335,8 @@ h1 {
   display: grid;
   grid-template-columns: minmax(340px, 0.72fr) minmax(680px, 1.7fr);
   gap: 16px;
-  margin: 0 0 22px;
+  align-items: start;
+  margin: 0 0 18px;
 }
 
 .stats-panel,
@@ -1610,7 +1611,7 @@ h1 {
   grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
-  padding: 11px 0;
+  padding: 8px 0;
   border-bottom: 1px solid rgba(204, 204, 204, 0.06);
 }
 
@@ -1634,20 +1635,20 @@ h1 {
 
 .top-year-list strong {
   display: block;
-  font-size: 25px;
+  font-size: 21px;
   line-height: 1;
 }
 
 .top-year-list small {
   display: block;
-  margin-top: 4px;
+  margin-top: 3px;
   color: rgba(204, 204, 204, 0.42);
 }
 
 .metric-value {
   white-space: nowrap;
   text-align: right;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
 }
 
@@ -1655,7 +1656,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(57, minmax(4px, 1fr));
   align-items: end;
-  height: 280px;
+  height: 248px;
   gap: 4px;
   padding: 16px 12px 0;
   border-radius: 14px;
