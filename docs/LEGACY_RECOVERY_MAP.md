@@ -84,29 +84,30 @@ React coverage now:
 - Apotheosis renders a SQLite-backed artist watchlist for top artists whose newest first-seen track is outside the quiet-period window, with shuffle, skip/reset, and Spotify artist search opening.
 - Frisson renders repeated, enduring, and recent attachment rankings from SQLite-backed overview data with signal-path cards for repeat pull, long arc, and recent spark.
 
-High-impact gaps still to recover:
+Framework stabilization status:
 
-- Pulse has the legacy Pulse sub-navigation relationship between `last...` and `momentous` restored.
-- Momentous now has full top-500 browsing in 50-row pages.
-- Gem Mines has yearly scope pills plus all-time gem-band filters, multiple gem selections, gem range labels, and rank-banded mine lists restored.
-- Ghosted has the legacy hub split between `long time...no hear...` and `apotheosis` restored in React.
-- Long Time...No Hear now has reshuffle and expansion watchlist plus window pills, track/artist/album mode, skip queue, and top-100 queue labeling restored.
-- Apotheosis now has the core top-artist release watchlist, shuffle, skip/reset, and newest-track quiet-period detection restored in React.
-- Frisson now has a closer emotional-attachment destination pass with signal cards layered over the SQLite-derived ranking modes.
+- Core React/Electron migration paths are restored for the major legacy destinations: Fresh, Pulse, Gem Mines, Past Tense, Ghosted, Frisson, Dashboard, and Settings.
+- Shared UI contracts are in place for routing, section navigation, metric toggles, empty/loading states, Spotify opening, ranked bars, local settings, theme selection, and SQLite-backed data reads.
+- Smoke coverage now exercises every migrated top-level destination plus the most regression-prone behaviors: Past Tense drill-in, Spotify opening, Settings accounts/data/automation/appearance, Fresh path panels, Ghosted path split, Gem Mines filters, Pulse paging, Frisson modes, empty states, and visual layout guards.
+- Remaining work should shift from framework recovery to targeted design polish, performance hardening, and new feature slices.
 
 Recommended next slices:
 
-1. Audit React visual polish against the latest legacy screenshots for spacing, density, and recovered design details.
+1. Do a final visual QA sweep of the migrated React app against the latest legacy screenshots.
+2. Begin a small new feature/design slice now that the framework migration is stable.
+3. Start performance work around large dataset loading and derived rollup caching.
 
 Recommended migration order:
 
-1. Audit React visual polish against the latest legacy screenshots for spacing, density, and recovered design details.
+1. Final visual QA sweep.
+2. New feature/design slice.
+3. Performance and large-dataset partitioning work.
 
 ## Broader Legacy Areas To Inventory Next
 
-- Fresh: seed/harvest gateway restored in React with SQLite-backed path panels, Spotify playlist-family loading, playlist track audits with harvest pruning alerts, decision-index release filtering, release discovery shelves, scheduled scanning, harvest rankings, and current-vs-prior discovery-year comparison for new tracks/artists/albums.
-- Pulse: legacy path split, rolling-window last-period rankings, fixed-year momentous rankings, recent-listening overview, and core `last...` analytical panels are restored and smoke/mac verified.
-- Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
-- Ghosted: legacy hub split, not-heard queues, thresholds, skip controls, Spotify playback, and apotheosis artist watchlist.
-- Frisson: emotional attachment rankings and shared ranked-bar styling.
-- Settings: Spotify/Last.fm/MusicBrainz local edit forms, SQLite database controls, local config, persistent expanded theme selection, Spotify maintenance automation, Spotify link corrections, genre profiles, Last.fm cache inspection, Last.fm network sync/rebuild, and local SQLite import.
+- Fresh: refine release cards, scan progress ergonomics, and harvest/seed decision controls.
+- Pulse: refine dense ranking readability, chart polish, and navigation between rolling and fixed-year analysis.
+- Gem Mines: add richer metallurgy-style detail panels and compare gem bands across time.
+- Ghosted: refine skip/recovery controls, queue history, and Spotify playback feedback.
+- Frisson: expand emotional attachment views beyond the current SQLite-derived ranking modes.
+- Settings: continue simplifying account/data/automation/appearance sections as the app grows.
