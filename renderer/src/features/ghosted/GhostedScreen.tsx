@@ -35,11 +35,20 @@ function GhostedScreen() {
   const [type, setType] = useState<GhostedType>('tracks');
   const [windowKey, setWindowKey] = useState<GhostedWindow>(6);
   const [skippedKeys, setSkippedKeys] = useState<string[]>([]);
+  const [shuffleSeed, setShuffleSeed] = useState(0);
   const [apotheosisSkipped, setApotheosisSkipped] = useState<string[]>([]);
   const [apotheosisShuffleSeed, setApotheosisShuffleSeed] = useState(0);
   const ghosted = useGhostedTracks(100, minListens, type, windowKey);
+  const expansion = useGhostedTracks(60, 1, 'artists', 6);
   const apotheosis = useApotheosisWatchlist(100, 6);
-  const entries = (ghosted.data?.entries || ghosted.data?.tracks || []).filter(entry => !skippedKeys.includes(entry.key));
+  const entries = useMemo(() => {
+    const baseEntries = (ghosted.data?.entries || ghosted.data?.tracks || []).filter(entry => !skippedKeys.includes(entry.key));
+    if (!shuffleSeed) return baseEntries;
+    return baseEntries
+      .slice()
+      .sort((a, b) => seededSortValue(a.key, shuffleSeed) - seededSortValue(b.key, shuffleSeed));
+  }, [ghosted.data?.entries, ghosted.data?.tracks, shuffleSeed, skippedKeys]);
+  const expansionArtists = (expansion.data?.entries || []).slice(0, 12);
   const apotheosisArtists = useMemo(() => {
     const artists = (apotheosis.data?.artists || []).filter(artist => !apotheosisSkipped.includes(artist.key));
     if (!apotheosisShuffleSeed) return artists;
@@ -87,6 +96,7 @@ function GhostedScreen() {
           <MetricToggle label="Ghosted entity type" value={type} options={ghostedTypes} onChange={nextType => {
             setType(nextType);
             setSkippedKeys([]);
+            setShuffleSeed(0);
           }} />
           <div className="ghosted-window-row" role="group" aria-label="Ghosted window">
             {ghostedWindows.map(option => (
@@ -97,6 +107,7 @@ function GhostedScreen() {
                 onClick={() => {
                   setWindowKey(option.value);
                   setSkippedKeys([]);
+                  setShuffleSeed(0);
                 }}
               >
                 {option.label}
@@ -112,6 +123,7 @@ function GhostedScreen() {
                 onClick={() => {
                   setMinListens(threshold);
                   setSkippedKeys([]);
+                  setShuffleSeed(0);
                 }}
               >
                 {threshold}+
@@ -129,14 +141,33 @@ function GhostedScreen() {
         <div className="panel-head">
           <div>
             <h2>quiet favorites</h2>
-            <p>{windowKey === 'all' ? `all-time archive · top 100 queue · ${type}` : `not played in ${currentWindow} · top 100 queue · ${type}`}</p>
+            <p>{shuffleSeed ? `shuffled 100 queue · ${type}` : windowKey === 'all' ? `all-time archive · top 100 queue · ${type}` : `not played in ${currentWindow} · top 100 queue · ${type}`}</p>
+          </div>
+          <div className="ghosted-list-actions">
+            <button
+              className={shuffleSeed ? 'pill active' : 'pill'}
+              type="button"
+              onClick={() => setShuffleSeed(Date.now())}
+            >
+              reshuffle
+            </button>
+            <button
+              className="pill"
+              type="button"
+              onClick={() => {
+                setSkippedKeys([]);
+                setShuffleSeed(0);
+              }}
+            >
+              reset
+            </button>
           </div>
         </div>
         {visibleEntries.length ? (
           <RankedBarList
             ariaLabel="Quiet favorites"
             maxValue={maxListens}
-            rows={visibleEntries.map(entry => ({
+            rows={visibleEntries.map((entry, index) => ({
               barLabel: entry.listens.toLocaleString(),
               key: entry.key,
               meta: <button className="ghost-skip" type="button" onClick={event => {
@@ -144,7 +175,7 @@ function GhostedScreen() {
                 setSkippedKeys(current => [...current, entry.key]);
               }}>skip</button>,
               onOpen: () => openGhostedEntry(entry),
-              rank: entry.rank,
+              rank: shuffleSeed ? index + 1 : entry.rank,
               subtitle: `${entry.subtitle} · last heard ${entry.daysSinceLastPlayed.toLocaleString()} days ago`,
               title: entry.title,
               value: entry.listens
@@ -161,6 +192,39 @@ function GhostedScreen() {
           <button className="pill ghosted-reset-skips" type="button" onClick={() => setSkippedKeys([])}>
             reset skipped
           </button>
+        )}
+      </article>
+
+      <article className="stats-panel ghosted-expansion-panel" aria-labelledby="ghosted-expansion-title">
+        <div className="panel-head">
+          <div>
+            <h2 id="ghosted-expansion-title">expansion watchlist</h2>
+            <p>favorite artists whose recent listening record looks quiet</p>
+          </div>
+        </div>
+        {expansionArtists.length ? (
+          <div className="ghosted-expansion-list">
+            {expansionArtists.map(artist => (
+              <button
+                className="ghosted-expansion-row spotify-open-row"
+                key={artist.key}
+                type="button"
+                onClick={() => openSpotifySearch('artist', artist.artist)}
+              >
+                <span>
+                  <strong>{artist.artist}</strong>
+                  <small>last heard in your records · {formatGhostedDate(artist.lastPlayedUts)}</small>
+                </span>
+                <span className="fresh-release-tag">{artist.listens.toLocaleString()} plays</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <StatusPanel
+            detail="Quiet favorite artists appear here when the six-month artist queue has rows."
+            title={expansion.isFetching ? 'building expansion watchlist' : 'no quiet favorite artists found yet'}
+            variant={expansion.isFetching ? 'loading' : 'empty'}
+          />
         )}
       </article>
 
@@ -235,6 +299,11 @@ function apotheosisSubtitle(artist: ApotheosisArtist) {
   const months = artist.monthsSinceNewestTrack;
   const age = months ? `${months.toLocaleString()} months ago` : 'recently';
   return `newest track logged ${age} · ${artist.newestTrack}`;
+}
+
+function formatGhostedDate(uts: number) {
+  if (!uts) return 'date pending';
+  return new Date(uts * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function seededSortValue(key: string, seed: number) {

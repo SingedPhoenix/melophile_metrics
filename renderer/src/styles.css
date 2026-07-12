@@ -2615,6 +2615,54 @@ img.playlist-cover {
   margin-top: 14px;
 }
 
+.ghosted-list-actions,
+.ghosted-expansion-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ghosted-list-actions {
+  justify-content: flex-end;
+}
+
+.ghosted-expansion-panel {
+  margin-top: 16px;
+}
+
+.ghosted-expansion-list {
+  flex-direction: column;
+}
+
+.ghosted-expansion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 58px;
+  padding: 12px 14px;
+  border: 1px solid rgba(204, 204, 204, 0.08);
+  border-radius: 14px;
+  background: rgba(204, 204, 204, 0.035);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.ghosted-expansion-row strong,
+.ghosted-expansion-row small {
+  display: block;
+}
+
+.ghosted-expansion-row small {
+  margin-top: 4px;
+  color: rgba(204, 204, 204, 0.42);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+}
+
 .apotheosis-panel {
   margin-top: 16px;
 }

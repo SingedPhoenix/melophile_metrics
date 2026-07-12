@@ -574,9 +574,17 @@ test('react renderer opens migrated Ghosted slice', async ({ page }) => {
   await expect(page.locator('.ghosted-list-panel').getByText('head over heels')).toBeVisible();
   await expect(page.locator('.ghosted-list-panel').getByText('tears for fears · last heard 1,286 days ago')).toBeVisible();
   await expect(page.locator('.ghosted-list-panel').getByText('1,286 days')).toBeVisible();
+  await page.locator('.ghosted-list-panel').getByRole('button', { name: 'reshuffle' }).click();
+  await expect(page.locator('.ghosted-list-panel').getByText('shuffled 100 queue · tracks')).toBeVisible();
+  await page.locator('.ghosted-list-panel').getByRole('button', { name: 'reset', exact: true }).click();
   await page.getByRole('button', { name: '10+' }).click();
   await expect(page.getByRole('button', { name: '10+' })).toHaveClass(/active/);
   await expect(page.getByText('tracks not heard in 6 months · 10+ listens')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'expansion watchlist' })).toBeVisible();
+  await expect(page.locator('.ghosted-expansion-panel').getByText('15 plays')).toBeVisible();
+  await expect(page.locator('.ghosted-expansion-panel').getByText('last heard in your records')).toBeVisible();
+  await page.locator('.ghosted-expansion-panel .spotify-open-row').first().click();
+  await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toContain('spotify:search:tears%20for%20fears');
   await page.locator('.ghosted-controls').getByRole('button', { name: '1 year' }).click();
   await expect(page.locator('.ghosted-list-panel').getByText('tears for fears · last heard 1,586 days ago')).toBeVisible();
   await page.locator('.ghosted-controls').getByRole('button', { name: 'artists' }).click();
