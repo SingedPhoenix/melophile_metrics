@@ -41,6 +41,13 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
         quietArtists: [{ rank: 1, artist: 'jay-z', listens: 422, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
         recentArtists: [{ rank: 1, artist: 'magdalena bay', listens: 96, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
       }),
+      freshDiscoveryYears: async ({ metric = 'tracks' } = {}) => ({
+        metric,
+        currentYear: 2026,
+        rows: metric === 'artists'
+          ? [{ rank: 1, year: 2026, value: 9 }, { rank: 2, year: 2025, value: 7 }]
+          : [{ rank: 1, year: 2026, value: 21 }, { rank: 2, year: 2025, value: 11 }]
+      }),
       harvestRankings: async ({ type = 'tracks', window: windowKey = '1' } = {}) => ({
         type,
         window: windowKey,
@@ -993,6 +1000,13 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
         quietArtists: [{ rank: 1, artist: 'jay-z', listens: 422, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
         recentArtists: [{ rank: 1, artist: 'magdalena bay', listens: 96, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
       }),
+      freshDiscoveryYears: async ({ metric = 'tracks' } = {}) => ({
+        metric,
+        currentYear: 2026,
+        rows: metric === 'artists'
+          ? [{ rank: 1, year: 2026, value: 9 }, { rank: 2, year: 2025, value: 7 }]
+          : [{ rank: 1, year: 2026, value: 21 }, { rank: 2, year: 2025, value: 11 }]
+      }),
       harvestRankings: async ({ type = 'tracks', window: windowKey = '1' } = {}) => ({
         type,
         window: windowKey,
@@ -1012,6 +1026,10 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'fresh' })).toBeVisible();
   await expect(page.getByRole('button', { name: /seed/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /harvest/i })).toBeVisible();
+  const discoveryPanel = page.getByRole('article').filter({ hasText: 'discovery years' });
+  await expect(discoveryPanel.getByText(/2026 is #1 for new songs discovered/i)).toBeVisible();
+  await discoveryPanel.getByRole('button', { name: 'artists' }).click();
+  await expect(discoveryPanel.getByText(/2026 is #1 for new artists discovered/i)).toBeVisible();
   await page.getByRole('button', { name: /seed/i }).click();
   await expect(page.getByRole('heading', { name: 'seed playlists' })).toBeVisible();
   await expect(page.getByText(/scheduled scans wait/)).toBeVisible();
@@ -1047,7 +1065,7 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByRole('button', { name: /velvet daylight/i })).toBeVisible();
   await page.getByRole('button', { name: /velvet daylight/i }).click();
   await expect.poll(() => page.evaluate(() => window.__lastSpotifyUrl)).toBe('spotify:search:velvet%20daylight%20new%20harvest%20artist');
-  await page.getByRole('button', { name: 'artists' }).click();
+  await page.getByLabel('Harvest ranking type').getByRole('button', { name: 'artists' }).click();
   await expect(page.getByRole('button', { name: /new harvest artist/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'expansion watchlist' })).toBeVisible();
   await expect(page.getByRole('article').filter({ hasText: 'expansion watchlist' }).getByText('jay-z')).toBeVisible();

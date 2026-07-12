@@ -7,7 +7,7 @@ This file tracks behavior from the single-file app that should survive the React
 - Electron loads the Vite React renderer from `dist/renderer/index.html` when built, with `melophile_metrics_v2.html` still available as the legacy fallback and reference.
 - React routing uses hash routes for the main sections: home, Fresh, Pulse, Gem Mines, Past Tense, Dashboard, Ghosted, Frisson, and Settings.
 - Shared React pieces now cover the app shell, section navigation, metric toggles, status panels, Spotify opening helpers, and ranked bar lists.
-- Live SQLite-backed data is flowing into the React renderer through the Electron bridge for database status, yearly rollups, listening rollups, recent listening, Fresh overview, and Past Tense track/listen matching.
+- Live SQLite-backed data is flowing into the React renderer through the Electron bridge for database status, yearly rollups, listening rollups, recent listening, Fresh overview, Fresh discovery-year comparison, and Past Tense track/listen matching.
 
 ## Past Tense Legacy Inventory
 
@@ -81,15 +81,15 @@ High-impact gaps still to recover:
 
 Recommended next slices:
 
-1. Inventory and recover Fresh seed/harvest workflows next.
+1. Inventory the legacy Pulse hub split between `last...` and `momentous` next.
 
 Recommended migration order:
 
-1. Inventory and recover Fresh seed/harvest workflows next.
+1. Inventory the legacy Pulse hub split between `last...` and `momentous` next.
 
 ## Broader Legacy Areas To Inventory Next
 
-- Fresh: seed/harvest gateway restored in React with SQLite-backed path panels, Spotify playlist-family loading, playlist track audits with harvest pruning alerts, decision-index release filtering, release discovery shelves, scheduled scanning, and harvest rankings.
+- Fresh: seed/harvest gateway restored in React with SQLite-backed path panels, Spotify playlist-family loading, playlist track audits with harvest pruning alerts, decision-index release filtering, release discovery shelves, scheduled scanning, harvest rankings, and current-vs-prior discovery-year comparison for new tracks/artists/albums.
 - Pulse: current-year, last-period, momentous, and recent-listening ranking modes.
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: not-heard queues, thresholds, skip controls, Spotify playback.

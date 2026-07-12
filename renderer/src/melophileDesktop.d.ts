@@ -3,6 +3,8 @@ import type {
   ApotheosisWatchlist,
   DesktopDatabaseStatus,
   EntityRankings,
+  FreshDiscoveryMetric,
+  FreshDiscoveryYears,
   FreshOverview,
   FreshHarvestRankings,
   FreshHarvestRankType,
@@ -53,6 +55,7 @@ declare global {
         windowMonths?: number;
       }) => Promise<ApotheosisWatchlist>;
       freshOverview: (options?: { albumLimit?: number; artistLimit?: number }) => Promise<FreshOverview>;
+      freshDiscoveryYears: (options?: { metric?: FreshDiscoveryMetric }) => Promise<FreshDiscoveryYears>;
       harvestRankings: (options?: {
         type?: FreshHarvestRankType;
         window?: FreshHarvestWindow;

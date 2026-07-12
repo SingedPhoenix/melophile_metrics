@@ -503,6 +503,63 @@ function freshOverview(options = {}) {
   return { topAlbums, quietArtists, recentArtists };
 }
 
+function freshDiscoveryYears(options = {}) {
+  const openedDb = requireDb();
+  const metric = ['tracks', 'artists', 'albums'].includes(options.metric) ? options.metric : 'tracks';
+  const currentYear = new Date().getFullYear();
+  const rows = rankRows(openedDb.prepare(freshDiscoveryYearSql(metric)).all().map(row => ({
+    year: Number(row.year || 0),
+    value: Number(row.value || 0)
+  }))).filter(row => row.year > 0);
+
+  return { metric, currentYear, rows };
+}
+
+function freshDiscoveryYearSql(metric) {
+  if (metric === 'artists') {
+    return `
+      WITH first_seen AS (
+        SELECT lower(trim(artist)) AS entity_key, MIN(played_at_uts) AS first_played_uts
+        FROM scrobbles
+        WHERE missing_from_source = 0 AND trim(artist) <> ''
+        GROUP BY lower(trim(artist))
+      )
+      SELECT CAST(strftime('%Y', first_played_uts, 'unixepoch') AS INTEGER) AS year, COUNT(*) AS value
+      FROM first_seen
+      GROUP BY year
+      ORDER BY value DESC, year DESC
+    `;
+  }
+
+  if (metric === 'albums') {
+    return `
+      WITH first_seen AS (
+        SELECT lower(trim(artist)) || '|' || lower(trim(album)) AS entity_key, MIN(played_at_uts) AS first_played_uts
+        FROM scrobbles
+        WHERE missing_from_source = 0 AND trim(artist) <> '' AND trim(album) <> ''
+        GROUP BY lower(trim(artist)), lower(trim(album))
+      )
+      SELECT CAST(strftime('%Y', first_played_uts, 'unixepoch') AS INTEGER) AS year, COUNT(*) AS value
+      FROM first_seen
+      GROUP BY year
+      ORDER BY value DESC, year DESC
+    `;
+  }
+
+  return `
+    WITH first_seen AS (
+      SELECT lower(trim(artist)) || '|' || lower(trim(track)) AS entity_key, MIN(played_at_uts) AS first_played_uts
+      FROM scrobbles
+      WHERE missing_from_source = 0 AND trim(artist) <> '' AND trim(track) <> ''
+      GROUP BY lower(trim(artist)), lower(trim(track))
+    )
+    SELECT CAST(strftime('%Y', first_played_uts, 'unixepoch') AS INTEGER) AS year, COUNT(*) AS value
+    FROM first_seen
+    GROUP BY year
+    ORDER BY value DESC, year DESC
+  `;
+}
+
 function harvestRankings(options = {}) {
   const openedDb = requireDb();
   const type = ['tracks', 'artists', 'albums'].includes(options.type) ? options.type : 'tracks';
@@ -940,6 +997,7 @@ module.exports = {
   closeMelophileDatabase,
   databaseStatus,
   entityRankings,
+  freshDiscoveryYears,
   freshOverview,
   frissonOverview,
   ghostedTracks,

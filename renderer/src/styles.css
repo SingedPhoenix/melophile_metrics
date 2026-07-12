@@ -968,7 +968,7 @@ h1 {
 }
 
 .fresh-summary-grid {
-  grid-template-columns: minmax(280px, 0.42fr) minmax(0, 1fr);
+  grid-template-columns: minmax(240px, 0.34fr) repeat(2, minmax(0, 1fr));
 }
 
 .fresh-panel-grid {
@@ -1003,6 +1003,14 @@ h1 {
 .fresh-year-card p {
   margin: 26px 0 0;
   color: rgba(205, 164, 198, 0.72);
+}
+
+.fresh-current-vs-note {
+  margin: 0 0 12px;
+  color: rgba(204, 204, 204, 0.58);
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .fresh-year-list,

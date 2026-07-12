@@ -8,6 +8,7 @@ const {
   closeMelophileDatabase,
   databaseStatus,
   entityRankings,
+  freshDiscoveryYears,
   freshOverview,
   frissonOverview,
   ghostedTracks,
@@ -144,6 +145,8 @@ function registerDesktopHandlers() {
   ipcMain.handle('melophile:apotheosis-watchlist', async (_event, payload = {}) => apotheosisWatchlist(payload));
 
   ipcMain.handle('melophile:fresh-overview', async (_event, payload = {}) => freshOverview(payload));
+
+  ipcMain.handle('melophile:fresh-discovery-years', async (_event, payload = {}) => freshDiscoveryYears(payload));
 
   ipcMain.handle('melophile:harvest-rankings', async (_event, payload = {}) => harvestRankings(payload));
 

@@ -170,6 +170,20 @@ export type FreshOverview = {
   recentArtists: FreshRecentArtist[];
 };
 
+export type FreshDiscoveryMetric = 'tracks' | 'artists' | 'albums';
+
+export type FreshDiscoveryYear = {
+  rank: number;
+  year: number;
+  value: number;
+};
+
+export type FreshDiscoveryYears = {
+  metric: FreshDiscoveryMetric;
+  currentYear: number;
+  rows: FreshDiscoveryYear[];
+};
+
 export type FreshHarvestRankType = 'tracks' | 'artists' | 'albums';
 
 export type FreshHarvestWindow = '1' | '3' | '6' | '12' | 'cy';
@@ -336,6 +350,17 @@ export function useFreshOverview(albumLimit = 16, artistLimit = 12) {
     queryFn: async (): Promise<FreshOverview | null> => {
       if (!window.melophileDesktop?.freshOverview) return null;
       return window.melophileDesktop.freshOverview({ albumLimit, artistLimit });
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useFreshDiscoveryYears(metric: FreshDiscoveryMetric = 'tracks') {
+  return useQuery({
+    queryKey: ['desktop', 'fresh-discovery-years', metric],
+    queryFn: async (): Promise<FreshDiscoveryYears | null> => {
+      if (!window.melophileDesktop?.freshDiscoveryYears) return null;
+      return window.melophileDesktop.freshDiscoveryYears({ metric });
     },
     staleTime: 60_000
   });

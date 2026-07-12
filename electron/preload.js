@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('melophileDesktop', {
   ghostedTracks: options => ipcRenderer.invoke('melophile:ghosted-tracks', options),
   apotheosisWatchlist: options => ipcRenderer.invoke('melophile:apotheosis-watchlist', options),
   freshOverview: options => ipcRenderer.invoke('melophile:fresh-overview', options),
+  freshDiscoveryYears: options => ipcRenderer.invoke('melophile:fresh-discovery-years', options),
   harvestRankings: options => ipcRenderer.invoke('melophile:harvest-rankings', options),
   frissonOverview: options => ipcRenderer.invoke('melophile:frisson-overview', options),
   openSpotify: url => ipcRenderer.invoke('melophile:open-spotify', { url })

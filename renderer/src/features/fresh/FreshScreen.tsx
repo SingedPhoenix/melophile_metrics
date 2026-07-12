@@ -3,10 +3,12 @@ import MetricToggle from '../../shared/MetricToggle';
 import StatusPanel from '../../shared/StatusPanel';
 import { openSpotifySearch, openSpotifyUrl } from '../../shared/spotifyLinks';
 import {
+  useFreshDiscoveryYears,
   useFreshHarvestRankings,
   useFreshOverview,
   useLocalServiceConfig,
   useYearlyListeningRollups,
+  type FreshDiscoveryMetric,
   type FreshHarvestRankType,
   type FreshHarvestRankingRow,
   type FreshHarvestWindow
@@ -48,8 +50,15 @@ const harvestTypeOptions: { value: FreshHarvestRankType; label: string }[] = [
   { value: 'albums', label: 'albums' }
 ];
 
+const discoveryMetricOptions: { value: FreshDiscoveryMetric; label: string }[] = [
+  { value: 'tracks', label: 'tracks' },
+  { value: 'artists', label: 'artists' },
+  { value: 'albums', label: 'albums' }
+];
+
 function FreshScreen() {
   const [activePath, setActivePath] = useState<FreshPath>('hub');
+  const [discoveryMetric, setDiscoveryMetric] = useState<FreshDiscoveryMetric>('tracks');
   const [harvestWindow, setHarvestWindow] = useState<FreshHarvestWindow>('1');
   const [harvestType, setHarvestType] = useState<FreshHarvestRankType>('tracks');
   const [playlistSnapshot, setPlaylistSnapshot] = useState<FreshPlaylistSnapshot>(() => readFreshPlaylistSnapshot());
@@ -63,6 +72,7 @@ function FreshScreen() {
   const [decisionIndexState, setDecisionIndexState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [decisionIndexMessage, setDecisionIndexMessage] = useState('');
   const fresh = useFreshOverview(16, 12);
+  const discoveryYears = useFreshDiscoveryYears(discoveryMetric);
   const harvestRankings = useFreshHarvestRankings(harvestType, harvestWindow, 50);
   const yearly = useYearlyListeningRollups();
   const localConfig = useLocalServiceConfig();
@@ -78,6 +88,10 @@ function FreshScreen() {
   }, [yearly.data?.years]);
   const currentRow = yearRows.find(row => row.year === currentYear);
   const nextTarget = currentRow ? yearRows.find(row => row.rank === currentRow.rank - 1) : null;
+  const discoveryRows = discoveryYears.data?.rows || [];
+  const discoveryCurrentYear = discoveryYears.data?.currentYear || currentYear;
+  const currentDiscoveryRow = discoveryRows.find(row => row.year === discoveryCurrentYear);
+  const discoveryTarget = currentDiscoveryRow ? discoveryRows.find(row => row.rank === currentDiscoveryRow.rank - 1) : undefined;
   const quietArtists = overview?.quietArtists || [];
   const recentArtists = overview?.recentArtists || [];
   const topAlbums = overview?.topAlbums || [];
@@ -263,6 +277,43 @@ function FreshScreen() {
           </small>
           {nextTarget && (
             <p>{(nextTarget.listens - (currentRow?.listens || 0) + 1).toLocaleString()} listens to pass {nextTarget.year}</p>
+          )}
+        </article>
+
+        <article className="stats-panel fresh-year-list-panel">
+          <div className="panel-head">
+            <div>
+              <h2>discovery years</h2>
+              <p>{discoveryCurrentYear} vs prior {freshDiscoveryLabel(discoveryMetric)}</p>
+            </div>
+            <MetricToggle
+              label="fresh discovery metric"
+              value={discoveryMetric}
+              options={discoveryMetricOptions}
+              onChange={setDiscoveryMetric}
+            />
+          </div>
+          {discoveryRows.length ? (
+            <>
+              <p className="fresh-current-vs-note">
+                {freshDiscoverySummary(discoveryMetric, discoveryCurrentYear, currentDiscoveryRow, discoveryTarget)}
+              </p>
+              <ol className="fresh-year-list">
+                {discoveryRows.slice(0, 6).map(row => (
+                  <li className={row.year === discoveryCurrentYear ? 'is-current' : ''} key={row.year}>
+                    <span className="rank">#{row.rank}</span>
+                    <strong>{row.year}{row.year === discoveryCurrentYear ? ' · current year' : ''}</strong>
+                    <span>{row.value.toLocaleString()} {freshDiscoveryUnit(discoveryMetric, row.value)}</span>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : (
+            <StatusPanel
+              detail="Discovery years appear after the local archive can calculate first-seen tracks, artists, or albums."
+              title={discoveryYears.isFetching ? 'loading discovery years' : 'no discovery years yet'}
+              variant={discoveryYears.isFetching ? 'loading' : 'empty'}
+            />
           )}
         </article>
 
@@ -940,6 +991,31 @@ function formatDuration(durationMs: number | undefined) {
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function freshDiscoveryLabel(metric: FreshDiscoveryMetric) {
+  if (metric === 'artists') return 'new artists';
+  if (metric === 'albums') return 'new albums';
+  return 'new songs';
+}
+
+function freshDiscoveryUnit(metric: FreshDiscoveryMetric, count: number) {
+  const singular = metric === 'artists' ? 'artist' : metric === 'albums' ? 'album' : 'song';
+  return count === 1 ? singular : `${singular}s`;
+}
+
+function freshDiscoverySummary(
+  metric: FreshDiscoveryMetric,
+  currentYear: number,
+  currentRow: { rank: number; value: number } | undefined,
+  target: { year: number; value: number } | undefined
+) {
+  const label = freshDiscoveryLabel(metric);
+  if (!currentRow) return `${currentYear} has no ${label} discovered yet.`;
+  const base = `${currentYear} is #${currentRow.rank} for ${label} discovered.`;
+  if (!target) return `${base} Currently leading this ranking.`;
+  const needed = Math.max(1, target.value - currentRow.value + 1);
+  return `${base} Needs ${needed.toLocaleString()} more ${freshDiscoveryUnit(metric, needed)} to pass ${target.year}.`;
 }
 
 function formatDate(uts: number) {
