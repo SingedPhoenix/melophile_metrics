@@ -82,16 +82,16 @@ High-impact gaps still to recover:
 
 Recommended next slices:
 
-1. Follow up with visual refinement and full smoke/mac verification for the restored Pulse `last...` analytical panels.
+1. Restore the legacy Ghosted hub split between `long time...no hear...` and `apotheosis`.
 
 Recommended migration order:
 
-1. Follow up with visual refinement and full smoke/mac verification for the restored Pulse `last...` analytical panels.
+1. Restore the legacy Ghosted hub split between `long time...no hear...` and `apotheosis`.
 
 ## Broader Legacy Areas To Inventory Next
 
 - Fresh: seed/harvest gateway restored in React with SQLite-backed path panels, Spotify playlist-family loading, playlist track audits with harvest pruning alerts, decision-index release filtering, release discovery shelves, scheduled scanning, harvest rankings, and current-vs-prior discovery-year comparison for new tracks/artists/albums.
-- Pulse: legacy path split, rolling-window last-period rankings, fixed-year momentous rankings, recent-listening overview, and core `last...` analytical panels are restored; visual polish and complete smoke/mac verification remain.
+- Pulse: legacy path split, rolling-window last-period rankings, fixed-year momentous rankings, recent-listening overview, and core `last...` analytical panels are restored and smoke/mac verified.
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: not-heard queues, thresholds, skip controls, Spotify playback.
 - Frisson: emotional attachment rankings and shared ranked-bar styling.
