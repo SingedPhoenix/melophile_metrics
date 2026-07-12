@@ -5,12 +5,16 @@ import { openSpotifySearch } from '../../shared/spotifyLinks';
 import StatusPanel from '../../shared/StatusPanel';
 import {
   RecentScrobble,
+  RecentEntityRankingWindow,
   useListeningRollups,
+  useRecentEntityRankings,
   useRecentListening,
   useYearlyEntityRankings,
   useYearlyListeningRollups,
   YearlyEntityRankingType
 } from '../../shared/useDesktopStatus';
+
+type PulsePath = 'hub' | 'last' | 'momentous';
 
 const momentousModes = [
   { value: 'tracks', label: 'tracks' },
@@ -18,15 +22,32 @@ const momentousModes = [
   { value: 'albums', label: 'albums' }
 ] satisfies Array<{ value: YearlyEntityRankingType; label: string }>;
 
+const lastWindowOptions = [
+  { value: '1', label: '1 month' },
+  { value: '3', label: '3 months' },
+  { value: '6', label: '6 months' },
+  { value: '12', label: '12 months' },
+  { value: '30', label: '30 months' },
+  { value: '60', label: '60 months' },
+  { value: '120', label: '120 months' },
+  { value: 'cy', label: 'current year' }
+] satisfies Array<{ value: RecentEntityRankingWindow; label: string }>;
+
+const lastPageSize = 50;
 const momentousPageSize = 50;
 
 function PulseScreen() {
+  const [activePath, setActivePath] = useState<PulsePath>('hub');
+  const [lastType, setLastType] = useState<YearlyEntityRankingType>('tracks');
+  const [lastWindow, setLastWindow] = useState<RecentEntityRankingWindow>('1');
+  const [lastPage, setLastPage] = useState(0);
   const [momentousType, setMomentousType] = useState<YearlyEntityRankingType>('tracks');
   const [momentousYear, setMomentousYear] = useState<number | undefined>();
   const [momentousPage, setMomentousPage] = useState(0);
   const rollups = useListeningRollups();
   const yearly = useYearlyListeningRollups();
   const recent = useRecentListening(12);
+  const last = useRecentEntityRankings(lastType, lastWindow, lastRankingLimit(lastType, lastWindow));
   const momentous = useYearlyEntityRankings(momentousYear, momentousType, 500);
   const topTracks = rollups.data?.topTracks.slice(0, 8) || [];
   const topArtists = rollups.data?.topArtists.slice(0, 8) || [];
@@ -37,6 +58,12 @@ function PulseScreen() {
     return months.slice(-18);
   }, [rollups.data?.months]);
   const maxMonth = Math.max(...monthBars.map(month => month.listens), 1);
+  const lastRows = last.data?.rows || [];
+  const lastPageCount = Math.max(1, Math.ceil(lastRows.length / lastPageSize));
+  const visibleLastRows = lastRows.slice(lastPage * lastPageSize, lastPage * lastPageSize + lastPageSize);
+  const maxLast = Math.max(...visibleLastRows.map(row => row.listens), 1);
+  const lastStartRank = visibleLastRows[0]?.rank || 0;
+  const lastEndRank = visibleLastRows[visibleLastRows.length - 1]?.rank || 0;
   const momentousRows = momentous.data?.rows || [];
   const momentousPageCount = Math.max(1, Math.ceil(momentousRows.length / momentousPageSize));
   const visibleMomentousRows = momentousRows.slice(
@@ -52,6 +79,15 @@ function PulseScreen() {
     const currentYear = new Date().getFullYear();
     setMomentousYear(years.includes(currentYear) ? currentYear : years[years.length - 1]);
   }, [momentousYear, years]);
+
+  useEffect(() => {
+    setLastPage(0);
+  }, [lastWindow, lastType]);
+
+  useEffect(() => {
+    if (lastPage < lastPageCount) return;
+    setLastPage(lastPageCount - 1);
+  }, [lastPage, lastPageCount]);
 
   useEffect(() => {
     setMomentousPage(0);
@@ -72,7 +108,27 @@ function PulseScreen() {
         </p>
       </div>
 
-      <div className="pulse-layout">
+      <section className="pulse-path-grid" aria-label="Pulse paths">
+        <button
+          className={activePath === 'last' ? 'pulse-path-card active' : 'pulse-path-card'}
+          type="button"
+          onClick={() => setActivePath('last')}
+        >
+          <span>last...</span>
+          <small>dynamic rankings from rolling listening windows</small>
+        </button>
+        <button
+          className={activePath === 'momentous' ? 'pulse-path-card active' : 'pulse-path-card'}
+          type="button"
+          onClick={() => setActivePath('momentous')}
+        >
+          <span>momentous</span>
+          <small>static rankings from specific listening years</small>
+        </button>
+      </section>
+
+      {activePath === 'hub' && (
+        <div className="pulse-layout">
         <article className="stats-panel pulse-recent-panel">
           <div className="panel-head">
             <div>
@@ -155,9 +211,11 @@ function PulseScreen() {
             </ol>
           </article>
         </div>
-      </div>
+        </div>
+      )}
 
-      <article className="stats-panel pulse-month-panel">
+      {activePath === 'hub' && (
+        <article className="stats-panel pulse-month-panel">
         <div className="panel-head">
           <div>
             <h2>monthly activity</h2>
@@ -177,9 +235,97 @@ function PulseScreen() {
             );
           })}
         </div>
-      </article>
+        </article>
+      )}
 
-      <article className="stats-panel pulse-momentous-panel" aria-labelledby="momentous-title">
+      {activePath === 'last' && (
+        <article className="stats-panel pulse-momentous-panel" aria-labelledby="last-title">
+          <div className="panel-head">
+            <div>
+              <h2 id="last-title">last...</h2>
+              <p>{last.data?.label ? `${last.data.label === 'current year' ? 'current year' : `last ${last.data.label}`} · top ${lastType}` : 'rolling-window rankings'}</p>
+            </div>
+            <MetricToggle
+              label="Last ranking mode"
+              value={lastType}
+              options={momentousModes}
+              onChange={setLastType}
+            />
+          </div>
+
+          <div className="momentous-year-row" role="group" aria-label="Last listening window">
+            {lastWindowOptions.map(option => (
+              <button
+                className={option.value === lastWindow ? 'pill active' : 'pill'}
+                key={option.value}
+                type="button"
+                onClick={() => setLastWindow(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
+          {visibleLastRows.length ? (
+            <>
+              <div className="momentous-page-row" aria-live="polite">
+                <span>
+                  showing #{lastStartRank.toLocaleString()}-#{lastEndRank.toLocaleString()} of {lastRows.length.toLocaleString()}
+                </span>
+                <div className="momentous-page-actions">
+                  <button
+                    className="pill"
+                    type="button"
+                    disabled={lastPage === 0}
+                    onClick={() => setLastPage(page => Math.max(0, page - 1))}
+                  >
+                    previous 50
+                  </button>
+                  <button
+                    className="pill"
+                    type="button"
+                    disabled={lastPage >= lastPageCount - 1}
+                    onClick={() => setLastPage(page => Math.min(lastPageCount - 1, page + 1))}
+                  >
+                    next 50
+                  </button>
+                </div>
+              </div>
+
+              <RankedBarList
+                ariaLabel={`Top ${lastType} for ${last.data?.label || lastWindow}`}
+                maxValue={maxLast}
+                rows={visibleLastRows.map(row => ({
+                  barLabel: row.listens.toLocaleString(),
+                  key: `last-${lastType}-${lastWindow}-${row.rank}-${row.artist}-${row.track || row.album || ''}`,
+                  onOpen: () => {
+                    if (lastType === 'artists') {
+                      openSpotifySearch('artist', row.artist);
+                    } else if (lastType === 'albums') {
+                      openSpotifySearch('album', row.album || '', row.artist);
+                    } else {
+                      openSpotifySearch('track', row.track || '', row.artist);
+                    }
+                  },
+                  rank: row.rank,
+                  subtitle: lastType === 'artists' ? 'artist' : row.artist,
+                  title: momentousTitle(row, lastType),
+                  value: row.listens
+                }))}
+              />
+            </>
+          ) : (
+            <StatusPanel
+              detail="Last rankings appear after the local SQLite archive has listening rows inside the selected window."
+              title={last.isFetching ? 'loading rolling rankings' : 'no last rows found'}
+              variant={last.isFetching ? 'loading' : 'empty'}
+            />
+          )}
+        </article>
+      )}
+
+      {activePath === 'momentous' && (
+        <article className="stats-panel pulse-momentous-panel" aria-labelledby="momentous-title">
         <div className="panel-head">
           <div>
             <h2 id="momentous-title">momentous</h2>
@@ -261,9 +407,20 @@ function PulseScreen() {
             variant={momentous.isFetching ? 'loading' : 'empty'}
           />
         )}
-      </article>
+        </article>
+      )}
     </section>
   );
+}
+
+function lastRankingLimit(type: YearlyEntityRankingType, windowKey: RecentEntityRankingWindow) {
+  if (windowKey === 'cy') return 2500;
+  const limits: Record<YearlyEntityRankingType, Partial<Record<RecentEntityRankingWindow, number>>> = {
+    tracks: { '1': 100, '3': 150, '6': 250, '12': 500, '30': 1250, '60': 1750, '120': 2500 },
+    artists: { '1': 100, '3': 150, '6': 250, '12': 500, '30': 1000, '60': 1250, '120': 1500 },
+    albums: { '1': 100, '3': 150, '6': 250, '12': 500, '30': 750, '60': 1000, '120': 1250 }
+  };
+  return limits[type][windowKey] || 100;
 }
 
 function momentousTitle(

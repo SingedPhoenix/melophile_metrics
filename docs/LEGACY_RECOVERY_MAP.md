@@ -7,7 +7,7 @@ This file tracks behavior from the single-file app that should survive the React
 - Electron loads the Vite React renderer from `dist/renderer/index.html` when built, with `melophile_metrics_v2.html` still available as the legacy fallback and reference.
 - React routing uses hash routes for the main sections: home, Fresh, Pulse, Gem Mines, Past Tense, Dashboard, Ghosted, Frisson, and Settings.
 - Shared React pieces now cover the app shell, section navigation, metric toggles, status panels, Spotify opening helpers, and ranked bar lists.
-- Live SQLite-backed data is flowing into the React renderer through the Electron bridge for database status, yearly rollups, listening rollups, recent listening, Fresh overview, Fresh discovery-year comparison, and Past Tense track/listen matching.
+- Live SQLite-backed data is flowing into the React renderer through the Electron bridge for database status, yearly rollups, listening rollups, recent listening, recent rolling rankings, Fresh overview, Fresh discovery-year comparison, and Past Tense track/listen matching.
 
 ## Past Tense Legacy Inventory
 
@@ -62,7 +62,8 @@ Legacy source anchors:
 
 React coverage now:
 
-- Pulse renders recent SQLite scrobbles, all-time top tracks/artists, monthly activity, and Spotify opening for rows.
+- Pulse renders the legacy `last...` / `momentous` path split, recent SQLite scrobbles, all-time top tracks/artists, monthly activity, and Spotify opening for rows.
+- Last renders SQLite-backed rolling-window track/artist/album rankings with legacy windows, legacy page limits, 50-row paging, and Spotify opening.
 - Momentous renders fixed-year SQLite rankings inside Pulse with year pills, track/artist/album mode, shared ranked bars, top-500 pagination, and Spotify opening.
 - Gem Mines renders all-time and yearly track/artist/album rankings, a current leader panel, shared ranked bars, Spotify opening, and legacy rank-banded gem mine filters with colored gem chips.
 - Ghosted renders a SQLite-backed quiet queue with window pills, track/artist/album mode, minimum-listen thresholds, reshuffle, local skip/reset controls, expansion watchlist, and Spotify opening.
@@ -71,7 +72,7 @@ React coverage now:
 
 High-impact gaps still to recover:
 
-- Pulse is missing the legacy Pulse sub-navigation relationship between `last...` and `momentous`.
+- Pulse has the legacy Pulse sub-navigation relationship between `last...` and `momentous` restored.
 - Momentous now has full top-500 browsing in 50-row pages.
 - Gem Mines has yearly scope pills plus all-time gem-band filters, multiple gem selections, gem range labels, and rank-banded mine lists restored.
 - Ghosted still needs the legacy hub split between `long time...no hear...` and `apotheosis`.
@@ -81,16 +82,16 @@ High-impact gaps still to recover:
 
 Recommended next slices:
 
-1. Inventory the legacy Pulse hub split between `last...` and `momentous` next.
+1. Inventory the remaining Pulse `last...` analytical panels next: average-rate cards, listening clock, week chart, and pace analysis.
 
 Recommended migration order:
 
-1. Inventory the legacy Pulse hub split between `last...` and `momentous` next.
+1. Inventory the remaining Pulse `last...` analytical panels next: average-rate cards, listening clock, week chart, and pace analysis.
 
 ## Broader Legacy Areas To Inventory Next
 
 - Fresh: seed/harvest gateway restored in React with SQLite-backed path panels, Spotify playlist-family loading, playlist track audits with harvest pruning alerts, decision-index release filtering, release discovery shelves, scheduled scanning, harvest rankings, and current-vs-prior discovery-year comparison for new tracks/artists/albums.
-- Pulse: current-year, last-period, momentous, and recent-listening ranking modes.
+- Pulse: legacy path split, rolling-window last-period rankings, fixed-year momentous rankings, and recent-listening overview are restored; remaining legacy analytical panels still need inventory.
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: not-heard queues, thresholds, skip controls, Spotify playback.
 - Frisson: emotional attachment rankings and shared ranked-bar styling.

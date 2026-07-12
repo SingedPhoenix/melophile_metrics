@@ -85,6 +85,15 @@ export type EntityRankings = {
   rows: YearlyEntityRankingRow[];
 };
 
+export type RecentEntityRankingWindow = '1' | '3' | '6' | '12' | '30' | '60' | '120' | 'cy';
+
+export type RecentEntityRankings = EntityRankings & {
+  window: RecentEntityRankingWindow;
+  label: string;
+  cutoffUts: number;
+  anchorUts: number;
+};
+
 export type RecentScrobble = {
   playedAtUts: number;
   playedAtIso: string;
@@ -305,6 +314,21 @@ export function useEntityRankings(type: YearlyEntityRankingType = 'tracks', limi
     queryFn: async (): Promise<EntityRankings | null> => {
       if (!window.melophileDesktop?.entityRankings) return null;
       return window.melophileDesktop.entityRankings({ type, limit });
+    },
+    staleTime: 60_000
+  });
+}
+
+export function useRecentEntityRankings(
+  type: YearlyEntityRankingType = 'tracks',
+  windowKey: RecentEntityRankingWindow = '1',
+  limit = 100
+) {
+  return useQuery({
+    queryKey: ['desktop', 'recent-entity-rankings', type, windowKey, limit],
+    queryFn: async (): Promise<RecentEntityRankings | null> => {
+      if (!window.melophileDesktop?.recentEntityRankings) return null;
+      return window.melophileDesktop.recentEntityRankings({ type, window: windowKey, limit });
     },
     staleTime: 60_000
   });

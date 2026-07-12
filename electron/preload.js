@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('melophileDesktop', {
   listeningRollups: () => ipcRenderer.invoke('melophile:listening-rollups'),
   entityRankings: options => ipcRenderer.invoke('melophile:entity-rankings', options),
   recentListening: limit => ipcRenderer.invoke('melophile:recent-listening', { limit }),
+  recentEntityRankings: options => ipcRenderer.invoke('melophile:recent-entity-rankings', options),
   ghostedTracks: options => ipcRenderer.invoke('melophile:ghosted-tracks', options),
   apotheosisWatchlist: options => ipcRenderer.invoke('melophile:apotheosis-watchlist', options),
   freshOverview: options => ipcRenderer.invoke('melophile:fresh-overview', options),

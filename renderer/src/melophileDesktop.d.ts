@@ -16,6 +16,8 @@ import type {
   ListeningRollups,
   LocalServiceConfig,
   RecentListening,
+  RecentEntityRankings,
+  RecentEntityRankingWindow,
   YearlyEntityRankings,
   YearlyEntityRankingType,
   YearlyListeningRollups
@@ -44,6 +46,11 @@ declare global {
         limit?: number;
       }) => Promise<EntityRankings>;
       recentListening: (limit?: number) => Promise<RecentListening>;
+      recentEntityRankings: (options?: {
+        type?: YearlyEntityRankingType;
+        window?: RecentEntityRankingWindow;
+        limit?: number;
+      }) => Promise<RecentEntityRankings>;
       ghostedTracks: (options?: {
         limit?: number;
         minListens?: number;

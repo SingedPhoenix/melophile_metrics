@@ -290,6 +290,21 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
                 listens: 128 - index
               }))
       }),
+      recentEntityRankings: async ({ type = 'tracks', window: windowKey = '1' } = {}) => ({
+        type,
+        window: windowKey,
+        label: windowKey === 'cy' ? 'current year' : `${windowKey} month${windowKey === '1' ? '' : 's'}`,
+        cutoffUts: 1780876800,
+        anchorUts: 1783468800,
+        rows: type === 'artists'
+          ? [{ rank: 1, artist: 'health', listens: 33 }]
+          : Array.from({ length: 55 }, (_, index) => ({
+              rank: index + 1,
+              artist: index === 0 ? 'health' : 'the midnight',
+              track: index === 0 ? 'you died' : `last track ${index + 1}`,
+              listens: 91 - index
+            }))
+      }),
       listeningRollups: async () => ({
         topArtists: [{ rank: 1, artist: 'the midnight', listens: 2048 }],
         topTracks: [{ rank: 1, artist: 'health', track: 'you died', listens: 512 }],
@@ -320,12 +335,26 @@ test('react renderer opens migrated Pulse slice', async ({ page }) => {
   await page.getByRole('button', { name: /pulse/i }).click();
 
   await expect(page.getByRole('heading', { name: 'pulse' })).toBeVisible();
+  const pulsePaths = page.locator('.pulse-path-grid');
+  await expect(pulsePaths.getByRole('button', { name: /last\.\.\./i })).toBeVisible();
+  await expect(pulsePaths.getByRole('button', { name: /momentous/i })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'recent listens' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'top tracks' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'top artists' })).toBeVisible();
   await expect(page.locator('.pulse-recent-panel').getByText('you died')).toBeVisible();
   await expect(page.locator('.pulse-recent-panel').getByText('health · rat wars')).toBeVisible();
   await expect(page.locator('.pulse-side-stack').getByText('the midnight')).toBeVisible();
+
+  await pulsePaths.getByRole('button', { name: /last\.\.\./i }).click();
+  await expect(page.getByRole('heading', { name: 'last...' })).toBeVisible();
+  await expect(page.locator('.pulse-momentous-panel').getByText('last 1 month · top tracks')).toBeVisible();
+  await expect(page.locator('.pulse-momentous-panel').getByText('showing #1-#50 of 55')).toBeVisible();
+  await page.locator('.pulse-momentous-panel').getByRole('button', { name: 'next 50' }).click();
+  await expect(page.locator('.pulse-momentous-panel').getByText('showing #51-#55 of 55')).toBeVisible();
+  await page.locator('.pulse-momentous-panel').getByRole('button', { name: 'artists' }).click();
+  await expect(page.locator('.pulse-momentous-panel').getByText('33')).toBeVisible();
+
+  await pulsePaths.getByRole('button', { name: /momentous/i }).click();
   await expect(page.getByRole('heading', { name: 'momentous' })).toBeVisible();
   await expect(page.locator('.pulse-momentous-panel').getByText('2022 · top tracks')).toBeVisible();
   await expect(page.locator('.pulse-momentous-panel').getByText('128')).toBeVisible();

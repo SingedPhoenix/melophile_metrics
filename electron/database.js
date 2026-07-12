@@ -252,6 +252,98 @@ function entityRankings(options = {}) {
   return { type, rows };
 }
 
+function recentEntityRankings(options = {}) {
+  const openedDb = requireDb();
+  const type = ['tracks', 'artists', 'albums'].includes(options.type) ? options.type : 'tracks';
+  const windowKey = ['1', '3', '6', '12', '30', '60', '120', 'cy'].includes(String(options.window)) ? String(options.window) : '1';
+  const safeLimit = Math.max(1, Math.min(Number.parseInt(options.limit, 10) || 100, 2500));
+  const anchorRow = openedDb.prepare(`
+    SELECT MAX(played_at_uts) AS anchor_uts
+    FROM scrobbles
+    WHERE missing_from_source = 0
+  `).get();
+  const anchorUts = Number(anchorRow?.anchor_uts || Math.floor(Date.now() / 1000));
+  const cutoffUts = recentRankingCutoffUts(anchorUts, windowKey);
+  const rows = recentRankingRows(openedDb, type, cutoffUts, anchorUts, safeLimit);
+
+  return {
+    type,
+    window: windowKey,
+    label: recentRankingWindowLabel(windowKey),
+    cutoffUts,
+    anchorUts,
+    rows
+  };
+}
+
+function recentRankingRows(openedDb, type, cutoffUts, anchorUts, limit) {
+  if (type === 'artists') {
+    return rankRows(openedDb.prepare(`
+      SELECT artist, COUNT(*) AS listens
+      FROM scrobbles
+      WHERE missing_from_source = 0 AND played_at_uts >= ? AND played_at_uts <= ? AND trim(artist) <> ''
+      GROUP BY artist
+      ORDER BY listens DESC, artist ASC
+      LIMIT ?
+    `).all(cutoffUts, anchorUts, limit).map(row => ({
+      artist: row.artist,
+      listens: Number(row.listens || 0)
+    })));
+  }
+
+  if (type === 'albums') {
+    return rankRows(openedDb.prepare(`
+      SELECT artist, album, COUNT(*) AS listens
+      FROM scrobbles
+      WHERE missing_from_source = 0
+        AND played_at_uts >= ?
+        AND played_at_uts <= ?
+        AND trim(artist) <> ''
+        AND trim(album) <> ''
+      GROUP BY artist, album
+      ORDER BY listens DESC, artist ASC, album ASC
+      LIMIT ?
+    `).all(cutoffUts, anchorUts, limit).map(row => ({
+      artist: row.artist,
+      album: row.album,
+      listens: Number(row.listens || 0)
+    })));
+  }
+
+  return rankRows(openedDb.prepare(`
+    SELECT artist, track, COUNT(*) AS listens
+    FROM scrobbles
+    WHERE missing_from_source = 0
+      AND played_at_uts >= ?
+      AND played_at_uts <= ?
+      AND trim(artist) <> ''
+      AND trim(track) <> ''
+    GROUP BY artist, track
+    ORDER BY listens DESC, artist ASC, track ASC
+    LIMIT ?
+  `).all(cutoffUts, anchorUts, limit).map(row => ({
+    artist: row.artist,
+    track: row.track,
+    listens: Number(row.listens || 0)
+  })));
+}
+
+function recentRankingCutoffUts(anchorUts, windowKey) {
+  const anchor = new Date(anchorUts * 1000);
+  if (windowKey === 'cy') {
+    return Math.floor(Date.UTC(anchor.getUTCFullYear(), 0, 1) / 1000);
+  }
+  const cutoff = new Date(anchor.getTime());
+  cutoff.setUTCMonth(cutoff.getUTCMonth() - (Number.parseInt(windowKey, 10) || 1));
+  return Math.floor(cutoff.getTime() / 1000);
+}
+
+function recentRankingWindowLabel(windowKey) {
+  if (windowKey === 'cy') return 'current year';
+  const months = Number.parseInt(windowKey, 10) || 1;
+  return `${months} ${months === 1 ? 'month' : 'months'}`;
+}
+
 function listeningRollups() {
   const openedDb = requireDb();
   const topArtists = rankRows(openedDb.prepare(`
@@ -1006,6 +1098,7 @@ module.exports = {
   listeningRollups,
   openMelophileDatabase,
   recentListening,
+  recentEntityRankings,
   trackPlayCounts,
   yearlyEntityRankings,
   yearlyListeningRollups
