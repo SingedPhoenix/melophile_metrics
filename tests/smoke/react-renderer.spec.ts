@@ -963,6 +963,7 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await page.getByRole('button', { name: 'appearance' }).click();
   await expect(page.getByRole('heading', { name: 'appearance' })).toBeVisible();
   await expect(page.getByText('amethyst dusk')).toBeVisible();
+  await expect(page.getByText('midnight cyan bloom')).toBeVisible();
   await page.getByRole('button', { name: /topaz mine/i }).click();
   await expect(page.getByText('topaz mine is saved as the active theme')).toBeVisible();
   await expect(page.getByRole('button', { name: /topaz mine/i })).toContainText('selected');
