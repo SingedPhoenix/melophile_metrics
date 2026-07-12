@@ -1226,6 +1226,11 @@ test('react renderer shows shared empty states for missing rollups', async ({ pa
 
   await page.getByRole('button', { name: 'gem mines' }).click();
   await expect(page.getByText('no entries found in this mine')).toBeVisible();
+
+  await page.getByRole('button', { name: 'past tense' }).click();
+  await page.getByRole('button', { name: 'open Vol. 1970 details' }).click();
+  await expect(page.getByText('Refresh the Past Tense cache from React Settings/Data')).toBeVisible();
+  await expect(page.getByText('legacy settings')).toHaveCount(0);
 });
 
 test('react renderer opens migrated Frisson slice', async ({ page }) => {

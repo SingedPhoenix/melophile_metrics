@@ -481,7 +481,7 @@ function PastTenseDetail({
           <div className="status-panel">
             <span className="status-panel-kicker">cache pending</span>
             <strong>track details are not cached yet</strong>
-            <p>Use the Past Tense cache refresh from the legacy settings while this control is being migrated into React.</p>
+            <p>Refresh the Past Tense cache from React Settings/Data to load Spotify track details for this playlist.</p>
           </div>
         )}
       </section>
