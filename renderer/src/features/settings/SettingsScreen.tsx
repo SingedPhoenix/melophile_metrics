@@ -49,12 +49,13 @@ import {
 } from './settingsLastfm';
 import { useDesktopStatus, useFreshOverview, useLocalServiceConfig } from '../../shared/useDesktopStatus';
 
-type SettingsTab = 'accounts' | 'data' | 'corrections' | 'appearance';
+type SettingsTab = 'accounts' | 'data' | 'corrections' | 'automation' | 'appearance';
 
 const tabs: { value: SettingsTab; label: string }[] = [
   { value: 'accounts', label: 'accounts' },
   { value: 'data', label: 'data' },
   { value: 'corrections', label: 'corrections' },
+  { value: 'automation', label: 'automation' },
   { value: 'appearance', label: 'appearance' }
 ];
 
@@ -438,7 +439,7 @@ function SettingsScreen() {
         <p className="eyebrow">private desktop configuration</p>
         <h1 id="settings-title">settings</h1>
         <p className="screen-data-note">
-          {localConfig.isFetching ? 'checking local config' : 'accounts, data, and appearance'}
+          {localConfig.isFetching ? 'checking local config' : 'accounts, data, corrections, automation, and appearance'}
         </p>
       </div>
 
@@ -763,6 +764,89 @@ function SettingsScreen() {
             />
           </article>
         </div>
+      )}
+
+      {activeTab === 'automation' && (
+        <article className="stats-panel settings-panel">
+          <div className="panel-head">
+            <div>
+              <h2>automation</h2>
+              <p>scheduled scans and background maintenance runs while the app is open</p>
+            </div>
+          </div>
+          <section className="settings-maintenance-panel" aria-labelledby="automation-spotify-title">
+            <div>
+              <h3 id="automation-spotify-title">spotify maintenance</h3>
+              <p>
+                Audits Last.fm artist pools, scans Spotify for new releases, and keeps Fresh discovery data current.
+              </p>
+            </div>
+            <div className="settings-maintenance-metrics wide">
+              <DataMetric label="all-time artists audited" value={formatNumber(freshOverview.data?.quietArtists?.length)} />
+              <DataMetric label="new artists audited" value={formatNumber(freshOverview.data?.recentArtists?.length)} />
+              <DataMetric label="seed releases stored" value={formatNumber(freshReleaseSnapshot.releases.length)} />
+              <DataMetric label="next seed scan" value={freshScanSchedule.enabled ? formatFreshScanDate(freshScanSchedule.nextScanMs) : 'paused'} />
+            </div>
+            {freshScanProgress && (
+              <span className="settings-progress" aria-label="Automation seed release scan progress">
+                <span style={{ width: `${Math.max(2, Math.round((freshScanProgress.current / freshScanProgress.total) * 100))}%` }} />
+              </span>
+            )}
+            <div className="settings-maintenance-actions">
+              <button
+                className="status-chip is-button"
+                disabled={freshScanState === 'running'}
+                type="button"
+                onClick={scanFreshReleases}
+              >
+                {freshScanState === 'running' ? 'scanning seed releases' : 'run seed scan now'}
+              </button>
+              <span className={`settings-maintenance-status ${freshScanState}`}>
+                {freshScanMessage || scanScheduleStatus(freshScanSchedule)}
+              </span>
+            </div>
+          </section>
+          <section className="settings-maintenance-panel" aria-labelledby="automation-past-tense-title">
+            <div>
+              <h3 id="automation-past-tense-title">past tense automation</h3>
+              <p>
+                Refreshes release-year playlist metadata and tracks on the stored schedule, or after a missed run.
+              </p>
+            </div>
+            <div className="settings-maintenance-metrics wide">
+              <DataMetric label="cached playlists" value={formatNumber(pastTenseSnapshot.stats.cachedPlaylists)} />
+              <DataMetric label="cached tracks" value={formatNumber(pastTenseSnapshot.stats.cachedTracks)} />
+              <DataMetric label="next refresh" value={pastTenseSchedule.enabled ? formatPastTenseCacheRefreshDate(pastTenseSchedule.nextRefreshMs) : 'paused'} />
+              <DataMetric label="cache status" value={pastTenseTrackCacheNeedsRefresh() ? 'refresh needed' : 'fresh'} />
+            </div>
+            {pastTenseProgress && (
+              <span className="settings-progress" aria-label="Automation Past Tense refresh progress">
+                <span style={{ width: `${Math.max(2, Math.round((pastTenseProgress.current / pastTenseProgress.total) * 100))}%` }} />
+              </span>
+            )}
+            <div className="settings-maintenance-actions">
+              <button
+                className="status-chip is-button"
+                disabled={pastTenseRefreshState === 'running'}
+                type="button"
+                onClick={refreshPastTense}
+              >
+                {pastTenseRefreshState === 'running' ? 'refreshing past tense cache' : 'refresh past tense cache'}
+              </button>
+              <button
+                className="status-chip is-button"
+                disabled={pastTenseRefreshState === 'running'}
+                type="button"
+                onClick={runScheduledPastTenseRefresh}
+              >
+                run scheduled refresh now
+              </button>
+              <span className={`settings-maintenance-status ${pastTenseRefreshState}`}>
+                {pastTenseMessage || pastTenseScheduleStatus(pastTenseSchedule)}
+              </span>
+            </div>
+          </section>
+        </article>
       )}
 
       {activeTab === 'appearance' && (

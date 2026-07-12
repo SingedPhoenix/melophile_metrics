@@ -40,6 +40,7 @@ Restored in React:
 - Per-playlist track gem badges from SQLite all-time rank bands.
 - Manual Past Tense cache refresh controls in the React Settings/Data area.
 - Scheduled Past Tense cache refresh controls in the React Settings/Data area.
+- Legacy Settings/Automation tab restored in React with Spotify/Fresh scan and Past Tense scheduled maintenance panels.
 - Last.fm data integrity panel in React Settings/Data with local IndexedDB cache inspection, profile-vs-cache delta checks, latest cached scrobble metadata, and cache-to-SQLite import action.
 - Direct Last.fm recent sync and full cache rebuild actions in React Settings/Data, with refreshed cache rows copied into SQLite.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
@@ -47,6 +48,7 @@ Restored in React:
 - Smoke coverage for Spotify artist genre/image hydration in Past Tense detail views.
 - Smoke coverage for React Settings/Data Past Tense cache refresh.
 - Smoke coverage for React Settings/Data scheduled Past Tense cache refresh controls.
+- Smoke coverage for React Settings/Automation scheduler panels.
 - Smoke coverage for React Settings/Data Last.fm cache loading and local SQLite import.
 - Smoke coverage for React Settings/Data Last.fm network sync, cache update, and SQLite import.
 
@@ -82,11 +84,11 @@ High-impact gaps still to recover:
 
 Recommended next slices:
 
-1. Audit remaining legacy Settings/data maintenance panels against the React Settings surface.
+1. Audit remaining legacy Settings connected-account edit/test forms against the React Settings surface.
 
 Recommended migration order:
 
-1. Audit remaining legacy Settings/data maintenance panels against the React Settings surface.
+1. Audit remaining legacy Settings connected-account edit/test forms against the React Settings surface.
 
 ## Broader Legacy Areas To Inventory Next
 
@@ -95,4 +97,4 @@ Recommended migration order:
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: legacy hub split, not-heard queues, thresholds, skip controls, Spotify playback, and apotheosis artist watchlist.
 - Frisson: emotional attachment rankings and shared ranked-bar styling.
-- Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, Spotify maintenance controls, Spotify link corrections, genre profiles, Last.fm cache inspection, Last.fm network sync/rebuild, and local SQLite import.
+- Settings: Spotify/Last.fm/MusicBrainz connectivity, SQLite database controls, local config, theme selection, Spotify maintenance automation, Spotify link corrections, genre profiles, Last.fm cache inspection, Last.fm network sync/rebuild, and local SQLite import.

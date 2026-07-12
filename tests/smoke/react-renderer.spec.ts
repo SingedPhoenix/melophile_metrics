@@ -909,6 +909,11 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
     const schedule = JSON.parse(localStorage.getItem('melophile.pastTense.cacheSchedule.v1') || '{}');
     return Boolean(schedule.lastRefreshMs && schedule.nextRefreshMs && /next refresh/.test(schedule.lastStatus || ''));
   })).toBe(true);
+  await page.getByRole('button', { name: 'automation' }).click();
+  await expect(page.getByRole('heading', { name: 'automation', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'spotify maintenance' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'past tense automation' })).toBeVisible();
+  await expect(page.locator('section[aria-labelledby="automation-past-tense-title"] .settings-data-metric strong', { hasText: /^fresh$/ })).toBeVisible();
   await page.getByRole('button', { name: 'corrections' }).click();
   await expect(page.getByRole('heading', { name: 'spotify link corrections' })).toBeVisible();
   await page.getByPlaceholder('track, artist, or album name').fill('settings test song');
