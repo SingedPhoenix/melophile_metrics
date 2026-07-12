@@ -963,6 +963,18 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await page.getByRole('button', { name: 'appearance' }).click();
   await expect(page.getByRole('heading', { name: 'appearance' })).toBeVisible();
   await expect(page.getByText('amethyst dusk')).toBeVisible();
+  await page.getByRole('button', { name: /topaz mine/i }).click();
+  await expect(page.getByText('topaz mine is saved as the active theme')).toBeVisible();
+  await expect(page.getByRole('button', { name: /topaz mine/i })).toContainText('selected');
+  await expect.poll(() => page.evaluate(() => ({
+    stored: localStorage.getItem('melophile.react.theme.v1'),
+    active: document.documentElement.dataset.themeName,
+    accent: getComputedStyle(document.documentElement).getPropertyValue('--mm-accent-text').trim()
+  }))).toEqual({
+    stored: 'topaz mine',
+    active: 'topaz mine',
+    accent: 'rgba(213, 161, 47, 0.78)'
+  });
 });
 
 test('react renderer opens migrated Fresh slice', async ({ page }) => {

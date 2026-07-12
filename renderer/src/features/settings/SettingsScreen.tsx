@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import MetricToggle from '../../shared/MetricToggle';
+import { applyThemeByName, readStoredThemeName, saveThemeName, themes } from '../../shared/themes';
 import {
   formatPastTenseCacheRefreshDate,
   normalizePastTenseCacheSchedule,
@@ -67,17 +68,6 @@ const tabs: { value: SettingsTab; label: string }[] = [
   { value: 'appearance', label: 'appearance' }
 ];
 
-const themes = [
-  { name: 'amethyst dusk', family: 'purple', colors: ['#130a21', '#4b3173', '#b58bd4', '#d8bedf'] },
-  { name: 'plum signal', family: 'purple', colors: ['#1b0717', '#6d184d', '#f21f98', '#cab0bb'] },
-  { name: 'midnight current', family: 'blue', colors: ['#071023', '#17335e', '#6ca4cf', '#c9d5dd'] },
-  { name: 'topaz mine', family: 'blue', colors: ['#09151b', '#1d5366', '#d5a12f', '#dad1bd'] },
-  { name: 'forest static', family: 'green', colors: ['#07130f', '#2e4b3e', '#adbaa0', '#d9d7cd'] },
-  { name: 'moss radio', family: 'green', colors: ['#10170f', '#637320', '#c7e441', '#d4d0b8'] },
-  { name: 'ember archive', family: 'orange', colors: ['#190b05', '#7c2a08', '#ff6f31', '#d8b9a8'] },
-  { name: 'silver room', family: 'neutral', colors: ['#0d0d0d', '#2d3131', '#8b8f91', '#eeeeee'] }
-];
-
 const accountStorageKeys = {
   lastfmUsername: 'melophile.lastfm.username',
   lastfmApiKey: 'melophile.lastfm.apiKey',
@@ -89,6 +79,7 @@ const accountStorageKeys = {
 
 function SettingsScreen() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('accounts');
+  const [selectedTheme, setSelectedTheme] = useState(() => readStoredThemeName());
   const [accountForm, setAccountForm] = useState<AccountForm>(() => readAccountFormFromStorage());
   const [accountMessage, setAccountMessage] = useState('settings can be stored in this app or loaded from local private config.');
   const [pastTenseSnapshot, setPastTenseSnapshot] = useState(() => readPastTenseLiveSnapshot());
@@ -370,6 +361,11 @@ function SettingsScreen() {
       setFreshScanState('error');
       setFreshScanMessage(error instanceof Error ? error.message : 'seed release scan failed');
     }
+  };
+  const selectTheme = (name: string) => {
+    saveThemeName(name);
+    applyThemeByName(name);
+    setSelectedTheme(name);
   };
   const updateAccountField = (field: keyof AccountForm, value: string) => {
     setAccountForm(form => ({ ...form, [field]: value }));
@@ -1023,17 +1019,22 @@ function SettingsScreen() {
           <div className="panel-head">
             <div>
               <h2>appearance</h2>
-              <p>theme library preview before persistent theme selection</p>
+              <p>{selectedTheme} is saved as the active theme</p>
             </div>
           </div>
           <div className="theme-library-grid">
             {themes.map(theme => (
-              <button className="theme-preview-card" key={theme.name} type="button">
+              <button
+                className={theme.name === selectedTheme ? 'theme-preview-card active' : 'theme-preview-card'}
+                key={theme.name}
+                type="button"
+                onClick={() => selectTheme(theme.name)}
+              >
                 <div className="theme-preview-strip" aria-hidden="true">
                   {theme.colors.map(color => <span key={color} style={{ background: color }} />)}
                 </div>
                 <strong>{theme.name}</strong>
-                <small>{theme.family}</small>
+                <small>{theme.name === selectedTheme ? `${theme.family} · selected` : theme.family}</small>
               </button>
             ))}
           </div>

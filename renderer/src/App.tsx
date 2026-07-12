@@ -8,6 +8,7 @@ import PastTenseScreen from './features/past-tense/PastTenseScreen';
 import PulseScreen from './features/pulse/PulseScreen';
 import SettingsScreen from './features/settings/SettingsScreen';
 import AppShell from './shared/AppShell';
+import { applyThemeByName, readStoredThemeName } from './shared/themes';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
 
@@ -61,6 +62,9 @@ function App() {
     const syncSectionFromHash = () => setActiveSection(sectionFromHash());
     window.addEventListener('hashchange', syncSectionFromHash);
     return () => window.removeEventListener('hashchange', syncSectionFromHash);
+  }, []);
+  useEffect(() => {
+    applyThemeByName(readStoredThemeName());
   }, []);
 
   const screen = activeSection === 'fresh' ? (

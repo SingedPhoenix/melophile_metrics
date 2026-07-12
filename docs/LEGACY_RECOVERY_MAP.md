@@ -42,6 +42,7 @@ Restored in React:
 - Scheduled Past Tense cache refresh controls in the React Settings/Data area.
 - Legacy Settings/Automation tab restored in React with Spotify/Fresh scan and Past Tense scheduled maintenance panels.
 - Legacy Settings/Accounts edit forms restored in React for Last.fm, Spotify, ListenBrainz, and MusicBrainz local settings.
+- React Settings/Appearance theme selection now persists locally and applies selected theme tokens to the app shell.
 - Last.fm data integrity panel in React Settings/Data with local IndexedDB cache inspection, profile-vs-cache delta checks, latest cached scrobble metadata, and cache-to-SQLite import action.
 - Direct Last.fm recent sync and full cache rebuild actions in React Settings/Data, with refreshed cache rows copied into SQLite.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
@@ -51,6 +52,7 @@ Restored in React:
 - Smoke coverage for React Settings/Data scheduled Past Tense cache refresh controls.
 - Smoke coverage for React Settings/Automation scheduler panels.
 - Smoke coverage for React Settings/Accounts local credential field hydration and localStorage saves.
+- Smoke coverage for React Settings/Appearance persistent theme selection and applied CSS variables.
 - Smoke coverage for React Settings/Data Last.fm cache loading and local SQLite import.
 - Smoke coverage for React Settings/Data Last.fm network sync, cache update, and SQLite import.
 
@@ -86,11 +88,11 @@ High-impact gaps still to recover:
 
 Recommended next slices:
 
-1. Make React Settings/Appearance theme selection persistent and apply selected theme tokens to the app shell.
+1. Expand the React theme library toward the broader legacy theme seed catalog and grouped ordering.
 
 Recommended migration order:
 
-1. Make React Settings/Appearance theme selection persistent and apply selected theme tokens to the app shell.
+1. Expand the React theme library toward the broader legacy theme seed catalog and grouped ordering.
 
 ## Broader Legacy Areas To Inventory Next
 
@@ -99,4 +101,4 @@ Recommended migration order:
 - Gem Mines: track/artist/album rankings, gem badges, metallurgy-style album panels.
 - Ghosted: legacy hub split, not-heard queues, thresholds, skip controls, Spotify playback, and apotheosis artist watchlist.
 - Frisson: emotional attachment rankings and shared ranked-bar styling.
-- Settings: Spotify/Last.fm/MusicBrainz local edit forms, SQLite database controls, local config, theme selection, Spotify maintenance automation, Spotify link corrections, genre profiles, Last.fm cache inspection, Last.fm network sync/rebuild, and local SQLite import.
+- Settings: Spotify/Last.fm/MusicBrainz local edit forms, SQLite database controls, local config, persistent theme selection, Spotify maintenance automation, Spotify link corrections, genre profiles, Last.fm cache inspection, Last.fm network sync/rebuild, and local SQLite import.
