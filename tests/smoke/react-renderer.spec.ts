@@ -79,11 +79,13 @@ test('react renderer supports section hash routes', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'past tense' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Sections' })).toBeVisible();
   await expect(page.locator('.shell-nav-button.active')).toHaveText('past tense');
+  await expect(page).toHaveTitle('melophile metrics · past tense');
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/past-tense');
 
   await page.getByRole('button', { name: 'sections' }).click();
   await expect(page.getByRole('heading', { name: 'choose a listening lens' })).toBeVisible();
   await expect(page.getByRole('navigation', { name: 'Sections' })).toHaveCount(0);
+  await expect(page).toHaveTitle('melophile metrics');
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/');
 
   await page.evaluate(() => {
@@ -91,6 +93,7 @@ test('react renderer supports section hash routes', async ({ page }) => {
   });
   await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
   await expect(page.locator('.shell-nav-button.active')).toHaveText('settings');
+  await expect(page).toHaveTitle('melophile metrics · settings');
 });
 
 test('react renderer migrated routes avoid horizontal overflow', async ({ page }) => {

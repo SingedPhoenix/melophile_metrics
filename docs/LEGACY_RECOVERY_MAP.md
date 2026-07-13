@@ -49,6 +49,7 @@ Restored in React:
 - Lazy-loaded React routes are wrapped in a route error boundary so a failed section render can recover without blanking the full app shell.
 - Home cards and section navigation now preload lazy route chunks on hover/focus to keep navigation responsive without returning to one large bundle.
 - React route metadata, lazy loaders, preload helpers, and hash parsing are centralized in a shared route contract for safer future section additions.
+- React routes now synchronize the Electron/window title from that shared route contract, including on direct hash navigation.
 - Shared React ranked bars now keep fill widths strictly proportional while pinning value labels to the shaded edge.
 - Past Tense stats density tightened while preserving the ten-card decade row layout on wide screens.
 - Past Tense annual trend axis now uses reduced decade ticks on mobile to avoid horizontal chart overflow.

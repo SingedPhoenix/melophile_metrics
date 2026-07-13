@@ -1,11 +1,13 @@
 import { Suspense, useCallback, useEffect, useState } from 'react';
 import {
   type ActiveSection,
+  labelForSection,
   preloadSection as preloadRouteSection,
   routeForSection,
   routeScreens,
   sectionFromHash,
-  sections
+  sections,
+  titleForSection
 } from './appRoutes';
 import AppShell from './shared/AppShell';
 import RouteErrorBoundary from './shared/RouteErrorBoundary';
@@ -45,6 +47,9 @@ function App() {
   useEffect(() => {
     applyThemeByName(readStoredThemeName());
   }, []);
+  useEffect(() => {
+    document.title = titleForSection(activeSection);
+  }, [activeSection]);
 
   const ActiveScreen = activeSection === 'home' ? null : routeScreens[activeSection];
   const screen = ActiveScreen ? (
@@ -78,7 +83,7 @@ function App() {
 }
 
 function RouteLoadingPanel({ section }: { section: ActiveSection }) {
-  const label = section === 'home' ? 'sections' : section.replace('-', ' ');
+  const label = labelForSection(section);
   return (
     <section className="route-state-panel route-loading-panel" aria-label="Loading section">
       <span className="status-label">loading</span>

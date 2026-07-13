@@ -41,6 +41,17 @@ export const routeScreens = {
 
 const sectionKeys = new Set<SectionKey>(sections.map(section => section.key));
 
+export function labelForSection(section: ActiveSection) {
+  if (section === 'home') return 'sections';
+  return sections.find(item => item.key === section)?.name ?? section.replace('-', ' ');
+}
+
+export function titleForSection(section: ActiveSection) {
+  return section === 'home'
+    ? 'melophile metrics'
+    : `melophile metrics · ${labelForSection(section)}`;
+}
+
 export function sectionFromHash(hash = window.location.hash): ActiveSection {
   const raw = hash.replace(/^#\/?/, '').trim();
   return sectionKeys.has(raw as SectionKey) ? raw as SectionKey : 'home';
