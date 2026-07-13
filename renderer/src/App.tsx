@@ -1,54 +1,17 @@
-import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
+import {
+  type ActiveSection,
+  preloadSection as preloadRouteSection,
+  routeForSection,
+  routeScreens,
+  sectionFromHash,
+  sections
+} from './appRoutes';
 import AppShell from './shared/AppShell';
 import RouteErrorBoundary from './shared/RouteErrorBoundary';
 import { applyThemeByName, readStoredThemeName } from './shared/themes';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
-
-const routeLoaders = {
-  dashboard: () => import('./features/dashboard/DashboardScreen'),
-  fresh: () => import('./features/fresh/FreshScreen'),
-  frisson: () => import('./features/frisson/FrissonScreen'),
-  'gem-mines': () => import('./features/gem-mines/GemMinesScreen'),
-  ghosted: () => import('./features/ghosted/GhostedScreen'),
-  'past-tense': () => import('./features/past-tense/PastTenseScreen'),
-  pulse: () => import('./features/pulse/PulseScreen'),
-  settings: () => import('./features/settings/SettingsScreen')
-};
-
-const DashboardScreen = lazy(routeLoaders.dashboard);
-const FreshScreen = lazy(routeLoaders.fresh);
-const FrissonScreen = lazy(routeLoaders.frisson);
-const GemMinesScreen = lazy(routeLoaders['gem-mines']);
-const GhostedScreen = lazy(routeLoaders.ghosted);
-const PastTenseScreen = lazy(routeLoaders['past-tense']);
-const PulseScreen = lazy(routeLoaders.pulse);
-const SettingsScreen = lazy(routeLoaders.settings);
-
-const sections = [
-  { key: 'fresh', name: 'fresh', description: 'new-release discovery and playlist harvesting', icon: '/assets/icons/cherries.svg' },
-  { key: 'pulse', name: 'pulse', description: 'rolling listening rankings and recent momentum', icon: '/assets/icons/heartbeat-icon.svg' },
-  { key: 'gem-mines', name: 'gem mines', description: 'tiered favorites across tracks, artists, and albums', icon: '/assets/icons/diamond-gem-icon.svg' },
-  { key: 'past-tense', name: 'past tense', description: 'release-year playlist volumes and era analysis', icon: '/assets/icons/calendar-icon.svg' },
-  { key: 'dashboard', name: 'dashboard', description: 'high-level listening health and visual summaries', icon: '/assets/icons/stats.svg' },
-  { key: 'ghosted', name: 'ghosted', description: 'rediscovery queues for songs that fell quiet', icon: '/assets/icons/ghosted-clean.svg' },
-  { key: 'frisson', name: 'frisson', description: 'emotion-forward listening and song attachment', icon: '/assets/icons/emotions.svg' },
-  { key: 'settings', name: 'settings', description: 'connected accounts, local data, and appearance', icon: '/assets/icons/settings.svg' }
-] as const;
-
-type SectionKey = (typeof sections)[number]['key'];
-type ActiveSection = SectionKey | 'home';
-
-const sectionKeys = new Set<SectionKey>(sections.map(section => section.key));
-
-function sectionFromHash(): ActiveSection {
-  const raw = window.location.hash.replace(/^#\/?/, '').trim();
-  return sectionKeys.has(raw as SectionKey) ? raw as SectionKey : 'home';
-}
-
-function routeForSection(section: ActiveSection) {
-  return section === 'home' ? '#/' : `#/${section}`;
-}
 
 function App() {
   const [activeSection, setActiveSection] = useState<ActiveSection>(() => sectionFromHash());
@@ -58,7 +21,7 @@ function App() {
     if (window.location.hash !== nextRoute) window.location.hash = nextRoute;
   }, []);
   const preloadSection = useCallback((section: ActiveSection) => {
-    if (section !== 'home') routeLoaders[section]();
+    preloadRouteSection(section);
   }, []);
   const desktopStatus = useDesktopStatus();
   const yearlyRollups = useYearlyListeningRollups();
@@ -83,33 +46,20 @@ function App() {
     applyThemeByName(readStoredThemeName());
   }, []);
 
-  const screen = activeSection === 'fresh' ? (
-        <FreshScreen />
-      ) : activeSection === 'frisson' ? (
-        <FrissonScreen />
-      ) : activeSection === 'settings' ? (
-        <SettingsScreen />
-      ) : activeSection === 'ghosted' ? (
-        <GhostedScreen />
-      ) : activeSection === 'gem-mines' ? (
-        <GemMinesScreen />
-      ) : activeSection === 'dashboard' ? (
-        <DashboardScreen />
-      ) : activeSection === 'pulse' ? (
-        <PulseScreen />
-      ) : activeSection === 'past-tense' ? (
-        <PastTenseScreen />
-      ) : (
-        <HomeScreen
-          latestListen={latestListen}
-          scrobbleCount={scrobbleCount}
-          statusLabel={statusLabel}
-          topArtist={topArtist}
-          topListeningYear={topListeningYear}
-          onNavigate={navigateToSection}
-          onPreviewSection={preloadSection}
-        />
-      );
+  const ActiveScreen = activeSection === 'home' ? null : routeScreens[activeSection];
+  const screen = ActiveScreen ? (
+    <ActiveScreen />
+  ) : (
+    <HomeScreen
+      latestListen={latestListen}
+      scrobbleCount={scrobbleCount}
+      statusLabel={statusLabel}
+      topArtist={topArtist}
+      topListeningYear={topListeningYear}
+      onNavigate={navigateToSection}
+      onPreviewSection={preloadSection}
+    />
+  );
 
   return (
     <AppShell
