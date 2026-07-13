@@ -1315,6 +1315,23 @@ test('react renderer shows shared empty states for missing rollups', async ({ pa
       const card = document.querySelector('.fresh-year-card');
       const strong = card?.querySelector('strong');
       const small = card?.querySelector('small');
+      const overflow = Math.max(
+        card ? card.scrollWidth - card.clientWidth : 0,
+        strong ? strong.scrollWidth - strong.clientWidth : 0,
+        small ? small.scrollWidth - small.clientWidth : 0
+      );
+      return {
+        overflow,
+        pendingLabelIsSingleLine: strong ? getComputedStyle(strong).whiteSpace === 'nowrap' : false
+      };
+    })).toMatchObject({
+      overflow: expect.any(Number),
+      pendingLabelIsSingleLine: true
+    });
+    await expect.poll(() => page.evaluate(() => {
+      const card = document.querySelector('.fresh-year-card');
+      const strong = card?.querySelector('strong');
+      const small = card?.querySelector('small');
       return Math.max(
         card ? card.scrollWidth - card.clientWidth : 0,
         strong ? strong.scrollWidth - strong.clientWidth : 0,

@@ -1084,8 +1084,10 @@ h1 {
 }
 
 .fresh-year-card.is-pending strong {
-  font-size: clamp(44px, 5vw, 72px);
+  font-size: clamp(36px, 3.5vw, 56px);
   line-height: 0.95;
+  overflow-wrap: normal;
+  white-space: nowrap;
 }
 
 .fresh-year-card small {

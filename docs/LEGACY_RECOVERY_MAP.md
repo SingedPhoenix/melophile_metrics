@@ -57,6 +57,7 @@ Restored in React:
 - Last.fm data integrity panel in React Settings/Data with local IndexedDB cache inspection, profile-vs-cache delta checks, latest cached scrobble metadata, and cache-to-SQLite import action.
 - Direct Last.fm recent sync and full cache rebuild actions in React Settings/Data, with refreshed cache rows copied into SQLite.
 - Fresh seed/harvest path cards now keep icon, title, and description aligned in the restored two-column card layout.
+- Fresh keeps the pending current-year rank as a compact single-line status label, distinct from the large numeric-rank treatment.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
 - Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, track opening, top genre, artist image, and gem badge.
 - Smoke coverage for Spotify artist genre/image hydration in Past Tense detail views.
