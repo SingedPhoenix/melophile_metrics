@@ -45,6 +45,7 @@ Restored in React:
 - React Settings/Appearance theme selection now persists locally and applies selected theme tokens to the app shell.
 - React Settings/Appearance theme library expanded with legacy-inspired palettes grouped by color family.
 - React Settings section tabs now wrap cleanly on narrow/mobile viewports.
+- React feature screens now lazy-load as route chunks so the initial renderer bundle stays smaller while preserving hash-route navigation.
 - Shared React ranked bars now keep fill widths strictly proportional while pinning value labels to the shaded edge.
 - Past Tense stats density tightened while preserving the ten-card decade row layout on wide screens.
 - Past Tense annual trend axis now uses reduced decade ticks on mobile to avoid horizontal chart overflow.

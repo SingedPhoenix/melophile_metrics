@@ -1,16 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
-import DashboardScreen from './features/dashboard/DashboardScreen';
-import FreshScreen from './features/fresh/FreshScreen';
-import FrissonScreen from './features/frisson/FrissonScreen';
-import GemMinesScreen from './features/gem-mines/GemMinesScreen';
-import GhostedScreen from './features/ghosted/GhostedScreen';
-import PastTenseScreen from './features/past-tense/PastTenseScreen';
-import PulseScreen from './features/pulse/PulseScreen';
-import SettingsScreen from './features/settings/SettingsScreen';
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import AppShell from './shared/AppShell';
 import { applyThemeByName, readStoredThemeName } from './shared/themes';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
+
+const DashboardScreen = lazy(() => import('./features/dashboard/DashboardScreen'));
+const FreshScreen = lazy(() => import('./features/fresh/FreshScreen'));
+const FrissonScreen = lazy(() => import('./features/frisson/FrissonScreen'));
+const GemMinesScreen = lazy(() => import('./features/gem-mines/GemMinesScreen'));
+const GhostedScreen = lazy(() => import('./features/ghosted/GhostedScreen'));
+const PastTenseScreen = lazy(() => import('./features/past-tense/PastTenseScreen'));
+const PulseScreen = lazy(() => import('./features/pulse/PulseScreen'));
+const SettingsScreen = lazy(() => import('./features/settings/SettingsScreen'));
 
 const sections = [
   { key: 'fresh', name: 'fresh', description: 'new-release discovery and playlist harvesting', icon: '/assets/icons/cherries.svg' },
@@ -96,8 +97,21 @@ function App() {
 
   return (
     <AppShell activeSection={activeSection} sections={sections} onNavigate={navigateToSection}>
-      {screen}
+      <Suspense fallback={<RouteLoadingPanel section={activeSection} />}>
+        {screen}
+      </Suspense>
     </AppShell>
+  );
+}
+
+function RouteLoadingPanel({ section }: { section: ActiveSection }) {
+  const label = section === 'home' ? 'sections' : section.replace('-', ' ');
+  return (
+    <section className="route-loading-panel" aria-label="Loading section">
+      <span className="status-label">loading</span>
+      <strong>{label}</strong>
+      <span className="status-detail data-status">preparing this listening view</span>
+    </section>
   );
 }
 
