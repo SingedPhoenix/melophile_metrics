@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useState } from 'react';
 import AppShell from './shared/AppShell';
+import RouteErrorBoundary from './shared/RouteErrorBoundary';
 import { applyThemeByName, readStoredThemeName } from './shared/themes';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
@@ -97,9 +98,11 @@ function App() {
 
   return (
     <AppShell activeSection={activeSection} sections={sections} onNavigate={navigateToSection}>
-      <Suspense fallback={<RouteLoadingPanel section={activeSection} />}>
-        {screen}
-      </Suspense>
+      <RouteErrorBoundary resetKey={activeSection}>
+        <Suspense fallback={<RouteLoadingPanel section={activeSection} />}>
+          {screen}
+        </Suspense>
+      </RouteErrorBoundary>
     </AppShell>
   );
 }
@@ -107,7 +110,7 @@ function App() {
 function RouteLoadingPanel({ section }: { section: ActiveSection }) {
   const label = section === 'home' ? 'sections' : section.replace('-', ' ');
   return (
-    <section className="route-loading-panel" aria-label="Loading section">
+    <section className="route-state-panel route-loading-panel" aria-label="Loading section">
       <span className="status-label">loading</span>
       <strong>{label}</strong>
       <span className="status-detail data-status">preparing this listening view</span>

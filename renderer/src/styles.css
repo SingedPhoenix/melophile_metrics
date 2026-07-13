@@ -148,7 +148,7 @@ h1 {
   line-height: 1;
 }
 
-.route-loading-panel {
+.route-state-panel {
   display: grid;
   place-items: center;
   min-height: 360px;
@@ -163,10 +163,21 @@ h1 {
   text-align: center;
 }
 
-.route-loading-panel strong {
+.route-state-panel strong {
   margin: 12px 0 2px;
   font-size: clamp(34px, 5vw, 56px);
   line-height: 1;
+}
+
+.route-error-panel {
+  border-color: rgba(232, 174, 143, 0.25);
+  background:
+    linear-gradient(135deg, rgba(168, 88, 65, 0.12), var(--mm-surface-tint-b)),
+    rgba(204, 204, 204, 0.032);
+}
+
+.route-error-panel .secondary-action {
+  margin-top: 18px;
 }
 
 .status-detail.data-status {
@@ -196,6 +207,21 @@ h1 {
   background: rgba(204, 204, 204, 0.04);
   color: rgba(238, 238, 238, 0.78);
   cursor: pointer;
+}
+
+.secondary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(204, 204, 204, 0.12);
+  border-radius: 999px;
+  background: rgba(204, 204, 204, 0.04);
+  color: rgba(238, 238, 238, 0.78);
+  cursor: pointer;
+  font-family: "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
 }
 
 .shell-nav {
@@ -257,6 +283,8 @@ h1 {
 .section-card:focus-visible,
 .back-button:hover,
 .back-button:focus-visible,
+.secondary-action:hover,
+.secondary-action:focus-visible,
 .shell-nav-button:hover,
 .shell-nav-button:focus-visible,
 .pill:hover,
