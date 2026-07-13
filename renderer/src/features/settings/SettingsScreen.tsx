@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import MetricToggle from '../../shared/MetricToggle';
 import { applyThemeByName, readStoredThemeName, saveThemeName, themes } from '../../shared/themes';
 import {
@@ -78,6 +79,7 @@ const accountStorageKeys = {
 };
 
 function SettingsScreen() {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<SettingsTab>('accounts');
   const [selectedTheme, setSelectedTheme] = useState(() => readStoredThemeName());
   const [accountForm, setAccountForm] = useState<AccountForm>(() => readAccountFormFromStorage());
@@ -167,6 +169,12 @@ function SettingsScreen() {
     const snapshot = await readLastfmCacheSnapshot();
     setLastfmCacheSnapshot(snapshot);
     return snapshot;
+  };
+  const refreshListeningViews = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['desktop'] }),
+      queryClient.invalidateQueries({ queryKey: ['past-tense', 'track-play-counts'] })
+    ]);
   };
   useEffect(() => {
     window.addEventListener('storage', refreshCorrections);
@@ -293,7 +301,7 @@ function SettingsScreen() {
       }
       const result = await window.melophileDesktop?.importLastfmScrobbles(rows);
       const nextStatus = await window.melophileDesktop?.databaseStatus?.();
-      desktopStatus.refetch();
+      await refreshListeningViews();
       setLastfmCacheSnapshot({
         cacheCount: rows.length,
         latestUts: rows.reduce((max, row) => Math.max(max, Number(row.uts) || 0), 0),
@@ -322,7 +330,7 @@ function SettingsScreen() {
       const rows = await readLastfmCachedRows();
       const importResult = rows.length ? await window.melophileDesktop?.importLastfmScrobbles(rows) : null;
       const nextStatus = await window.melophileDesktop?.databaseStatus?.();
-      desktopStatus.refetch();
+      await refreshListeningViews();
       setLastfmProfileCount(result.profileCount);
       setLastfmCacheSnapshot({
         cacheCount: result.cacheCount,

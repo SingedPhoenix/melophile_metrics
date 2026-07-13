@@ -194,6 +194,7 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
     });
   });
   await page.addInitScript(() => {
+    localStorage.setItem('melophile.test.freshOverviewCalls', '0');
     localStorage.setItem('melophile.spotify.clientId', 'present');
     localStorage.setItem('melophile.spotify.token', JSON.stringify({
       access_token: 'test-access-token',
@@ -923,11 +924,15 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
       entityRankings: async ({ type = 'tracks' } = {}) => ({ type, rows: [] }),
       recentListening: async () => ({ scrobbles: [] }),
       ghostedTracks: async () => ({ minListens: 5, tracks: [] }),
-      freshOverview: async () => ({
-        topAlbums: [],
-        quietArtists: [{ rank: 1, artist: 'settings seed artist', listens: 120, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
-        recentArtists: [{ rank: 1, artist: 'settings recent artist', listens: 42, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
-      })
+      freshOverview: async () => {
+        const calls = Number(localStorage.getItem('melophile.test.freshOverviewCalls') || 0) + 1;
+        localStorage.setItem('melophile.test.freshOverviewCalls', String(calls));
+        return {
+          topAlbums: [],
+          quietArtists: [{ rank: 1, artist: 'settings seed artist', listens: 120, lastPlayedUts: 1766188800, daysSinceLastPlayed: 200 }],
+          recentArtists: [{ rank: 1, artist: 'settings recent artist', listens: 42, firstPlayedUts: 1735689600, lastPlayedUts: 1783468800 }]
+        };
+      }
     };
   });
   await page.goto('/dist/renderer/index.html');
@@ -993,6 +998,9 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await expect(page.getByText('2 cached scrobbles loaded.')).toBeVisible();
   await page.getByRole('button', { name: 'save cache to sqlite' }).click();
   await expect(page.getByText('Last.fm cache saved to SQLite · 2 inserted · 0 updated · 0 unchanged')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    return Number(localStorage.getItem('melophile.test.freshOverviewCalls') || 0);
+  })).toBeGreaterThanOrEqual(2);
   await page.getByRole('button', { name: 'sync new scrobbles' }).click();
   await expect(page.getByText(/3 cached scrobbles synced from Last\.fm/)).toBeVisible();
   await expect.poll(() => page.evaluate(async () => {
