@@ -547,6 +547,7 @@ h1 {
   display: grid;
   grid-template-columns: 72px minmax(0, 1fr);
   gap: 16px;
+  align-content: center;
   align-items: center;
   min-height: 140px;
   padding: 18px;
@@ -582,6 +583,7 @@ h1 {
 }
 
 .fresh-gate-card small {
+  grid-column: 2;
   margin-top: 7px;
   color: rgba(204, 204, 204, 0.48);
   font-family: "SF Mono", ui-monospace, monospace;
@@ -590,6 +592,7 @@ h1 {
 }
 
 .fresh-gate-icon {
+  grid-row: 1 / span 2;
   width: 72px;
   height: 72px;
   padding: 14px;

@@ -50,6 +50,7 @@ Restored in React:
 - Past Tense cache-pending copy now points to the restored React Settings/Data refresh workflow instead of legacy settings.
 - Last.fm data integrity panel in React Settings/Data with local IndexedDB cache inspection, profile-vs-cache delta checks, latest cached scrobble metadata, and cache-to-SQLite import action.
 - Direct Last.fm recent sync and full cache rebuild actions in React Settings/Data, with refreshed cache rows copied into SQLite.
+- Fresh seed/harvest path cards now keep icon, title, and description aligned in the restored two-column card layout.
 - Smoke coverage for React Past Tense route, metric toggle, cached playlist counts, Spotify open hook, and match watchlist.
 - Smoke coverage for Past Tense detail drill-in, back navigation, playlist opening, track opening, top genre, artist image, and gem badge.
 - Smoke coverage for Spotify artist genre/image hydration in Past Tense detail views.
@@ -65,6 +66,7 @@ Restored in React:
 - Smoke coverage against stale legacy-settings cache refresh copy in Past Tense.
 - Smoke coverage for React Settings/Data Last.fm cache loading and local SQLite import.
 - Smoke coverage for React Settings/Data Last.fm network sync, cache update, and SQLite import.
+- Smoke coverage for Fresh seed/harvest path-card description width to prevent icon-column text collapse.
 
 ## Pulse / Gem Mines / Ghosted / Frisson Gap Inventory
 

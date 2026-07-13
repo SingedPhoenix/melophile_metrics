@@ -1223,6 +1223,7 @@ test('react renderer opens migrated Fresh slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'fresh' })).toBeVisible();
   await expect(page.getByRole('button', { name: /seed/i })).toBeVisible();
   await expect(page.getByRole('button', { name: /harvest/i })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => Math.min(...Array.from(document.querySelectorAll('.fresh-gate-card small'), el => Math.round(el.getBoundingClientRect().width))))).toBeGreaterThan(180);
   const discoveryPanel = page.getByRole('article').filter({ hasText: 'discovery years' });
   await expect(discoveryPanel.getByText(/2026 is #1 for new songs discovered/i)).toBeVisible();
   await discoveryPanel.getByRole('button', { name: 'artists' }).click();
