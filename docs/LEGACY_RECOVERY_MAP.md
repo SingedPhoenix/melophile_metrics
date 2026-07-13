@@ -47,6 +47,7 @@ Restored in React:
 - React Settings section tabs now wrap cleanly on narrow/mobile viewports.
 - React feature screens now lazy-load as route chunks so the initial renderer bundle stays smaller while preserving hash-route navigation.
 - Lazy-loaded React routes are wrapped in a route error boundary so a failed section render can recover without blanking the full app shell.
+- Home cards and section navigation now preload lazy route chunks on hover/focus to keep navigation responsive without returning to one large bundle.
 - Shared React ranked bars now keep fill widths strictly proportional while pinning value labels to the shaded edge.
 - Past Tense stats density tightened while preserving the ten-card decade row layout on wide screens.
 - Past Tense annual trend axis now uses reduced decade ticks on mobile to avoid horizontal chart overflow.

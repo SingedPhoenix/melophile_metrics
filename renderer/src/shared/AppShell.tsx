@@ -12,13 +12,15 @@ type AppShellProps<SectionKey extends string> = {
   children: ReactNode;
   sections: readonly AppSection[];
   onNavigate: (section: SectionKey | 'home') => void;
+  onPreviewSection?: (section: SectionKey | 'home') => void;
 };
 
 function AppShell<SectionKey extends string>({
   activeSection,
   children,
   sections,
-  onNavigate
+  onNavigate,
+  onPreviewSection
 }: AppShellProps<SectionKey>) {
   const isHome = activeSection === 'home';
 
@@ -44,6 +46,8 @@ function AppShell<SectionKey extends string>({
                   className={isActive ? 'shell-nav-button active' : 'shell-nav-button'}
                   key={section.key}
                   type="button"
+                  onFocus={() => onPreviewSection?.(section.key as SectionKey)}
+                  onMouseEnter={() => onPreviewSection?.(section.key as SectionKey)}
                   onClick={() => onNavigate(section.key as SectionKey)}
                 >
                   {section.name}

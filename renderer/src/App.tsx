@@ -5,14 +5,25 @@ import { applyThemeByName, readStoredThemeName } from './shared/themes';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
 
-const DashboardScreen = lazy(() => import('./features/dashboard/DashboardScreen'));
-const FreshScreen = lazy(() => import('./features/fresh/FreshScreen'));
-const FrissonScreen = lazy(() => import('./features/frisson/FrissonScreen'));
-const GemMinesScreen = lazy(() => import('./features/gem-mines/GemMinesScreen'));
-const GhostedScreen = lazy(() => import('./features/ghosted/GhostedScreen'));
-const PastTenseScreen = lazy(() => import('./features/past-tense/PastTenseScreen'));
-const PulseScreen = lazy(() => import('./features/pulse/PulseScreen'));
-const SettingsScreen = lazy(() => import('./features/settings/SettingsScreen'));
+const routeLoaders = {
+  dashboard: () => import('./features/dashboard/DashboardScreen'),
+  fresh: () => import('./features/fresh/FreshScreen'),
+  frisson: () => import('./features/frisson/FrissonScreen'),
+  'gem-mines': () => import('./features/gem-mines/GemMinesScreen'),
+  ghosted: () => import('./features/ghosted/GhostedScreen'),
+  'past-tense': () => import('./features/past-tense/PastTenseScreen'),
+  pulse: () => import('./features/pulse/PulseScreen'),
+  settings: () => import('./features/settings/SettingsScreen')
+};
+
+const DashboardScreen = lazy(routeLoaders.dashboard);
+const FreshScreen = lazy(routeLoaders.fresh);
+const FrissonScreen = lazy(routeLoaders.frisson);
+const GemMinesScreen = lazy(routeLoaders['gem-mines']);
+const GhostedScreen = lazy(routeLoaders.ghosted);
+const PastTenseScreen = lazy(routeLoaders['past-tense']);
+const PulseScreen = lazy(routeLoaders.pulse);
+const SettingsScreen = lazy(routeLoaders.settings);
 
 const sections = [
   { key: 'fresh', name: 'fresh', description: 'new-release discovery and playlist harvesting', icon: '/assets/icons/cherries.svg' },
@@ -45,6 +56,9 @@ function App() {
     setActiveSection(section);
     const nextRoute = routeForSection(section);
     if (window.location.hash !== nextRoute) window.location.hash = nextRoute;
+  }, []);
+  const preloadSection = useCallback((section: ActiveSection) => {
+    if (section !== 'home') routeLoaders[section]();
   }, []);
   const desktopStatus = useDesktopStatus();
   const yearlyRollups = useYearlyListeningRollups();
@@ -93,11 +107,17 @@ function App() {
           topArtist={topArtist}
           topListeningYear={topListeningYear}
           onNavigate={navigateToSection}
+          onPreviewSection={preloadSection}
         />
       );
 
   return (
-    <AppShell activeSection={activeSection} sections={sections} onNavigate={navigateToSection}>
+    <AppShell
+      activeSection={activeSection}
+      sections={sections}
+      onNavigate={navigateToSection}
+      onPreviewSection={preloadSection}
+    >
       <RouteErrorBoundary resetKey={activeSection}>
         <Suspense fallback={<RouteLoadingPanel section={activeSection} />}>
           {screen}
@@ -124,7 +144,8 @@ function HomeScreen({
   statusLabel,
   topArtist,
   topListeningYear,
-  onNavigate
+  onNavigate,
+  onPreviewSection
 }: {
   latestListen?: { track: string; artist: string };
   scrobbleCount?: number;
@@ -132,6 +153,7 @@ function HomeScreen({
   topArtist?: { artist: string; listens: number };
   topListeningYear?: { year: number; listens: number };
   onNavigate: (section: ActiveSection) => void;
+  onPreviewSection: (section: ActiveSection) => void;
 }) {
   return (
     <>
@@ -168,7 +190,14 @@ function HomeScreen({
 
       <section className="section-grid" aria-label="App sections">
         {sections.map(section => (
-          <button className="section-card" key={section.name} type="button" onClick={() => onNavigate(section.key)}>
+          <button
+            className="section-card"
+            key={section.name}
+            type="button"
+            onFocus={() => onPreviewSection(section.key)}
+            onMouseEnter={() => onPreviewSection(section.key)}
+            onClick={() => onNavigate(section.key)}
+          >
             <span className="section-icon-wrap">
               <img src={section.icon} alt="" aria-hidden="true" />
             </span>
