@@ -1306,6 +1306,19 @@ test('react renderer shows shared empty states for missing rollups', async ({ pa
   await expect(page.getByText('no annual rankings yet')).toBeVisible();
   await expect(page.getByText('no quiet favorites yet')).toBeVisible();
   await expect(page.getByText('no album rankings yet')).toBeVisible();
+  for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 900 }]) {
+    await page.setViewportSize(viewport);
+    await expect.poll(() => page.evaluate(() => {
+      const card = document.querySelector('.fresh-year-card');
+      const strong = card?.querySelector('strong');
+      const small = card?.querySelector('small');
+      return Math.max(
+        card ? card.scrollWidth - card.clientWidth : 0,
+        strong ? strong.scrollWidth - strong.clientWidth : 0,
+        small ? small.scrollWidth - small.clientWidth : 0
+      );
+    })).toBeLessThanOrEqual(1);
+  }
 
   await page.getByRole('button', { name: 'gem mines' }).click();
   await expect(page.getByText('no entries found in this mine')).toBeVisible();

@@ -1010,6 +1010,10 @@ h1 {
   min-height: 270px;
 }
 
+.fresh-year-card > * {
+  min-width: 0;
+}
+
 .fresh-year-card span,
 .fresh-year-card small,
 .fresh-year-card p,
@@ -1027,6 +1031,17 @@ h1 {
   margin: 18px 0 10px;
   font-size: clamp(64px, 9vw, 112px);
   line-height: 0.86;
+  overflow-wrap: anywhere;
+}
+
+.fresh-year-card.is-pending strong {
+  font-size: clamp(44px, 5vw, 72px);
+  line-height: 0.95;
+}
+
+.fresh-year-card small {
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .fresh-year-card p {

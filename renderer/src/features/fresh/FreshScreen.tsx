@@ -267,7 +267,7 @@ function FreshScreen() {
       )}
 
       <section className="fresh-summary-grid">
-        <article className="stats-panel fresh-year-card">
+        <article className={`stats-panel fresh-year-card${currentRow ? '' : ' is-pending'}`}>
           <span>current year rank</span>
           <strong>{currentRow ? `#${currentRow.rank}` : 'pending'}</strong>
           <small>
