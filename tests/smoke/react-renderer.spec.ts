@@ -63,6 +63,20 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
   await page.goto('/dist/renderer/index.html');
 
   await expect(page.getByText('melophile metrics')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const wordmark = document.querySelector('.brand-name');
+    const melophile = document.querySelector('.brand-name-melophile');
+    const metrics = document.querySelector('.brand-name-metrics');
+    return {
+      font: wordmark ? getComputedStyle(wordmark).fontFamily : '',
+      melophileColor: melophile ? getComputedStyle(melophile).color : '',
+      metricsBackground: metrics ? getComputedStyle(metrics).backgroundImage : ''
+    };
+  })).toEqual({
+    font: expect.stringContaining('Neonderthaw'),
+    melophileColor: 'rgb(247, 247, 247)',
+    metricsBackground: expect.stringContaining('linear-gradient')
+  });
   await expect(page.getByRole('heading', { name: 'choose a listening lens' })).toBeVisible();
   await expect(page.getByText('desktop listening archive')).toBeVisible();
   await expect(page.getByText('173,971 sqlite scrobbles')).toBeVisible();
@@ -1069,11 +1083,13 @@ test('react renderer opens migrated Settings slice', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => ({
     stored: localStorage.getItem('melophile.react.theme.v1'),
     active: document.documentElement.dataset.themeName,
-    accent: getComputedStyle(document.documentElement).getPropertyValue('--mm-accent-text').trim()
+    accent: getComputedStyle(document.documentElement).getPropertyValue('--mm-accent-text').trim(),
+    brandGradient: getComputedStyle(document.documentElement).getPropertyValue('--mm-brand-metrics-gradient').trim()
   }))).toEqual({
     stored: 'topaz mine',
     active: 'topaz mine',
-    accent: 'rgba(213, 161, 47, 0.78)'
+    accent: 'rgba(213, 161, 47, 0.78)',
+    brandGradient: 'linear-gradient(90deg, #d5a12f, #1d5366)'
   });
 });
 

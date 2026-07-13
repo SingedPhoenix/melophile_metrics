@@ -27,7 +27,10 @@ function AppShell<SectionKey extends string>({
   return (
     <main className="app-shell">
       <header className="brand-header">
-        <p className="brand-name">melophile metrics</p>
+        <p className="brand-name">
+          <span className="brand-name-melophile">melophile</span>{' '}
+          <span className="brand-name-metrics">metrics</span>
+        </p>
         <p className="brand-subtitle">your listening, quantified</p>
         <p className="brand-note">desktop listening archive</p>
       </header>

@@ -13,6 +13,7 @@
   --mm-accent-text: rgba(205, 164, 198, 0.78);
   --mm-accent-alt-text: rgba(151, 164, 137, 0.78);
   --mm-bar-gradient: linear-gradient(90deg, rgba(205, 164, 198, 0.9), rgba(151, 164, 137, 0.78));
+  --mm-brand-metrics-gradient: linear-gradient(90deg, #cda4c6, #97a489);
   --mm-text-bright: #eeeeee;
   color: rgba(238, 238, 238, 0.92);
   background: #07130f;
@@ -67,10 +68,23 @@ a {
 
 .brand-name {
   margin: 0;
-  font-family: "Snell Roundhand", "Apple Chancery", cursive;
+  font-family: "Neonderthaw", "Snell Roundhand", "Apple Chancery", cursive;
   font-size: clamp(34px, 5vw, 54px);
   line-height: 1;
-  letter-spacing: 0;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.brand-name-melophile {
+  color: #f7f7f7;
+}
+
+.brand-name-metrics {
+  background: var(--mm-brand-metrics-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .brand-subtitle,

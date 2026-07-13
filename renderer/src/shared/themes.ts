@@ -92,6 +92,7 @@ export function applyThemeByName(name: string) {
   root.style.setProperty('--mm-accent-text', rgbaFromHex(primary, 0.78));
   root.style.setProperty('--mm-accent-alt-text', rgbaFromHex(secondary, 0.78));
   root.style.setProperty('--mm-bar-gradient', `linear-gradient(90deg, ${rgbaFromHex(primary, 0.9)}, ${rgbaFromHex(secondary, 0.78)})`);
+  root.style.setProperty('--mm-brand-metrics-gradient', `linear-gradient(90deg, ${primary}, ${secondary})`);
   root.style.setProperty('--mm-text-bright', text || '#eeeeee');
   root.dataset.themeName = theme.name;
   return theme;
