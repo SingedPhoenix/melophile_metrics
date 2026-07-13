@@ -300,6 +300,13 @@ test('react renderer opens migrated Past Tense slice', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'top years' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'annual preference trend' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'songs' })).toHaveClass(/active/);
+  await page.setViewportSize({ width: 390, height: 900 });
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(1);
+  await expect.poll(() => page.evaluate(() => Array.from(document.querySelectorAll('.trend-axis span'))
+    .filter(el => getComputedStyle(el).display !== 'none')
+    .map(el => el.textContent?.trim())
+    .join(','))).toBe('1970,1980,1990,2000,2010,2020,2026');
+  await page.setViewportSize({ width: 1440, height: 1000 });
   await expect(page.locator('.playlist-grid .playlist-card')).toHaveCount(57);
   await expect.poll(() => page.locator('.playlist-grid .playlist-card').evaluateAll(cards => {
     const tops = cards.slice(0, 10).map(card => Math.round(card.getBoundingClientRect().top));

@@ -3065,6 +3065,11 @@ img.playlist-cover {
     flex-direction: column;
   }
 
+  .section-heading .status-chip {
+    max-width: 100%;
+    white-space: normal;
+  }
+
   .playlist-grid {
     grid-template-columns: repeat(2, minmax(120px, 1fr));
   }
@@ -3073,6 +3078,14 @@ img.playlist-cover {
     grid-template-columns: repeat(57, minmax(3px, 1fr));
     gap: 2px;
     height: 220px;
+  }
+
+  .trend-axis {
+    font-size: 10px;
+  }
+
+  .trend-axis span:nth-child(even) {
+    display: none;
   }
 
   .pulse-list li {
