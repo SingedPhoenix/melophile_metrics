@@ -50,7 +50,7 @@ import {
   type LastfmCacheSnapshot
 } from './settingsLastfm';
 import { useDesktopStatus, useFreshOverview, useLocalServiceConfig, type LocalServiceConfig } from '../../shared/useDesktopStatus';
-import { beginSpotifyAuthorization, completeSpotifyAuthorization, getSpotifyRedirectUri, hasSpotifyAuthorization } from '../../shared/spotifyApi';
+import { beginSpotifyAuthorization, getSpotifyRedirectUri, hasSpotifyAuthorization } from '../../shared/spotifyApi';
 
 type SettingsTab = 'accounts' | 'data' | 'corrections' | 'automation' | 'appearance';
 type AccountForm = {
@@ -187,18 +187,6 @@ function SettingsScreen() {
       window.removeEventListener('storage', refreshCorrections);
       window.removeEventListener('melophile:settings-corrections-updated', refreshCorrections);
     };
-  }, []);
-  useEffect(() => {
-    void completeSpotifyAuthorization().then(result => {
-      if (result === 'connected') {
-        setSpotifyAuthorizationState(true);
-        setAccountMessage('spotify connected. playlist access is ready.');
-      } else if (result === 'canceled') {
-        setAccountMessage('spotify authorization was canceled.');
-      } else if (result === 'failed') {
-        setAccountMessage('spotify authorization failed. confirm the configured redirect URI and try again.');
-      }
-    });
   }, []);
   useEffect(() => {
     void refreshLastfmCacheSnapshot().catch(() => {

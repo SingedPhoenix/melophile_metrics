@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import {
   type ActiveSection,
   labelForSection,
@@ -12,11 +12,13 @@ import {
 import AppShell from './shared/AppShell';
 import RouteErrorBoundary from './shared/RouteErrorBoundary';
 import { applyThemeByName, readStoredThemeName } from './shared/themes';
+import { completeSpotifyAuthorization } from './shared/spotifyApi';
 import { useDesktopStatus, useListeningRollups, useRecentListening, useYearlyListeningRollups } from './shared/useDesktopStatus';
 import './styles.css';
 
 function App() {
   const [activeSection, setActiveSection] = useState<ActiveSection>(() => sectionFromHash());
+  const spotifyCallbackStarted = useRef(false);
   const navigateToSection = useCallback((section: ActiveSection) => {
     setActiveSection(section);
     const nextRoute = routeForSection(section);
@@ -47,6 +49,14 @@ function App() {
   useEffect(() => {
     applyThemeByName(readStoredThemeName());
   }, []);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if ((!params.has('code') && !params.has('error')) || spotifyCallbackStarted.current) return;
+    spotifyCallbackStarted.current = true;
+    void completeSpotifyAuthorization().then(result => {
+      if (result !== 'idle') navigateToSection('settings');
+    });
+  }, [navigateToSection]);
   useEffect(() => {
     document.title = titleForSection(activeSection);
   }, [activeSection]);

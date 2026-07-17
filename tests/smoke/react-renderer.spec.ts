@@ -100,6 +100,12 @@ test('settings exposes Spotify authorization when a client id is available', asy
   await expect(page.getByRole('button', { name: 'connect spotify' })).toBeVisible();
 });
 
+test('Spotify authorization callbacks return to Settings', async ({ page }) => {
+  await page.goto('/dist/renderer/index.html?error=access_denied');
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('#/settings');
+  await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
+});
+
 test('react renderer supports section hash routes', async ({ page }) => {
   await page.goto('/dist/renderer/index.html#/past-tense');
 
