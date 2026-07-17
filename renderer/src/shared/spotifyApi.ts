@@ -15,6 +15,11 @@ export type SpotifyToken = {
   expires_in?: number;
 };
 
+export type SpotifyAudioFeaturesProbe =
+  | { state: 'available'; fields: string[] }
+  | { state: 'not-authorized' }
+  | { state: 'unavailable'; status: number };
+
 type SpotifyAuthorization = {
   verifier: string;
   state: string;
@@ -165,6 +170,21 @@ export async function getValidSpotifyToken(clientId?: string) {
   writeJson(spotifyTokenKey, token);
   window.localStorage.removeItem(spotifyAuthNoticeKey);
   return token;
+}
+
+export async function probeSpotifyAudioFeatures(clientId?: string): Promise<SpotifyAudioFeaturesProbe> {
+  const token = await getValidSpotifyToken(clientId);
+  if (!token?.access_token) return { state: 'not-authorized' };
+
+  // Public Spotify track used only to test whether this app may read audio features.
+  const response = await fetch('https://api.spotify.com/v1/audio-features/3n3Ppam7vgaVa1iaRUc9Lp', {
+    headers: { Authorization: `Bearer ${token.access_token}` }
+  });
+  if (!response.ok) return { state: 'unavailable', status: response.status };
+  const payload = await response.json() as Record<string, unknown>;
+  const fields = ['acousticness', 'danceability', 'energy', 'instrumentalness', 'loudness', 'valence']
+    .filter(field => typeof payload[field] === 'number');
+  return { state: 'available', fields };
 }
 
 export async function spotifyFetch(pathOrUrl: string, token: { access_token?: string }, attempt = 0): Promise<any> {

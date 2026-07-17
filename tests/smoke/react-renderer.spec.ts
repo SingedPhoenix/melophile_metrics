@@ -98,6 +98,7 @@ test('settings exposes Spotify authorization when a client id is available', asy
   });
   await page.goto('/dist/renderer/index.html#/settings');
   await expect(page.getByRole('button', { name: 'connect spotify' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'test audio metrics' })).toBeVisible();
 });
 
 test('Spotify authorization callbacks return to Settings', async ({ page }) => {

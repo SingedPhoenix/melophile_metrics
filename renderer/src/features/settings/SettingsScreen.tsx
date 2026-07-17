@@ -50,7 +50,12 @@ import {
   type LastfmCacheSnapshot
 } from './settingsLastfm';
 import { useDesktopStatus, useFreshOverview, useLocalServiceConfig, type LocalServiceConfig } from '../../shared/useDesktopStatus';
-import { beginSpotifyAuthorization, getSpotifyRedirectUri, hasSpotifyAuthorization } from '../../shared/spotifyApi';
+import {
+  beginSpotifyAuthorization,
+  getSpotifyRedirectUri,
+  hasSpotifyAuthorization,
+  probeSpotifyAudioFeatures
+} from '../../shared/spotifyApi';
 
 type SettingsTab = 'accounts' | 'data' | 'corrections' | 'automation' | 'appearance';
 type AccountForm = {
@@ -86,6 +91,7 @@ function SettingsScreen() {
   const [accountForm, setAccountForm] = useState<AccountForm>(() => readAccountFormFromStorage());
   const [accountMessage, setAccountMessage] = useState('settings can be stored in this app or loaded from local private config.');
   const [spotifyAuthorizationState, setSpotifyAuthorizationState] = useState(() => hasSpotifyAuthorization());
+  const [spotifyAudioProbeMessage, setSpotifyAudioProbeMessage] = useState('audio metrics have not been checked.');
   const [pastTenseSnapshot, setPastTenseSnapshot] = useState(() => readPastTenseLiveSnapshot());
   const [pastTenseRefreshState, setPastTenseRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [pastTenseProgress, setPastTenseProgress] = useState<PastTenseRefreshProgress | null>(null);
@@ -424,6 +430,24 @@ function SettingsScreen() {
       setAccountMessage(error instanceof Error ? error.message : 'spotify authorization could not start.');
     }
   };
+  const testSpotifyAudioFeatures = async () => {
+    const clientId = accountForm.spotifyClientId.trim() || config?.spotify?.clientId || '';
+    setSpotifyAudioProbeMessage('checking spotify audio metrics...');
+    try {
+      const result = await probeSpotifyAudioFeatures(clientId);
+      if (result.state === 'available') {
+        setSpotifyAuthorizationState(true);
+        setSpotifyAudioProbeMessage(`audio metrics available: ${result.fields.join(', ') || 'endpoint responded without requested fields'}`);
+      } else if (result.state === 'not-authorized') {
+        setSpotifyAuthorizationState(false);
+        setSpotifyAudioProbeMessage('spotify connection is not active. connect spotify, then try again.');
+      } else {
+        setSpotifyAudioProbeMessage(`spotify audio metrics are unavailable to this app (HTTP ${result.status}).`);
+      }
+    } catch {
+      setSpotifyAudioProbeMessage('spotify audio metrics check failed before a response was received.');
+    }
+  };
   const saveOpenMusicAccount = () => {
     const listenbrainzUsername = accountForm.listenbrainzUsername.trim();
     const listenbrainzToken = accountForm.listenbrainzToken.trim();
@@ -622,8 +646,10 @@ function SettingsScreen() {
                 <button className="status-chip is-button" type="button" onClick={connectSpotifyAccount}>
                   {spotifyAuthorizationState ? 'reconnect spotify' : 'connect spotify'}
                 </button>
+                <button className="status-chip is-button" type="button" onClick={testSpotifyAudioFeatures}>test audio metrics</button>
               </div>
               <p className="settings-maintenance-status">spotify callback: {getSpotifyRedirectUri()}</p>
+              <p className="settings-maintenance-status">{spotifyAudioProbeMessage}</p>
             </section>
             <section className="settings-maintenance-panel settings-account-wide" aria-labelledby="open-music-account-title">
               <div>
