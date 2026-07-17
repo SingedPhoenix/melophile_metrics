@@ -87,6 +87,19 @@ test('react renderer scaffold builds and loads', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'settings' })).toBeVisible();
 });
 
+test('settings exposes Spotify authorization when a client id is available', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.melophileDesktop = {
+      platform: 'test',
+      isElectron: true,
+      readLocalConfig: async () => ({ spotify: { clientId: 'present' } }),
+      databaseStatus: async () => ({ scrobbles: 0, revisions: 0, schemaVersion: 1 })
+    };
+  });
+  await page.goto('/dist/renderer/index.html#/settings');
+  await expect(page.getByRole('button', { name: 'connect spotify' })).toBeVisible();
+});
+
 test('react renderer supports section hash routes', async ({ page }) => {
   await page.goto('/dist/renderer/index.html#/past-tense');
 

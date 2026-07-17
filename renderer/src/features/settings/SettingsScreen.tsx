@@ -50,6 +50,7 @@ import {
   type LastfmCacheSnapshot
 } from './settingsLastfm';
 import { useDesktopStatus, useFreshOverview, useLocalServiceConfig, type LocalServiceConfig } from '../../shared/useDesktopStatus';
+import { beginSpotifyAuthorization, completeSpotifyAuthorization, getSpotifyRedirectUri, hasSpotifyAuthorization } from '../../shared/spotifyApi';
 
 type SettingsTab = 'accounts' | 'data' | 'corrections' | 'automation' | 'appearance';
 type AccountForm = {
@@ -84,6 +85,7 @@ function SettingsScreen() {
   const [selectedTheme, setSelectedTheme] = useState(() => readStoredThemeName());
   const [accountForm, setAccountForm] = useState<AccountForm>(() => readAccountFormFromStorage());
   const [accountMessage, setAccountMessage] = useState('settings can be stored in this app or loaded from local private config.');
+  const [spotifyAuthorizationState, setSpotifyAuthorizationState] = useState(() => hasSpotifyAuthorization());
   const [pastTenseSnapshot, setPastTenseSnapshot] = useState(() => readPastTenseLiveSnapshot());
   const [pastTenseRefreshState, setPastTenseRefreshState] = useState<'idle' | 'running' | 'complete' | 'error'>('idle');
   const [pastTenseProgress, setPastTenseProgress] = useState<PastTenseRefreshProgress | null>(null);
@@ -143,8 +145,10 @@ function SettingsScreen() {
     },
     {
       name: 'spotify',
-      state: config?.spotify?.clientId && config?.spotify?.refreshToken ? 'ready' : 'needs auth',
-      detail: config?.spotify?.clientId ? 'client id present' : 'client id and refresh token'
+      state: spotifyAuthorizationState ? 'ready' : 'needs auth',
+      detail: spotifyAuthorizationState
+        ? 'authorized in this app'
+        : config?.spotify?.clientId ? 'client id present' : 'client id required'
     },
     {
       name: 'listenbrainz',
@@ -156,7 +160,7 @@ function SettingsScreen() {
       state: config?.musicbrainz?.contact ? 'ready' : 'needs contact',
       detail: config?.musicbrainz?.contact || 'contact string for catalog lookups'
     }
-  ]), [config]);
+  ]), [config, spotifyAuthorizationState]);
   const genreCounts = useMemo(() => genreProfileCounts(), [genreProfiles]);
   const lastfmDelta = lastfmProfileDelta(lastfmCacheSnapshot.cacheCount, lastfmProfileCount);
   const lastfmState = lastfmIntegrityState(lastfmCacheSnapshot.cacheCount, lastfmProfileCount);
@@ -183,6 +187,18 @@ function SettingsScreen() {
       window.removeEventListener('storage', refreshCorrections);
       window.removeEventListener('melophile:settings-corrections-updated', refreshCorrections);
     };
+  }, []);
+  useEffect(() => {
+    void completeSpotifyAuthorization().then(result => {
+      if (result === 'connected') {
+        setSpotifyAuthorizationState(true);
+        setAccountMessage('spotify connected. playlist access is ready.');
+      } else if (result === 'canceled') {
+        setAccountMessage('spotify authorization was canceled.');
+      } else if (result === 'failed') {
+        setAccountMessage('spotify authorization failed. confirm the configured redirect URI and try again.');
+      }
+    });
   }, []);
   useEffect(() => {
     void refreshLastfmCacheSnapshot().catch(() => {
@@ -406,6 +422,20 @@ function SettingsScreen() {
     writeAccountValue(accountStorageKeys.spotifyClientId, clientId);
     setAccountMessage('spotify client id saved locally.');
   };
+  const connectSpotifyAccount = async () => {
+    const clientId = accountForm.spotifyClientId.trim() || config?.spotify?.clientId || '';
+    if (!clientId) {
+      setAccountMessage('spotify client id is required before connecting.');
+      return;
+    }
+    writeAccountValue(accountStorageKeys.spotifyClientId, clientId);
+    setAccountMessage('opening spotify authorization...');
+    try {
+      await beginSpotifyAuthorization(clientId);
+    } catch (error) {
+      setAccountMessage(error instanceof Error ? error.message : 'spotify authorization could not start.');
+    }
+  };
   const saveOpenMusicAccount = () => {
     const listenbrainzUsername = accountForm.listenbrainzUsername.trim();
     const listenbrainzToken = accountForm.listenbrainzToken.trim();
@@ -601,7 +631,11 @@ function SettingsScreen() {
               <div className="settings-maintenance-actions">
                 <button className="status-chip is-button" type="button" onClick={saveSpotifyAccount}>save id</button>
                 <button className="status-chip is-button" type="button" onClick={loadAccountConfig}>load local config</button>
+                <button className="status-chip is-button" type="button" onClick={connectSpotifyAccount}>
+                  {spotifyAuthorizationState ? 'reconnect spotify' : 'connect spotify'}
+                </button>
               </div>
+              <p className="settings-maintenance-status">spotify callback: {getSpotifyRedirectUri()}</p>
             </section>
             <section className="settings-maintenance-panel settings-account-wide" aria-labelledby="open-music-account-title">
               <div>

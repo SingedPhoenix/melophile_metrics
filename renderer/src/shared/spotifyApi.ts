@@ -1,12 +1,24 @@
 const spotifyClientIdKey = 'melophile.spotify.clientId';
 const spotifyTokenKey = 'melophile.spotify.token';
+const spotifyAuthorizationKey = 'melophile.spotify.authorization';
 const spotifyAuthNoticeKey = 'melophile.spotify.authNotice';
+const spotifyScopes = [
+  'playlist-read-private',
+  'playlist-read-collaborative',
+  'user-modify-playback-state'
+];
 
 export type SpotifyToken = {
   access_token?: string;
   refresh_token?: string;
   expires_at?: number;
   expires_in?: number;
+};
+
+type SpotifyAuthorization = {
+  verifier: string;
+  state: string;
+  createdAt: number;
 };
 
 function readJson<T>(key: string, fallback: T): T {
@@ -32,6 +44,92 @@ export function readActiveSpotifyToken() {
   const token = readStoredSpotifyToken();
   if (!token?.access_token || !token.expires_at) return null;
   return Date.now() > token.expires_at - 60_000 ? null : token;
+}
+
+export function hasSpotifyAuthorization() {
+  const token = readStoredSpotifyToken();
+  return Boolean(token?.access_token || token?.refresh_token);
+}
+
+export function getSpotifyRedirectUri() {
+  if (typeof window === 'undefined') return '';
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+export async function beginSpotifyAuthorization(clientId?: string) {
+  if (typeof window === 'undefined') throw new Error('spotify authorization needs a browser window');
+  const resolvedClientId = (clientId || window.localStorage.getItem(spotifyClientIdKey) || '').trim();
+  if (!resolvedClientId) throw new Error('spotify client id is required');
+
+  const verifier = generateCodeVerifier();
+  const state = generateCodeVerifier().slice(0, 32);
+  const challenge = await generateCodeChallenge(verifier);
+  writeJson(spotifyAuthorizationKey, { verifier, state, createdAt: Date.now() } satisfies SpotifyAuthorization);
+  window.localStorage.removeItem(spotifyAuthNoticeKey);
+
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id: resolvedClientId,
+    scope: spotifyScopes.join(' '),
+    redirect_uri: getSpotifyRedirectUri(),
+    state,
+    code_challenge_method: 'S256',
+    code_challenge: challenge
+  });
+  window.location.assign(`https://accounts.spotify.com/authorize?${params.toString()}`);
+}
+
+export async function completeSpotifyAuthorization(): Promise<'idle' | 'connected' | 'canceled' | 'failed'> {
+  if (typeof window === 'undefined') return 'idle';
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  const authorizationError = params.get('error');
+  if (!code && !authorizationError) return 'idle';
+
+  const cleanUrl = `${window.location.pathname}#/settings`;
+  if (authorizationError) {
+    window.localStorage.setItem(spotifyAuthNoticeKey, 'spotify authorization was canceled');
+    window.history.replaceState({}, document.title, cleanUrl);
+    return 'canceled';
+  }
+  if (!code) return 'idle';
+
+  const authorization = readJson<SpotifyAuthorization | null>(spotifyAuthorizationKey, null);
+  const clientId = (window.localStorage.getItem(spotifyClientIdKey) || '').trim();
+  if (!authorization?.verifier || authorization.state !== state || !clientId) {
+    window.localStorage.setItem(spotifyAuthNoticeKey, 'spotify authorization could not be verified');
+    window.history.replaceState({}, document.title, cleanUrl);
+    return 'failed';
+  }
+
+  try {
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: clientId,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: getSpotifyRedirectUri(),
+        code_verifier: authorization.verifier
+      })
+    });
+    if (!response.ok) throw new Error('spotify token exchange failed');
+    const refreshed = await response.json();
+    writeJson(spotifyTokenKey, {
+      ...refreshed,
+      expires_at: Date.now() + (refreshed.expires_in || 3600) * 1000
+    });
+    window.localStorage.removeItem(spotifyAuthorizationKey);
+    window.localStorage.removeItem(spotifyAuthNoticeKey);
+    window.history.replaceState({}, document.title, cleanUrl);
+    return 'connected';
+  } catch {
+    window.localStorage.setItem(spotifyAuthNoticeKey, 'spotify authorization failed. reconnect spotify to try again.');
+    window.history.replaceState({}, document.title, cleanUrl);
+    return 'failed';
+  }
 }
 
 export async function getValidSpotifyToken(clientId?: string) {
@@ -85,4 +183,22 @@ export async function spotifyFetch(pathOrUrl: string, token: { access_token?: st
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function generateCodeVerifier() {
+  const bytes = new Uint8Array(64);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, value => value.toString(16).padStart(2, '0')).join('');
+}
+
+async function generateCodeChallenge(verifier: string) {
+  const bytes = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return base64UrlEncode(new Uint8Array(digest));
+}
+
+function base64UrlEncode(bytes: Uint8Array) {
+  let value = '';
+  bytes.forEach(byte => { value += String.fromCharCode(byte); });
+  return btoa(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
